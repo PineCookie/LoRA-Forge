@@ -57,7 +57,7 @@ GUI 会在提交时校验 `qwen3` / `vae`（缺失或路径不存在会直接提
    - 启用文本编码器缓存后**无法**同时训练文本编码器，因此 `network_train_unet_only` 会被自动打开。
    - 改了 `caption_dropout_rate`（或其它 caption 设置）**必须删除并重建缓存**。
 2. **2D VAE**（`qwen_image_vae_2d`）：官方 VAE 权重在加载时把 Conv3d 转成等价的 Conv2d，单图 latent 与 3D VAE 数值一致；约 2 倍速、峰值显存约 1/3。**latent 缓存场景强烈推荐**（缓存是同一份，切换 2D/3D 不需要重算）。
-3. **`torch.compile`**（`compile`）：逐 block 编译，首次迭代慢、之后明显加速；多分辨率数据集会按桶重新编译，建议 `compile_cache_size_limit=32`。与旧版 `--torch_compile` 互斥；`compile_fullgraph` 与 `split_attn` 互斥。Windows 上 `compile_dynamic=true` 需要 VS2022 C++ 编译器。
+3. **`torch.compile`**（`compile`）：逐 block 编译，首次迭代慢、之后明显加速；多分辨率数据集会按桶重新编译，建议 `compile_cache_size_limit=32`。与旧版 `--torch_compile` 互斥；`compile_fullgraph` 与 `split_attn` 互斥。Windows 上 `compile_dynamic=true` 需要 VS2022 C++ 编译器。⚠ **`compile_dynamic` 默认 `false`**，原因见第 9 节。
 4. **`cuda_allow_tf32` / `cuda_cudnn_benchmark`**：与 `compile` 无关，可单独开启（Ampere+）。
 5. **省显存**：`blocks_to_swap`（交换到 CPU 的 block 数）、`gradient_checkpointing`、`unsloth_offload_checkpointing`、`cpu_offload_checkpointing`。
    - `blocks_to_swap` 与两种 offload **互斥**；两种 offload 之间也互斥。GUI 在勾选时会自动清掉冲突项。
@@ -85,6 +85,8 @@ GUI 会在提交时校验 `qwen3` / `vae`（缺失或路径不存在会直接提
 | loss 变 NaN | 确认 PyTorch 版本足够新（Anima 需要较新的 2.x） |
 | `full_fp16 requires mixed precision='fp16'` / `blocks_to_swap is not supported with ...` | 非法的选项组合；GUI 已做联动，用自定义 TOML/预设导入时需自行避免 |
 | `compile_fullgraph cannot be used with --split_attn` | 两者互斥 |
+| 训练第一步报 `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` | torch 2.14（含 2.14.1）的 Dynamo bug（PyTorch #193194，动态形状 + 非重入 checkpoint）；保持 `compile_dynamic=false`（GUI 默认），或等 torch 2.15（修复 PR #193254）。见第 9 节 |
+| 训练时刷屏 `remark: <file>:<line>:0: N instructions in function` | triton-windows `3.8.0.post28` 的 Windows 回归（[triton-windows #54](https://github.com/triton-lang/triton-windows/issues/54)），**与本节的 Dynamo bug 无关**；升级到 `triton-windows>=3.8.0.post29` 即默认隐藏。见第 10 节 |
 | 预览"没输出" | `show_timesteps=image` 会打开 matplotlib 窗口并阻塞；在无界面环境请用 `console` |
 
 ## 7. 元数据与出图
@@ -102,3 +104,28 @@ GUI 会在提交时校验 `qwen3` / `vae`（缺失或路径不存在会直接提
 - GUI 的 schema 与预设**每次请求都从磁盘重读**，改完刷新页面即可，不需要重启后端。
 - 上游 sd-scripts 跟 `main`，未固定提交；新增/改名的上游参数会让 GUI 的选项静默失效。`mikazuki/utils/sd_scripts.py` 记录了每个功能对应的上游提交（以及无 git 时的文件特征回退），`/api/runtime` 会给出兼容性结论。
 - 建议在升级 sd-scripts 后跑一次「schema 字段 ↔ `--help`」的对照检查（见 `mikazuki/utils/sd_scripts.py` 的能力表）。
+
+## 9. torch.compile 动态形状已知问题（PyTorch #193194）
+
+- **现象**：`compile=true` 且 `compile_dynamic` 为 `true`/`auto` 时，训练在第一步就崩，报
+  `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer`。
+- **原因**：Dynamo 在追踪「非重入 checkpoint 的 HOP 子图」且启用动态形状（或 automatic-dynamic 在第二个形状重新编译）时，跨子图复用的代理无法提升为根图输入。Anima 的「同一 block 一次带 cross-attn context、一次不带」的双次遍历结构正好命中。属 **PyTorch 侧 bug，与 sd-scripts 无关**。
+  - issue：https://github.com/pytorch/pytorch/issues/193194
+  - 修复 PR（2026-08-22 合并到 main）：https://github.com/pytorch/pytorch/pull/193254
+  - **torch 2.14.0 与 2.14.1 均不含该修复**（2.14.1 是 MPS/CUDA 二进制补丁，未 cherry-pick；已核对两版的 `builder.py`/`output_graph.py` 仍为旧代码）。修复预计进入 2.15。
+- **处理**：
+  - **当前（默认）**：保持 `compile_dynamic=false`（GUI 已默认）。代价是多分辨率数据集会按 bucket 各自编译一次；把 `compile_cache_size_limit` 提到 `32` 可减少缓存抖动。这是 issue 给出的 `automatic_dynamic_shapes=False` 等价 workaround。
+  - **恢复动态形状**：等 torch 2.15（含 PR #193254）后改回 `auto`/`true`。
+  - **应急**：设环境变量 `TORCHDYNAMO_AUTOMATIC_DYNAMIC_SHAPES=0`，等价于 `dynamic=false`。
+- **版本背景**：该 bug 在 torch 2.9.1 / 2.13.0 / 2.14.x 上均可复现，并非 2.14 独有；是否触发还取决于模型结构（双次遍历 + 非重入 checkpoint + 动态形状）。
+- **易混淆**：若在 `compile_dynamic=false`（不触发本节 bug）下仍看到大量 `remark: ... N instructions in function`，那是 triton-windows 的独立回归（见第 10 节），**不需要**动 `compile_dynamic`。
+
+## 10. 运行时依赖（torch / Triton）
+
+Anima 的 `compile` 依赖 Triton，torch / triton-windows 的搭配比 sd-scripts 版本更敏感。要点：
+
+- **torch**：`pyproject.toml` 约束 `torch>=2.9,<2.15`；2.14.0 / 2.14.1 仍不含 #193194 修复（见第 9 节）。
+- **triton-windows（Windows）**：约束 `<3.9`，即 3.8.x；`3.8.0.post28` 有 `remark: ... N instructions in function` 刷屏的回归（[triton-windows #54](https://github.com/triton-lang/triton-windows/issues/54)），请使用 `>=3.8.0.post29`。官方说明 Triton 3.8 只保证配 torch 2.14 / 2.15。
+- **attn 后端**：xformers、flash-attn 需安装与 torch 版本匹配的 wheel（flash-attn 尤其按 torch 版本分别发布）。
+- **缓存**：升级 torch 或 Triton 会让 Inductor / Triton 的磁盘缓存（默认 `~/.cache/torch/inductor`、`~/.triton/cache`，可用 `TORCHINDUCTOR_CACHE_DIR` / `TRITON_CACHE_DIR` 改变位置）失效，下一次训练会重新编译一轮，之后恢复命中；这些缓存不会自动清理。
+- **升级到 torch 2.15 时**：需重建 flash-attn（并确认 xformers 有对应版本），此后可把 `compile_dynamic` 改回 `auto`/`true`。
