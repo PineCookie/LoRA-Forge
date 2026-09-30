@@ -9,26 +9,26 @@ _✨ Enjoy LoRA training! ✨_
 </div>
 
 <p align="center">
-  <a href="https://github.com/PineCookie/lora-scripts" style="margin: 2px;">
-    <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/PineCookie/lora-scripts">
+  <a href="https://github.com/PineCookie/lora-forge" style="margin: 2px;">
+    <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/PineCookie/lora-forge">
   </a>
-  <a href="https://github.com/PineCookie/lora-scripts" style="margin: 2px;">
-    <img alt="GitHub forks" src="https://img.shields.io/github/forks/PineCookie/lora-scripts">
+  <a href="https://github.com/PineCookie/lora-forge" style="margin: 2px;">
+    <img alt="GitHub forks" src="https://img.shields.io/github/forks/PineCookie/lora-forge">
   </a>
-  <a href="https://raw.githubusercontent.com/PineCookie/lora-scripts/master/LICENSE" style="margin: 2px;">
-    <img src="https://img.shields.io/github/license/PineCookie/lora-scripts" alt="license">
+  <a href="https://raw.githubusercontent.com/PineCookie/lora-forge/main/LICENSE" style="margin: 2px;">
+    <img src="https://img.shields.io/github/license/PineCookie/lora-forge" alt="license">
   </a>
-  <a href="https://github.com/PineCookie/lora-scripts/releases" style="margin: 2px;">
-    <img src="https://img.shields.io/github/v/release/PineCookie/lora-scripts?color=blueviolet&include_prereleases" alt="release">
+  <a href="https://github.com/PineCookie/lora-forge/releases" style="margin: 2px;">
+    <img src="https://img.shields.io/github/v/release/PineCookie/lora-forge?color=blueviolet&include_prereleases" alt="release">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/PineCookie/lora-scripts/releases">Download</a>
+  <a href="https://github.com/PineCookie/lora-forge/releases">Download</a>
   ·
-  <a href="https://github.com/PineCookie/lora-scripts/blob/main/README.md">Documents</a>
+  <a href="https://github.com/PineCookie/lora-forge/blob/main/README.md">Documents</a>
   ·
-  <a href="https://github.com/PineCookie/lora-scripts/blob/main/README-zh.md">中文README</a>
+  <a href="https://github.com/PineCookie/lora-forge/blob/main/README-zh.md">中文README</a>
 </p>
 
 LoRA & Dreambooth training GUI, script presets, and one-click training environment for [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts.git)
@@ -52,7 +52,7 @@ Python 3.12 and Git
 ### Clone repo with submodules
 
 ```sh
-git clone --recurse-submodules https://github.com/PineCookie/lora-scripts
+git clone --recurse-submodules https://github.com/PineCookie/lora-forge
 ```
 
 ## ✨ LoRA Forge GUI
