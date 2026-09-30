@@ -165,12 +165,12 @@ Schema.intersect([
         compile: Schema.boolean().default(false).description("启用 per-block torch.compile 加速 Anima（需 Triton），与 --torch_compile 互斥。下方子项仅在开启后生效"),
         compile_backend: Schema.union(["inductor", "eager", "aot_eager"]).default("inductor").description("torch.compile 后端"),
         compile_mode: Schema.union(["default", "reduce-overhead", "max-autotune", "max-autotune-no-cudagraphs"]).default("default").description("编译模式。max-autotune 最快但首次编译慢"),
-        compile_dynamic: Schema.union(["auto", "true", "false"]).default("auto").description("动态形状模式。Windows 上选 true 需要 VS 2022 C++ 编译器"),
+        compile_dynamic: Schema.union(["auto", "true", "false"]).default("false").description("动态形状模式。默认 false：torch 2.14 下 dynamic=true/auto 会在第一步触发 Dynamo 断言（PyTorch #193194，修复见 PR #193254，预计 2.15），故默认关闭以保证可训练。关闭后每个 bucket 会各自编译一次，建议把 compile_cache_size_limit 保持 32；Windows 上选 true 需 VS 2022 C++ 编译器"),
         compile_fullgraph: Schema.boolean().default(false).description("全图编译模式。勾选后会自动取消 split_attn"),
         compile_cache_size_limit: Schema.number().min(1).default(32).description("torch._dynamo 缓存大小限制，推荐 32"),
         cuda_allow_tf32: Schema.boolean().default(false).description("允许 TF32（Ampere+），可提升性能；与 compile 无关，可单独启用"),
         cuda_cudnn_benchmark: Schema.boolean().default(false).description("启用 cuDNN benchmark，可能提升性能；与 compile 无关，可单独启用"),
-    }).description("torch.compile / CUDA 性能优化（⚠ 需 sd-scripts v0.11.1+）"),
+    }).description("torch.compile / CUDA 性能优化（⚠ 需 sd-scripts v0.11.1+；动态形状默认 false，原因见 PyTorch #193194）"),
 
     // 分布式训练
     SHARED_SCHEMAS.DISTRIBUTED_TRAINING
