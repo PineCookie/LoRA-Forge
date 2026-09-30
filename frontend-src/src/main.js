@@ -1241,6 +1241,9 @@ const optimizerRules = [
   },
   {
     match: (optimizer) => optimizer.toLowerCase() === "prodigy",
+    values: {
+      max_grad_norm: 0,
+    },
     args: (config) => [
       "decouple=True",
       "weight_decay=0.01",
@@ -1257,6 +1260,7 @@ const optimizerRules = [
       unet_lr: 1,
       text_encoder_lr: 1,
       lr_scheduler: "constant",
+      max_grad_norm: 0,
     },
     args: (config) => [
       config.prodigyplus_d_coef !== undefined ? `d_coef=${config.prodigyplus_d_coef}` : null,

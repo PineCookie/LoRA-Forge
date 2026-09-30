@@ -158,6 +158,7 @@
                     "constant_with_warmup",
                 ]).default("cosine_with_restarts").description("学习率调度器设置"),
                 lr_warmup_steps: Schema.number().default(0).description('学习率预热步数'),
+                max_grad_norm: Schema.number().min(0).step(0.1).default(1.0).description("梯度裁剪最大范数，0 = 不裁剪。sd-scripts 默认 1.0；Prodigy / ProdigyPlus 等自适应优化器建议设为 0（切换优化器时会自动设置）"),
             }).description("学习率与优化器设置"),
 
             Schema.union([
