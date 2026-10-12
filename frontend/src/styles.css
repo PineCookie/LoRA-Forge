@@ -988,6 +988,32 @@ button.danger:hover {
 
 /* --- additions for the Vue UI --- */
 
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-footer {
+  display: grid;
+  gap: 2px;
+  margin: auto 8px 0;
+  padding-top: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sidebar .sidebar-footer a {
+  padding: 0;
+  color: var(--muted);
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.sidebar .sidebar-footer a:hover {
+  background: none;
+  color: var(--primary);
+}
+
 .muted {
   margin: 0;
   color: var(--muted);

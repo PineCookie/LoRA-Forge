@@ -8,7 +8,7 @@ from typing import Dict, List
 
 import psutil
 
-from mikazuki.log import log
+from lora_forge.log import log
 
 _mswindows = os.name == "nt"
 
@@ -62,10 +62,6 @@ class Task:
         retcode = self.process.poll()
         self._mark_finished()
         return CompletedProcess(self.process.args, retcode, stdout, stderr)
-
-    def wait(self):
-        self.process.wait()
-        self._mark_finished()
 
     def execute(self) -> bool:
         """Start the process. Returns False if the task was terminated before it started."""
@@ -127,18 +123,10 @@ class TaskManager:
         log.info(f"Task {task_id} created")
         return task
 
-    def add_task(self, task_id: str, task: Task):
-        self.tasks[task_id] = task
-
     def terminate_task(self, task_id: str):
         if task_id in self.tasks:
             task = self.tasks[task_id]
             task.terminate()
-
-    def wait_for_process(self, task_id: str):
-        if task_id in self.tasks:
-            task: Task = self.tasks[task_id]
-            task.wait()
 
     def dump(self) -> List[Dict]:
         return [

@@ -1,15 +1,12 @@
+"""Checks run on a submitted training config before anything is started."""
+
 from enum import Enum
-import glob
 import os
-import re
-import shutil
-import sys
 import json
 from typing import Dict
 
-from mikazuki.log import log
-
-python_bin = sys.executable
+from lora_forge.log import log
+from lora_forge.training.dataset import count_images, subset_folders
 
 
 class ModelType(Enum):
@@ -96,11 +93,9 @@ MODEL_SIGNATURE = [
 ]
 
 
-def is_promopt_like(s):
-    for p in ["--n", "--s", "--l", "--d"]:
-        if p in s:
-            return True
-    return False
+def is_prompt_like(s):
+    """Whether `s` uses sd-scripts' prompt option syntax (`--n`, `--s`, `--l`, `--d`)."""
+    return any(option in s for option in ("--n", "--s", "--l", "--d"))
 
 
 def match_model_type_legacy(sig_content: bytes):
@@ -244,71 +239,27 @@ def validate_anima_model_paths(qwen3, vae):
     return True, "ok"
 
 
-def validate_data_dir(path):
-    if not os.path.exists(path):
-        log.error(f"Data dir {path} not exists, check your params")
-        return False
+def validate_data_dir(path) -> tuple[bool, str]:
+    """The dataset must be a folder of `repeats_name` subfolders (e.g. `10_mychar`), the layout
+    sd-scripts' DreamBooth-style datasets use. The user's files are never moved or changed."""
+    if not path or not os.path.isdir(path):
+        return False, f"训练数据集路径不存在，请检查目录：{path}"
 
-    dir_content = os.listdir(path)
+    subsets = subset_folders(path)
+    if not subsets:
+        loose = count_images(path, recursive=False)
+        found = f"目录下直接放了 {loose} 张图片。" if loose else ""
+        return False, (
+            f"训练数据集路径下没有 `重复次数_名称` 格式的子文件夹（例如 `10_mychar`）。{found}"
+            "请新建这样的子文件夹，把图片和标注文件放进去；数字为每个 epoch 的重复次数。"
+        )
 
-    if len(dir_content) == 0:
-        log.error(f"Data dir {path} is empty, check your params")
+    images = sum(count_images(os.path.join(path, name)) for name, _repeats, _tokens in subsets)
+    if images == 0:
+        return False, "训练数据集的子文件夹中没有图片（支持 jpg / jpeg / png / webp / bmp）。"
 
-    subdirs = [f for f in dir_content if os.path.isdir(os.path.join(path, f))]
-
-    if len(subdirs) == 0:
-        log.warning(f"No subdir found in data dir")
-
-    ok_dir = [d for d in subdirs if re.findall(r"^\d+_.+", d)]
-
-    if len(ok_dir) > 0:
-        log.info(f"Found {len(ok_dir)} legal dataset")
-        return True
-
-    if len(ok_dir) == 0:
-        log.warning(f"No leagal dataset found. Try find avaliable images")
-        imgs = get_total_images(path, False)
-        captions = glob.glob(path + '/*.txt')
-        log.info(f"{len(imgs)} images found, {len(captions)} captions found")
-        if len(imgs) > 0:
-            num_repeat = suggest_num_repeat(len(imgs))
-            dataset_path = os.path.join(path, f"{num_repeat}_zkz")
-            os.makedirs(dataset_path)
-            for i in imgs:
-                shutil.move(i, dataset_path)
-            if len(captions) > 0:
-                for c in captions:
-                    shutil.move(c, dataset_path)
-            log.info(f"Auto dataset created {dataset_path}")
-        else:
-            log.error("No image found in data dir")
-            return False
-
-    return True
-
-
-def suggest_num_repeat(img_count):
-    if img_count <= 10:
-        return 7
-    elif 10 < img_count <= 50:
-        return 5
-    elif 50 < img_count <= 100:
-        return 3
-
-    return 1
-
-
-def get_total_images(path, recursive=True):
-    if recursive:
-        image_files = glob.glob(path + '/**/*.jpg', recursive=True)
-        image_files += glob.glob(path + '/**/*.jpeg', recursive=True)
-        image_files += glob.glob(path + '/**/*.png', recursive=True)
-    else:
-        image_files = glob.glob(path + '/*.jpg')
-        image_files += glob.glob(path + '/*.jpeg')
-        image_files += glob.glob(path + '/*.png')
-    return image_files
-
+    log.info(f"Found {len(subsets)} dataset subfolders with {images} images")
+    return True, "ok"
 
 def fix_config_types(config: dict):
     keep_float_params = [

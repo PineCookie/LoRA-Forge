@@ -98,8 +98,8 @@ GUI 会在提交时校验 `qwen3` / `vae`（缺失或路径不存在会直接提
 ## 8. 给维护者的备注
 
 - GUI 的 schema 与预设**每次请求都从磁盘重读**，改完刷新页面即可，不需要重启后端。
-- 上游 sd-scripts 跟 `main`，未固定提交；新增/改名的上游参数会让 GUI 的选项静默失效。`mikazuki/utils/sd_scripts.py` 记录了每个功能对应的上游提交（以及无 git 时的文件特征回退），`/api/runtime` 会给出兼容性结论。
-- 建议在升级 sd-scripts 后跑一次「schema 字段 ↔ `--help`」的对照检查（见 `mikazuki/utils/sd_scripts.py` 的能力表）。
+- 上游 sd-scripts 跟 `main`，未固定提交；新增/改名的上游参数会让 GUI 的选项静默失效。`lora_forge/sd_scripts.py` 记录了每个功能对应的上游提交（以及无 git 时的文件特征回退），`/api/runtime` 会给出兼容性结论。
+- 建议在升级 sd-scripts 后跑一次「schema 字段 ↔ `--help`」的对照检查（见 `lora_forge/sd_scripts.py` 的能力表）。
 
 ## 9. torch.compile 动态形状已知问题（PyTorch #193194）
 

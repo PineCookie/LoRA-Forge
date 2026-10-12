@@ -1,13 +1,17 @@
+"""Start sd-scripts training runs as background tasks."""
 
-import asyncio
 import os
-import sys
 import re
+import sys
+import threading
 from typing import Optional
 
-from mikazuki.app.models import APIResponse
-from mikazuki.log import log
-from mikazuki.tasks import TaskStatus, tm
+from lora_forge.log import log
+from lora_forge.training.tasks import TaskStatus, tm
+
+
+class TaskNotStartedError(RuntimeError):
+    """The task manager refused a new task (one is already running); the message is user-facing."""
 
 
 def _physical_devices(indices: list[int]) -> list[str]:
@@ -19,25 +23,26 @@ def _physical_devices(indices: list[int]) -> list[str]:
     return [visible[i] if i < len(visible) else str(i) for i in indices]
 
 
-def run_train(toml_path: str,
-              trainer_file: str = "./scripts/train_network.py",
-              gpu_ids: Optional[list] = None,
-              cpu_threads: Optional[int] = 2):
+def start_training(toml_path: str,
+                   trainer_file: str,
+                   gpu_ids: Optional[list] = None,
+                   cpu_threads: int = 2) -> str:
+    """Launch `trainer_file` with `toml_path` through accelerate; returns the task id."""
     log.info(f"Training started with config file / 训练开始，使用配置文件: {toml_path}")
     args = [
         sys.executable, "-m", "accelerate.commands.launch",  # use -m to avoid python script executable error
-        "--num_cpu_threads_per_process", str(cpu_threads),  # cpu threads
+        "--num_cpu_threads_per_process", str(cpu_threads),
         "--quiet",  # silence accelerate error message
         trainer_file,
         "--config_file", toml_path,
     ]
 
-    customize_env = os.environ.copy()
-    customize_env["ACCELERATE_DISABLE_RICH"] = "1"
-    customize_env["PYTHONUNBUFFERED"] = "1"
+    environ = os.environ.copy()
+    environ["ACCELERATE_DISABLE_RICH"] = "1"
+    environ["PYTHONUNBUFFERED"] = "1"
     if sys.platform == "win32":
-        customize_env["PYTHONUTF8"] = "0"
-    customize_env["PYTHONWARNINGS"] = "ignore::FutureWarning,ignore::UserWarning"
+        environ["PYTHONUTF8"] = "0"
+    environ["PYTHONWARNINGS"] = "ignore::FutureWarning,ignore::UserWarning"
 
     if gpu_ids:
         gpu_indices = [int(re.search(r"GPU\s+(\d+):", gpu).group(1)) for gpu in gpu_ids]
@@ -49,19 +54,20 @@ def run_train(toml_path: str,
         gpu_indices = [0]
         log.info("No GPU selected, using the first GPU / 未选择显卡，默认使用第一张显卡")
 
-    customize_env["CUDA_VISIBLE_DEVICES"] = ",".join(_physical_devices(gpu_indices))
-    log.info(f"CUDA_VISIBLE_DEVICES={customize_env['CUDA_VISIBLE_DEVICES']}")
+    environ["CUDA_VISIBLE_DEVICES"] = ",".join(_physical_devices(gpu_indices))
+    log.info(f"CUDA_VISIBLE_DEVICES={environ['CUDA_VISIBLE_DEVICES']}")
 
     if len(gpu_indices) > 1:
         args[3:3] = ["--multi_gpu", "--num_processes", str(len(gpu_indices))]
         if sys.platform == "win32":
-            customize_env["USE_LIBUV"] = "0"
+            environ["USE_LIBUV"] = "0"
             args[3:3] = ["--rdzv_backend", "c10d"]
 
-    if not (task := tm.create_task(args, customize_env)):
-        return APIResponse(status="fail", message="Failed to create task / 无法创建训练任务", data=None)
+    task = tm.create_task(args, environ)
+    if task is None:
+        raise TaskNotStartedError("已有训练任务正在运行，无法创建新任务 / A training task is already running")
 
-    def _run():
+    def run():
         try:
             if not task.execute():
                 log.info("Training cancelled before it started / 训练在启动前已取消")
@@ -70,13 +76,11 @@ def run_train(toml_path: str,
             if task.status == TaskStatus.TERMINATED:
                 log.info("Training terminated / 训练已终止")
             elif result.returncode != 0:
-                log.error(f"Training failed / 训练失败")
+                log.error("Training failed / 训练失败")
             else:
-                log.info(f"Training finished / 训练完成")
+                log.info("Training finished / 训练完成")
         except Exception as e:
             log.error(f"An error occurred when training / 训练出现致命错误: {e}")
 
-    coro = asyncio.to_thread(_run)
-    asyncio.create_task(coro)
-
-    return APIResponse(status="success", message=f"Training started / 训练开始 ID: {task.task_id}", data=None)
+    threading.Thread(target=run, name=f"training-{task.task_id}", daemon=True).start()
+    return task.task_id

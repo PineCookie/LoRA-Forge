@@ -31,13 +31,13 @@ _✨ Enjoy LoRA training! ✨_
   <a href="https://github.com/PineCookie/lora-forge/blob/main/README-zh.md">中文README</a>
 </p>
 
-LoRA & Dreambooth training GUI, script presets, and one-click training environment for [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts.git)
+LoRA & Dreambooth training GUI and one-click training environment for [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts.git)
 
 **WARNING: This project is mainly maintained for personal use. It aims to continue the easy-to-use UI and workflow from [lora-scripts](https://github.com/Akegarasu/lora-scripts), and may currently contain many bugs. Suggestions and PRs are welcome!**
 
 ## ✨ New: Anima LoRA Training
 
-- [x] Refactor the UI to support model-specific training parameters, including Anima. Currently Native JS + HTML
+- [x] Refactor the UI to support model-specific training parameters, including Anima (Vue 3 + TypeScript)
 - [x] Use uv to install and manage the environment instead of relying on requirements.txt or legacy install scripts
 - [ ] Support Torch installation for different GPUs
 - [ ] Add missing features from the original frontend
@@ -91,7 +91,7 @@ The web UI is a Vue 3 + TypeScript app in `frontend/`. To work on it with hot re
 cd frontend
 npm ci
 npm run dev        # serves the UI and forwards /api to the GUI on port 28000
-npm test           # unit tests (they evaluate the schemas in mikazuki/schema)
+npm test           # unit tests (they evaluate the schemas in lora_forge/schema)
 npm run typecheck
 ```
 
@@ -144,6 +144,25 @@ Which Anima options actually take effect, the sd-scripts version each one needs,
 recipes and the known silent-failure traps are documented in [docs/anima.md](docs/anima.md)
 (Chinese). The About page shows an `sd-scripts 兼容性` line for the installed checkout.
 
-## Thanks
+## Project layout
 
-This project is based on Akegarasu's original [lora-scripts](https://github.com/Akegarasu/lora-scripts) project. Thanks to Akegarasu and the original contributors for building the foundation.
+| Path | What it is |
+|---|---|
+| `main.py` | Entry point (GUI and the `update-sd-scripts` command) |
+| `run_gui.ps1`, `run_gui.sh` | Launchers: set up uv and the dependencies, then run `main.py` |
+| `lora_forge/` | Python backend: web server and API (`app/`), training config, validation and runs (`training/`), sd-scripts compatibility checks |
+| `lora_forge/schema/` | Training form definitions, read by the web UI |
+| `frontend/` | Vue 3 + TypeScript web UI |
+| `scripts/sd-scripts` | kohya-ss/sd-scripts checkout, cloned on first start (not part of this repository) |
+
+The backend package was named `mikazuki` in upstream lora-scripts. It was renamed to `lora_forge` in October 2026, together with its environment variables (`MIKAZUKI_*` → `LORA_FORGE_*`).
+
+## License and credits
+
+LoRA-Forge is a modified version of [lora-scripts](https://github.com/Akegarasu/lora-scripts) by Akegarasu and contributors. It was forked in May 2026 and has been substantially changed since (Vue web UI, Anima training, reworked backend and launchers). Like the original, it is licensed under the **GNU Affero General Public License v3.0**; see [LICENSE](LICENSE).
+
+- If you run a modified version as a network service (for example with `--listen`), AGPL section 13 requires offering its source code to the users. The web UI links to this repository for that; point the link at your own source if you host a modified version.
+- [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) (Apache-2.0) is downloaded into `scripts/sd-scripts` on first start and is not distributed with this repository.
+- The built web UI bundles Vue and vue-router (MIT). Their license notices are in `frontend/dist/THIRD-PARTY-LICENSES.md`, which is included in the release zip.
+
+Thanks to Akegarasu and the original contributors for building the foundation.

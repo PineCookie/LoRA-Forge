@@ -15,8 +15,8 @@ from pathlib import Path
 import subprocess
 from typing import Dict, Iterable, List, Mapping, Optional, Set
 
-from mikazuki.launch_utils import base_dir_path
-from mikazuki.log import log
+from lora_forge.launcher import base_dir_path
+from lora_forge.log import log
 
 
 @dataclass(frozen=True)

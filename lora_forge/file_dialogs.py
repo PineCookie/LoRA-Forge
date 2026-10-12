@@ -1,6 +1,6 @@
 import os
 import sys
-from mikazuki.log import log
+from lora_forge.log import log
 
 try:
     import tkinter

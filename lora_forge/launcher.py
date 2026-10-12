@@ -4,12 +4,9 @@ import subprocess
 import sys
 import socket
 from pathlib import Path
-from typing import Optional
 import tomllib
 
-from mikazuki.log import log
-
-python_bin = sys.executable
+from lora_forge.log import log
 
 
 def base_dir_path():
@@ -141,43 +138,6 @@ def git_tag(path: str) -> str:
         return "<none>"
 
 
-def run(command,
-        desc: Optional[str] = None,
-        errdesc: Optional[str] = None,
-        custom_env: Optional[list] = None,
-        live: Optional[bool] = True,
-        shell: Optional[bool] = None):
-
-    if shell is None:
-        shell = False if sys.platform == "win32" else True
-
-    if desc is not None:
-        print(desc)
-
-    if live:
-        result = subprocess.run(command, shell=shell, env=os.environ if custom_env is None else custom_env)
-        if result.returncode != 0:
-            raise RuntimeError(f"""{errdesc or 'Error running command'}.
-Command: {command}
-Error code: {result.returncode}""")
-
-        return ""
-
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            shell=shell, env=os.environ if custom_env is None else custom_env)
-
-    if result.returncode != 0:
-        message = f"""{errdesc or 'Error running command'}.
-Command: {command}
-Error code: {result.returncode}
-stdout: {result.stdout.decode(encoding="utf8", errors="ignore") if len(result.stdout) > 0 else '<empty>'}
-stderr: {result.stderr.decode(encoding="utf8", errors="ignore") if len(result.stderr) > 0 else '<empty>'}
-"""
-        raise RuntimeError(message)
-
-    return result.stdout.decode(encoding="utf8", errors="ignore")
-
-
 def catch_exception(f):
     def wrapper(*args, **kwargs):
         try:
@@ -187,7 +147,7 @@ def catch_exception(f):
     return wrapper
 
 
-def check_port_avaliable(port: int):
+def check_port_available(port: int):
     try:
         s = socket.socket()
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -198,12 +158,12 @@ def check_port_avaliable(port: int):
         return False
 
 
-def find_avaliable_ports(port_init: int, port_range: int):
+def find_available_ports(port_init: int, port_range: int):
     server_ports = range(port_init, port_range)
 
     for p in server_ports:
-        if check_port_avaliable(p):
+        if check_port_available(p):
             return p
 
-    log.error(f"error finding avaliable ports in range: {port_init} -> {port_range}")
+    log.error(f"error finding available ports in range: {port_init} -> {port_range}")
     return None

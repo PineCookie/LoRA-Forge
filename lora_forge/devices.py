@@ -1,4 +1,4 @@
-from mikazuki.log import log
+from lora_forge.log import log
 from packaging.version import Version
 
 available_devices = []

@@ -35,7 +35,7 @@ jobs:
 
       # lets the launcher see that the shipped UI matches the shipped source, so it never rebuilds
       - name: Record the source the UI was built from
-        run: python -m mikazuki.frontend stamp
+        run: python -m lora_forge.frontend stamp
 
       - name: Package
         run: |

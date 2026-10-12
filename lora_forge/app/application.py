@@ -5,16 +5,13 @@ import webbrowser
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from mikazuki.app.config import app_config
-from mikazuki.app.api import load_schemas, load_presets
-from mikazuki.app.api import router as api_router
-from mikazuki.app.proxy import close_proxy_clients, router as proxy_router
-from mikazuki.frontend import DIST_DIR
-from mikazuki.utils.devices import check_torch_gpu
+from lora_forge.app.api import router as api_router
+from lora_forge.app.proxy import close_proxy_clients, router as proxy_router
+from lora_forge.devices import check_torch_gpu
+from lora_forge.frontend import DIST_DIR
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
@@ -33,14 +30,10 @@ or use the ready-to-run zip from the GitHub Releases page.</p>
 
 
 async def app_startup():
-    app_config.load_config()
-
-    await load_schemas()
-    await load_presets()
     await asyncio.to_thread(check_torch_gpu)
 
-    if os.environ.get("MIKAZUKI_OPEN_BROWSER", "0") == "1":
-        webbrowser.open(f'http://{os.environ["MIKAZUKI_HOST"]}:{os.environ["MIKAZUKI_PORT"]}')
+    if os.environ.get("LORA_FORGE_OPEN_BROWSER", "0") == "1":
+        webbrowser.open(f'http://{os.environ["LORA_FORGE_HOST"]}:{os.environ["LORA_FORGE_PORT"]}')
 
 
 @asynccontextmanager
@@ -52,23 +45,9 @@ async def lifespan(app: FastAPI):
         await close_proxy_clients()
 
 
+# The UI is served from this app (or proxied by Vite's dev server), so no CORS is needed.
 app = FastAPI(lifespan=lifespan)
 app.include_router(proxy_router)
-
-
-cors_config = os.environ.get("MIKAZUKI_APP_CORS", "")
-if cors_config != "":
-    if cors_config == "1":
-        cors_config = ["http://localhost:8004", "*"]
-    else:
-        cors_config = cors_config.split(";")
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors_config,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
 
 @app.middleware("http")

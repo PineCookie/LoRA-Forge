@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { evaluateSchema, SchemaNode } from "../src/schema/dsl";
 import { buildGroups } from "../src/schema/groups";
 
-const schemaDir = fileURLToPath(new URL("../../mikazuki/schema/", import.meta.url));
+const schemaDir = fileURLToPath(new URL("../../lora_forge/schema/", import.meta.url));
 
 /** Groups for one of the real backend schema files, as the trainer page builds them. */
 export function loadGroups(name: string, cards: string[] = []) {

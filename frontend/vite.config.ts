@@ -7,6 +7,11 @@ const backend = process.env.LORA_FORGE_BACKEND ?? "http://127.0.0.1:28000";
 
 export default defineConfig({
   plugins: [vue()],
+  build: {
+    // the minified bundle drops the license comments of Vue and vue-router (MIT), so ship their
+    // notices next to it; the release zip includes this file
+    license: { fileName: "THIRD-PARTY-LICENSES.md" },
+  },
   server: {
     proxy: {
       "/api": backend,

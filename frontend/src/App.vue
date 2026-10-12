@@ -21,6 +21,11 @@ onMounted(loadApp);
     <nav>
       <RouterLink v-for="item in navigation" :key="item.path" :to="item.path" exact-active-class="active">{{ item.label }}</RouterLink>
     </nav>
+    <!-- AGPL-3.0 section 13: users of the UI over a network must be offered the source -->
+    <p class="sidebar-footer">
+      <a href="https://github.com/PineCookie/lora-forge" target="_blank" rel="noopener">源代码 · Source code</a>
+      <span>AGPL-3.0</span>
+    </p>
   </aside>
 
   <main class="workspace">

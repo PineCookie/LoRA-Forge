@@ -31,13 +31,13 @@ _✨ 享受 LoRA 训练！ ✨_
   <a href="https://github.com/PineCookie/lora-forge/blob/main/README-zh.md">中文README</a>
 </p>
 
-LoRA & Dreambooth 训练图形界面、脚本预设与一键训练环境，用于 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts.git)
+LoRA & Dreambooth 训练图形界面与一键训练环境，用于 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts.git)
 
 **WARNING: 本项目主要为个人使用，目的是延续 [lora-scripts](https://github.com/Akegarasu/lora-scripts) 的易用 UI 和工作流。当前可能存在大量 Bug，欢迎提出意见或 PR！**
 
 ## ✨ 新增：Anima LoRA 训练
 
-- [x] 重构界面以支持不同模型的训练参数，包括 Anima。目前为 Native JS + HTML
+- [x] 重构界面以支持不同模型的训练参数，包括 Anima（Vue 3 + TypeScript）
 - [x] 使用 uv 安装和管理环境，不再依赖 requirements.txt 和旧安装脚本
 - [ ] 支持不同显卡的 Torch 安装
 - [ ] 加入缺失的原前端功能
@@ -90,7 +90,7 @@ uv sync -U --extra flash-attn --find-links ./wheelhouse --no-build-package flash
 cd frontend
 npm ci
 npm run dev        # 启动界面开发服务器，并把 /api 转发到 28000 端口的 GUI
-npm test           # 单元测试（会读取 mikazuki/schema 中的 schema）
+npm test           # 单元测试（会读取 lora_forge/schema 中的 schema）
 npm run typecheck
 ```
 
@@ -121,6 +121,25 @@ npm run typecheck
 - [Anima LoRA 训练说明](docs/anima.md)：哪些选项真正生效、每个功能需要的 sd-scripts 版本、加速/显存组合，以及常见的"静默失效"陷阱。
 - 「关于」页会显示当前 sd-scripts 的**兼容性**状态。
 
-## 鸣谢
+## 项目结构
 
-本项目基于 Akegarasu 的原始项目 [lora-scripts](https://github.com/Akegarasu/lora-scripts)。感谢 Akegarasu 和原项目贡献者打下的基础。
+| 路径 | 说明 |
+|---|---|
+| `main.py` | 程序入口（GUI 与 `update-sd-scripts` 命令） |
+| `run_gui.ps1`、`run_gui.sh` | 启动脚本：准备 uv 和依赖，然后运行 `main.py` |
+| `lora_forge/` | Python 后端：网页服务与 API（`app/`）、训练配置/校验/运行（`training/`）、sd-scripts 兼容性检查 |
+| `lora_forge/schema/` | 训练表单定义，由网页界面读取 |
+| `frontend/` | Vue 3 + TypeScript 网页界面 |
+| `scripts/sd-scripts` | kohya-ss/sd-scripts，首次启动时克隆（不属于本仓库） |
+
+后端包在上游 lora-scripts 中名为 `mikazuki`，已于 2026 年 10 月改名为 `lora_forge`，环境变量也随之改为 `LORA_FORGE_*`（原 `MIKAZUKI_*`）。
+
+## 许可证与鸣谢
+
+LoRA-Forge 是 Akegarasu 及贡献者的 [lora-scripts](https://github.com/Akegarasu/lora-scripts) 的修改版本，于 2026 年 5 月分叉，此后有大幅修改（Vue 网页界面、Anima 训练、重写的后端与启动脚本）。与原项目相同，采用 **GNU Affero General Public License v3.0** 许可，见 [LICENSE](LICENSE)。
+
+- 如果把修改后的版本作为网络服务运行（例如使用 `--listen`），AGPL 第 13 条要求向使用者提供源代码。网页界面为此链接到本仓库；托管修改版时请把链接改为你自己的源代码。
+- [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)（Apache-2.0）在首次启动时下载到 `scripts/sd-scripts`，不随本仓库分发。
+- 构建后的网页界面包含 Vue 和 vue-router（MIT），其许可声明位于 `frontend/dist/THIRD-PARTY-LICENSES.md`，并包含在发布压缩包中。
+
+感谢 Akegarasu 和原项目贡献者打下的基础。

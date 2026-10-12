@@ -4,7 +4,7 @@ The built UI is not committed. Release zips ship it prebuilt; a git checkout bui
 when Node.js is available. `frontend/dist/.source-hash` records which source the build came
 from, so the launcher only rebuilds after the source changed (e.g. after `git pull`).
 
-`python -m mikazuki.frontend stamp` writes that record; the release workflow runs it after
+`python -m lora_forge.frontend stamp` writes that record; the release workflow runs it after
 building. This module only uses the standard library so CI can run it without the app's
 dependencies.
 """
@@ -75,7 +75,7 @@ def build(npm: str):
 
 def ensure_frontend():
     """Build the UI if it is missing or older than its source; never raises."""
-    from mikazuki.log import log
+    from lora_forge.log import log
 
     if is_current():
         return
@@ -106,4 +106,4 @@ if __name__ == "__main__":
     elif sys.argv[1:] == ["check"]:
         sys.exit(0 if is_current() else 1)
     else:
-        sys.exit("usage: python -m mikazuki.frontend stamp|check")
+        sys.exit("usage: python -m lora_forge.frontend stamp|check")

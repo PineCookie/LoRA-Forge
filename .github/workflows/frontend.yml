@@ -5,12 +5,12 @@ on:
     branches: [main]
     paths:
       - "frontend/**"
-      - "mikazuki/schema/**"
+      - "lora_forge/schema/**"
       - ".github/workflows/frontend.yml"
   pull_request:
     paths:
       - "frontend/**"
-      - "mikazuki/schema/**"
+      - "lora_forge/schema/**"
       - ".github/workflows/frontend.yml"
 
 permissions:
@@ -31,6 +31,6 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run typecheck
-      # the tests evaluate the real schema files in mikazuki/schema
+      # the tests evaluate the real schema files in lora_forge/schema
       - run: npm test
       - run: npm run build

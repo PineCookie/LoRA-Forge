@@ -12,19 +12,19 @@ import platform
 import subprocess
 import sys
 
-from mikazuki.frontend import ensure_frontend
-from mikazuki.launch_utils import (
+from lora_forge.frontend import ensure_frontend
+from lora_forge.launcher import (
     SD_SCRIPTS_REMOTE,
     base_dir_path,
     catch_exception,
     git_tag,
-    check_port_avaliable,
+    check_port_available,
     ensure_sd_scripts,
-    find_avaliable_ports,
+    find_available_ports,
     sd_scripts_path,
     update_sd_scripts,
 )
-from mikazuki.log import log
+from lora_forge.log import log
 
 parser = argparse.ArgumentParser(
     description="GUI for stable diffusion training",
@@ -34,7 +34,6 @@ parser.add_argument("--host", type=str, default="127.0.0.1")
 parser.add_argument("--port", type=int, default=28000, help="Port to run the server on")
 parser.add_argument("--listen", action="store_true")
 parser.add_argument("--enable-tensorboard", action="store_true")
-parser.add_argument("--disable-auto-mirror", action="store_true")
 parser.add_argument("--skip-prepare-sd-scripts", action="store_true")
 parser.add_argument("--skip-frontend-build", action="store_true", help="Do not (re)build the web UI in frontend/ on launch")
 parser.add_argument("--sd-scripts-branch", type=str, default="main", help="Branch or tag to clone from kohya-ss/sd-scripts when it is missing (e.g. 'main', 'v0.12.0')")
@@ -66,10 +65,10 @@ def launch():
     if not args.skip_frontend_build:
         ensure_frontend()
 
-    if not check_port_avaliable(args.port):
-        avaliable = find_avaliable_ports(30000, 30000+20)
-        if avaliable:
-            args.port = avaliable
+    if not check_port_available(args.port):
+        available = find_available_ports(30000, 30000+20)
+        if available:
+            args.port = available
         else:
             log.error("port finding fallback error")
 
@@ -79,20 +78,19 @@ def launch():
         args.host = "0.0.0.0"
         args.tensorboard_host = "0.0.0.0"
 
-    os.environ["MIKAZUKI_HOST"] = args.host
-    os.environ["MIKAZUKI_PORT"] = str(args.port)
-    os.environ["MIKAZUKI_TENSORBOARD_HOST"] = args.tensorboard_host
-    os.environ["MIKAZUKI_TENSORBOARD_PORT"] = str(args.tensorboard_port)
-    os.environ["MIKAZUKI_ENABLE_TENSORBOARD"] = "1" if args.enable_tensorboard else "0"
-    os.environ["MIKAZUKI_DEV"] = "1" if args.dev else "0"
-    os.environ["MIKAZUKI_OPEN_BROWSER"] = "1" if args.open_browser else "0"
+    os.environ["LORA_FORGE_HOST"] = args.host
+    os.environ["LORA_FORGE_PORT"] = str(args.port)
+    os.environ["LORA_FORGE_TENSORBOARD_HOST"] = args.tensorboard_host
+    os.environ["LORA_FORGE_TENSORBOARD_PORT"] = str(args.tensorboard_port)
+    os.environ["LORA_FORGE_ENABLE_TENSORBOARD"] = "1" if args.enable_tensorboard else "0"
+    os.environ["LORA_FORGE_OPEN_BROWSER"] = "1" if args.open_browser else "0"
 
     if args.enable_tensorboard:
         run_tensorboard()
 
     import uvicorn
     log.info(f"Server started at http://{args.host}:{args.port}")
-    uvicorn.run("mikazuki.app:app", host=args.host, port=args.port, log_level="error", reload=args.dev)
+    uvicorn.run("lora_forge.app:app", host=args.host, port=args.port, log_level="error", reload=args.dev)
 
 
 def command_update_sd_scripts(argv):

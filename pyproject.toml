@@ -1,8 +1,9 @@
 [project]
-name = "lora-scripts"
+name = "lora-forge"
 version = "0.9.1"
-description = "Add your description here"
+description = "Web UI for training LoRA models (Anima, FLUX, SD3.5, SDXL, SD1.5) with kohya-ss/sd-scripts"
 readme = "README.md"
+license-files = ["LICENSE"]
 requires-python = "==3.12.*"
 dependencies = [
     # Torch

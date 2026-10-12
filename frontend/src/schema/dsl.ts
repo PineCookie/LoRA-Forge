@@ -1,4 +1,4 @@
-// Browser-side implementation of the schema DSL used by mikazuki/schema/*.ts. The backend serves
+// Browser-side implementation of the schema DSL used by lora_forge/schema/*.ts. The backend serves
 // those files as source text; they are evaluated here with `Schema`, `SHARED_SCHEMAS`,
 // `UpdateSchema` and a `window` stand-in in scope.
 
@@ -112,5 +112,5 @@ export const SAMPLE_PROMPTS = {
 export function evaluateSchema(source: string, sharedSchemas: unknown): unknown {
   const trimmed = source.trim().replace(/;\s*$/, "");
   const evaluate = new Function("Schema", "SHARED_SCHEMAS", "UpdateSchema", "window", `"use strict"; return (${trimmed});`);
-  return evaluate(Schema, sharedSchemas, UpdateSchema, { __MIKAZUKI__: SAMPLE_PROMPTS });
+  return evaluate(Schema, sharedSchemas, UpdateSchema, { __LORA_FORGE__: SAMPLE_PROMPTS });
 }

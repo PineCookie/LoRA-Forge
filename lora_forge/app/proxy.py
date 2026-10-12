@@ -7,7 +7,7 @@ from httpx import HTTPError
 from starlette.background import BackgroundTask
 from starlette.responses import PlainTextResponse, StreamingResponse
 
-from mikazuki.log import log
+from lora_forge.log import log
 
 router = APIRouter()
 
@@ -35,8 +35,8 @@ class ProxyTarget:
 
 PROXY_TARGETS = {
     "tensorboard": ProxyTarget(
-        host_env="MIKAZUKI_TENSORBOARD_HOST",
-        port_env="MIKAZUKI_TENSORBOARD_PORT",
+        host_env="LORA_FORGE_TENSORBOARD_HOST",
+        port_env="LORA_FORGE_TENSORBOARD_PORT",
         default_host="127.0.0.1",
         default_port="6006",
     ),

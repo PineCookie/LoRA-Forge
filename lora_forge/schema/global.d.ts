@@ -1,5 +1,5 @@
 interface Window {
-    __MIKAZUKI__: any;
+    __LORA_FORGE__: any;
 }
 
 type Dict<T = any, K extends string = string> = {

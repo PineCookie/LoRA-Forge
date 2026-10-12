@@ -73,7 +73,7 @@ Schema.intersect([
         Schema.union([
             Schema.object({
                 enable_preview: Schema.const(true).required(),
-                sample_prompts: Schema.string().role('textarea').default(window.__MIKAZUKI__.SAMPLE_PROMPTS_DEFAULT).description(window.__MIKAZUKI__.SAMPLE_PROMPTS_DESCRIPTION),
+                sample_prompts: Schema.string().role('textarea').default(window.__LORA_FORGE__.SAMPLE_PROMPTS_DEFAULT).description(window.__LORA_FORGE__.SAMPLE_PROMPTS_DESCRIPTION),
                 sample_sampler: Schema.union(["ddim", "pndm", "lms", "euler", "euler_a", "heun", "dpm_2", "dpm_2_a", "dpmsolver", "dpmsolver++", "dpmsingle", "k_lms", "k_euler", "k_euler_a", "k_dpm_2", "k_dpm_2_a"]).default("euler_a").description("生成预览图所用采样器"),
                 sample_every_n_epochs: Schema.number().default(2).description("每 N 个 epoch 生成一次预览图"),
             }),
