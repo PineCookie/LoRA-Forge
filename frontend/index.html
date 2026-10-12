@@ -1,10 +1,18 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LoRA-Forge</title>
     <link rel="icon" href="/favicon.ico" sizes="any" />
+    <script>
+      // apply the saved theme before the first paint (useTheme keeps it in sync afterwards)
+      try {
+        var theme = localStorage.getItem("lora-forge.theme");
+        if (theme !== "light" && theme !== "dark") theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="app"></div>

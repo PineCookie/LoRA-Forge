@@ -169,7 +169,7 @@ Schema.intersect([
         compile_cache_size_limit: Schema.number().min(1).default(32).description("torch._dynamo cache size limit; 32 recommended"),
         cuda_allow_tf32: Schema.boolean().default(false).description("Allow TF32 (Ampere+), which can improve performance; works without compile"),
         cuda_cudnn_benchmark: Schema.boolean().default(false).description("Enable cuDNN benchmark, which may improve performance; works without compile"),
-    }).description("torch.compile / CUDA performance (⚠ needs sd-scripts v0.11.1+; dynamic shapes default to false, see PyTorch #193194)"),
+    }).description("torch.compile / CUDA performance"),
 
     // Distributed training
     SHARED_SCHEMAS.DISTRIBUTED_TRAINING

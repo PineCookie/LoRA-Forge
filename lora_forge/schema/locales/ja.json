@@ -204,7 +204,7 @@
   "Timestep offset for the preview only; no effect with sigma/uniform. ⚠ Needs sd-scripts main (> v0.11.1)": "プレビュー専用のタイムステップオフセット。sigma/uniform では無効。⚠ sd-scripts main（> v0.11.1）が必要",
   "Timestep sampling": "タイムステップのサンプリング方法",
   "torch._dynamo cache size limit; 32 recommended": "torch._dynamo のキャッシュサイズ上限。32 を推奨",
-  "torch.compile / CUDA performance (⚠ needs sd-scripts v0.11.1+; dynamic shapes default to false, see PyTorch #193194)": "torch.compile / CUDA 性能最適化（⚠ sd-scripts v0.11.1+ が必要。動的シェイプは既定で false、理由は PyTorch #193194）",
+  "torch.compile / CUDA performance": "torch.compile / CUDA 性能最適化",
   "torch.compile backend": "torch.compile バックエンド",
   "Train T5XXL (not recommended)": "T5XXL を学習（非推奨）",
   "Train the DiT/U-Net only. Required when caching text encoder outputs": "DiT/U-Net のみ学習。テキストエンコーダ出力のキャッシュ時は必須",

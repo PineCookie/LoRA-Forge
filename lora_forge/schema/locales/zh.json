@@ -204,7 +204,7 @@
   "Timestep offset for the preview only; no effect with sigma/uniform. ⚠ Needs sd-scripts main (> v0.11.1)": "预览用的时间步偏移，仅作用于预览；sigma/uniform 下无效。⚠ 需 sd-scripts main（> v0.11.1）",
   "Timestep sampling": "时间步采样",
   "torch._dynamo cache size limit; 32 recommended": "torch._dynamo 缓存大小限制，推荐 32",
-  "torch.compile / CUDA performance (⚠ needs sd-scripts v0.11.1+; dynamic shapes default to false, see PyTorch #193194)": "torch.compile / CUDA 性能优化（⚠ 需 sd-scripts v0.11.1+；动态形状默认 false，原因见 PyTorch #193194）",
+  "torch.compile / CUDA performance": "torch.compile / CUDA 性能优化",
   "torch.compile backend": "torch.compile 后端",
   "Train T5XXL (not recommended)": "训练 T5XXL（不推荐）",
   "Train the DiT/U-Net only. Required when caching text encoder outputs": "仅训练 DiT/Unet。启用文本编码器缓存时必须开启",

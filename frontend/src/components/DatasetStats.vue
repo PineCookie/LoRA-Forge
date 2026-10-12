@@ -1,22 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { api } from "../api";
+import { computed, toRef, watch } from "vue";
+import { useDatasetInfo, type DatasetInfo } from "../composables/useDatasetInfo";
 import type { SubsetOffsets } from "../config/offsets";
 import { t } from "../i18n";
+import RichText from "./RichText.vue";
 
-interface Subdir {
-  name: string;
-  concept: string;
-  repeat: number;
-  image_count: number;
-}
-
-interface DatasetInfo {
-  subdirs: Subdir[];
-  total_images: number;
-  total_images_with_repeats: number;
-}
-
+const offsets = defineModel<SubsetOffsets>("offsets", { required: true });
 const props = defineProps<{
   dir: string;
   batchSize: number;
@@ -24,78 +13,28 @@ const props = defineProps<{
   epochs: number;
   supportsOffsets: boolean;
   timestepSampling: string;
-  offsets: SubsetOffsets;
   /** bump to force a reload, e.g. after importing a config */
   refreshKey: number;
 }>();
 
-const info = ref<DatasetInfo | null>(null);
-const loading = ref(false);
-const error = ref("");
+const { info, loading, error } = useDatasetInfo(toRef(props, "dir"), toRef(props, "refreshKey"));
 
-let timer: ReturnType<typeof setTimeout> | undefined;
-let requestId = 0;
-let loadedDir: string | null = null;
-let loadedKey = -1;
-
-function clearOffsets() {
-  props.offsets.values = {};
-  props.offsets.dir = null;
-}
-
-// Drop offsets for another dataset or for subfolders that no longer exist: /api/run rejects
-// unknown folders, and the input to clear them would be gone from the UI.
-function pruneOffsets(dir: string, result: DatasetInfo) {
-  if (dir !== props.offsets.dir) {
-    props.offsets.values = {};
-    props.offsets.dir = dir;
+// Offsets belong to one dataset folder: drop them for another folder or for subfolders that no
+// longer exist (/api/run rejects unknown folders, and their inputs would be gone from the table).
+watch(info, (result: DatasetInfo | null) => {
+  const dir = props.dir.trim();
+  if (!result) {
+    if (!dir) offsets.value = { dir: null, values: {} };
+    return;
   }
   const names = new Set(result.subdirs.map((subdir) => subdir.name));
-  for (const name of Object.keys(props.offsets.values)) {
-    if (!names.has(name)) delete props.offsets.values[name];
-  }
+  const kept = offsets.value.dir === dir ? Object.entries(offsets.value.values).filter(([name]) => names.has(name)) : [];
+  offsets.value = { dir, values: Object.fromEntries(kept) };
+});
+
+function setOffset(name: string, value: string) {
+  offsets.value = { ...offsets.value, values: { ...offsets.value.values, [name]: value } };
 }
-
-watch(
-  () => [props.dir.trim(), props.refreshKey] as const,
-  ([dir, key]) => {
-    clearTimeout(timer);
-    if (!dir) {
-      requestId += 1;
-      info.value = null;
-      error.value = "";
-      loading.value = false;
-      loadedDir = null;
-      clearOffsets();
-      return;
-    }
-    if (dir === loadedDir && key === loadedKey) return;
-
-    loading.value = true;
-    error.value = "";
-    const id = (requestId += 1);
-    timer = setTimeout(async () => {
-      try {
-        const result = await api<DatasetInfo>(`/api/dataset_info?train_data_dir=${encodeURIComponent(dir)}`);
-        if (id !== requestId) return;
-        info.value = result;
-        loadedDir = dir;
-        loadedKey = key;
-        pruneOffsets(dir, result);
-      } catch (err) {
-        if (id !== requestId) return;
-        info.value = null;
-        loadedDir = null;
-        error.value = err instanceof Error ? err.message : String(err);
-      } finally {
-        if (id === requestId) loading.value = false;
-      }
-    }, 400);
-  },
-  { immediate: true },
-);
-
-onBeforeUnmount(() => clearTimeout(timer));
 
 const effectiveBatch = computed(() => props.batchSize * props.gradAcc);
 // Lower bound: all images in one bucket -> ceil(total / batch). ARB buckets batch separately,
@@ -103,29 +42,25 @@ const effectiveBatch = computed(() => props.batchSize * props.gradAcc);
 const stepsPerEpoch = computed(() => (info.value && effectiveBatch.value > 0 ? Math.ceil(info.value.total_images_with_repeats / effectiveBatch.value) : 0));
 const totalSteps = computed(() => stepsPerEpoch.value * props.epochs);
 const suggestions = computed(() =>
-  [500, 1000, 1500, 2000, 3000].map((steps) => ({ steps, epochs: Math.max(1, Math.round(steps / stepsPerEpoch.value)) })),
+  [500, 1000, 1500, 2000, 3000].map((steps) => t("dataset.suggestion", { steps: steps.toLocaleString(), epochs: Math.max(1, Math.round(steps / stepsPerEpoch.value)) })),
 );
 
-const recommendation = computed(() => {
-  if (["sigma", "uniform"].includes(props.timestepSampling)) return "sigma-uniform";
-  if (["shift", "flux_shift"].includes(props.timestepSampling)) return "shift";
-  return "default";
+const advice = computed(() => {
+  if (["sigma", "uniform"].includes(props.timestepSampling)) return t("dataset.adviceSigmaUniform");
+  if (["shift", "flux_shift"].includes(props.timestepSampling)) return t("dataset.adviceShift");
+  return t("dataset.adviceDefault");
 });
-
-function setOffset(name: string, event: Event) {
-  props.offsets.values[name] = (event.target as HTMLInputElement).value;
-}
 </script>
 
 <template>
-  <div class="dataset-stats">
-    <span v-if="loading" class="dataset-stats-loading">{{ t("dataset.loading") }}</span>
-    <span v-else-if="error" class="dataset-stats-error">{{ t("dataset.error", { error }) }}</span>
-    <div v-else-if="info" class="dataset-stats-panel">
-      <div class="dataset-stats-title">{{ t("dataset.title") }}</div>
+  <div class="dataset-stats wide">
+    <span v-if="loading" class="state">{{ t("dataset.loading") }}</span>
+    <span v-else-if="error" class="state error">{{ t("dataset.error", { error }) }}</span>
+    <div v-else-if="info" class="panel-inner">
+      <div class="title">{{ t("dataset.title") }}</div>
 
       <template v-if="info.subdirs.length">
-        <table class="dataset-stats-table">
+        <table>
           <thead>
             <tr>
               <th>{{ t("dataset.subfolder") }}</th>
@@ -143,43 +78,158 @@ function setOffset(name: string, event: Event) {
               <td>{{ subdir.image_count * subdir.repeat }}</td>
               <td v-if="supportsOffsets">
                 <input
-                  class="subset-timestep-offset"
+                  class="offset"
                   type="number"
                   step="0.01"
                   :value="offsets.values[subdir.name] ?? 0"
                   :title="t('dataset.offsetTitle')"
-                  @input="setOffset(subdir.name, $event)"
+                  @input="setOffset(subdir.name, ($event.target as HTMLInputElement).value)"
                 />
               </td>
             </tr>
           </tbody>
         </table>
         <template v-if="supportsOffsets">
-          <p class="dataset-stats-note" v-html="t('dataset.offsetNote')" />
-          <div v-if="recommendation === 'sigma-uniform'" class="timestep-offset-recommendation" v-html="t('dataset.adviceSigmaUniform')" />
-          <div v-else-if="recommendation === 'shift'" class="timestep-offset-recommendation" v-html="t('dataset.adviceShift')" />
-          <div v-else class="timestep-offset-recommendation" v-html="t('dataset.adviceDefault')" />
+          <RichText class="note" tag="p" :text="t('dataset.offsetNote')" />
+          <RichText class="advice" tag="div" :text="advice" />
         </template>
       </template>
-      <p v-else class="dataset-stats-note" v-html="t('dataset.noSubsets')" />
+      <RichText v-else class="note" tag="p" :text="t('dataset.noSubsets')" />
 
-      <div class="dataset-stats-summary">
-        <div class="stat-row"><span>{{ t("dataset.totalImages") }}</span><span>{{ info.total_images }}</span></div>
-        <div class="stat-row"><span>{{ t("dataset.totalWithRepeats") }}</span><span>{{ info.total_images_with_repeats }}</span></div>
-        <div class="stat-row"><span>{{ t("dataset.effectiveBatch") }}</span><span>{{ effectiveBatch }}</span></div>
-        <div class="stat-row"><span>{{ t("dataset.stepsPerEpoch") }}</span><span>{{ stepsPerEpoch.toLocaleString() }}</span></div>
-        <div class="stat-row stat-row-highlight">
-          <span>{{ t("dataset.totalSteps", { epochs }) }}</span><span>{{ totalSteps.toLocaleString() }}</span>
-        </div>
-      </div>
+      <dl class="summary">
+        <div><dt>{{ t("dataset.totalImages") }}</dt><dd>{{ info.total_images }}</dd></div>
+        <div><dt>{{ t("dataset.totalWithRepeats") }}</dt><dd>{{ info.total_images_with_repeats }}</dd></div>
+        <div><dt>{{ t("dataset.effectiveBatch") }}</dt><dd>{{ effectiveBatch }}</dd></div>
+        <div><dt>{{ t("dataset.stepsPerEpoch") }}</dt><dd>{{ stepsPerEpoch.toLocaleString() }}</dd></div>
+        <div class="total"><dt>{{ t("dataset.totalSteps", { epochs }) }}</dt><dd>{{ totalSteps.toLocaleString() }}</dd></div>
+      </dl>
 
       <template v-if="info.total_images_with_repeats > 0 && stepsPerEpoch > 0">
-        <div class="dataset-stats-note-bucket" v-html="t('dataset.bucketNote')" />
-        <div class="dataset-stats-suggestions">
-          <div class="dataset-stats-suggest-title">{{ t("dataset.suggestTitle") }}</div>
-          <span>{{ suggestions.map((item) => t("dataset.suggestion", { steps: item.steps.toLocaleString(), epochs: item.epochs })).join(" · ") }}</span>
+        <RichText class="bucket-note" tag="div" :text="t('dataset.bucketNote')" />
+        <div class="suggestions">
+          <div class="suggest-title">{{ t("dataset.suggestTitle") }}</div>
+          {{ suggestions.join(" · ") }}
         </div>
       </template>
     </div>
   </div>
 </template>
+
+<style scoped>
+.state {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.state.error {
+  color: var(--danger);
+}
+
+.panel-inner {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.title {
+  margin-bottom: 8px;
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+table {
+  width: 100%;
+  margin-bottom: 8px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th,
+td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.offset {
+  width: 5.5rem;
+  padding: 4px 6px;
+}
+
+.note {
+  margin: 0 0 6px;
+  color: var(--muted);
+}
+
+.advice {
+  margin: 8px 0;
+  padding: 7px 10px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-sm);
+  background: var(--info-soft);
+  color: var(--info);
+  font-size: 12px;
+}
+
+.summary {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 8px;
+}
+
+.summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.summary dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary .total {
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bucket-note {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-sm);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 12px;
+}
+
+.suggestions {
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.suggest-title {
+  margin-bottom: 2px;
+  color: var(--text);
+  font-weight: 600;
+}
+</style>

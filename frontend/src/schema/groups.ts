@@ -6,8 +6,44 @@ export interface Field {
 }
 
 export interface Group {
+  /** English section title from the schema; also identifies the section (translated when shown) */
   title: string;
   fields: Field[];
+}
+
+export type Tone = "general" | "quick" | "model" | "data" | "save" | "optimize" | "network" | "observe" | "performance";
+
+const GROUP_TONES: Record<string, Tone> = {
+  "⚡ Quick setup": "quick",
+  Model: "model",
+  "Anima options": "model",
+  "FLUX options": "model",
+  "SD3 options": "model",
+  Dataset: "data",
+  Captions: "data",
+  "Data augmentation": "data",
+  Saving: "save",
+  "Learning rate and optimizer": "optimize",
+  Optimizer: "optimize",
+  "Optimizer options": "optimize",
+  Loss: "optimize",
+  Noise: "optimize",
+  Network: "network",
+  "Network options": "network",
+  "Base weights": "network",
+  "Block-wise learning rates": "network",
+  "Preview images": "observe",
+  Logging: "observe",
+  "Speed and memory": "performance",
+  "Full precision": "performance",
+  "Distributed training": "performance",
+  GPU: "performance",
+  "torch.compile / CUDA performance": "performance",
+};
+
+/** Accent colour of a section; titles without an entry are "general". */
+export function groupTone(title: string): Tone {
+  return GROUP_TONES[title] ?? "general";
 }
 
 /** Flatten an evaluated schema into titled field groups, as the form renders them. */

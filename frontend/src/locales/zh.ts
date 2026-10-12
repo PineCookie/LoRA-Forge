@@ -1,15 +1,17 @@
 import type { Messages } from "../i18n";
 
 const zh: Messages = {
-  "app.eyebrow": "训练 UI",
   "app.loading": "正在加载训练配置…",
   "app.loadFailed": "前端加载失败",
   "app.sourceCode": "源代码",
   "app.language": "语言",
+  "app.theme": "主题",
 
   "nav.lora": "LoRA 训练",
   "nav.tasks": "任务",
   "nav.about": "关于",
+  "nav.train": "训练",
+  "nav.monitor": "监控",
 
   "home.title": "LoRA-Forge 训练 UI",
   "home.intro": "选择一个训练模式开始配置参数。配置可以导出为 JSON / TOML，并随时导入继续编辑。",
@@ -39,20 +41,18 @@ const zh: Messages = {
   "trainer.collapseAll": "全部折叠",
   "trainer.noMatch": "没有匹配 “{query}” 的参数。",
   "trainer.note.optimizer": "切换优化器时，部分学习率、调度器和 optimizer_args 会按优化器推荐值自动重置。",
-  "trainer.note.lossAnima":
-    "Anima 使用 FlowMatch 调度器：Huber schedule 的 snr 当前不支持；exponential 在网络训练路径可能可运行，但时间步缩放会让效果接近常数，通常建议使用 constant。",
+  "trainer.note.compile": "⚠ 需 sd-scripts v0.11.1+。由于 PyTorch #193194，动态形状默认为 false（见 compile_dynamic）。",
+  "trainer.note.lossAnima": "Anima 使用 FlowMatch 调度器：Huber schedule 的 snr 当前不支持；exponential 在网络训练路径可能可运行，但时间步缩放会让效果接近常数，通常建议使用 constant。",
   "trainer.note.lossMinSnr": "Min-SNR 和 Debiased Estimation loss 作用相近，通常不建议同时启用。",
-  "trainer.training": "训练",
   "trainer.start": "开始训练",
   "trainer.submitting": "正在提交…",
   "trainer.previewTimesteps": "预览时间步分布",
   "trainer.stop": "终止训练",
-  "trainer.config": "配置",
+  "trainer.import": "导入配置…",
+  "trainer.exportJson": "导出 JSON",
+  "trainer.exportToml": "导出 TOML",
   "trainer.reset": "全部重置",
-  "trainer.downloadJson": "下载配置 JSON",
-  "trainer.importJson": "导入配置 JSON",
-  "trainer.downloadToml": "下载配置 TOML",
-  "trainer.importToml": "导入配置 TOML",
+  "trainer.confirmReset": "确定要把所有参数恢复为默认值吗？",
   "trainer.generatedArgs": "生成的参数",
   "trainer.noGeneratedArgs": "当前配置不生成额外参数",
   "trainer.tomlPreview": "TOML 配置预览",
@@ -62,18 +62,20 @@ const zh: Messages = {
   "trainer.starting": "正在启动训练…",
   "trainer.previewSubmitted": "时间步预览已提交",
   "trainer.submitted": "训练任务已提交",
-  "trainer.noRunningTask": "当前没有正在运行的训练任务",
-  "trainer.confirmStop": "确定要停止任务 {id} 吗？",
-  "trainer.stopped": "已停止任务 {id}",
-  "trainer.stopFailed": "停止训练失败：{error}",
   "trainer.copied": "TOML 已复制到剪贴板",
   "trainer.copyFailed": "复制失败：浏览器拒绝访问剪贴板",
   "trainer.wrongTrainType": "当前页面只支持 {allowed}，导入文件是 {type}",
   "trainer.imported": "{format} 导入成功",
   "trainer.importFailed": "{format} 导入失败：{error}",
   "trainer.tomlTables": "当前导入器只支持训练配置使用的扁平 TOML（不支持表）",
+  "trainer.sections": "分组",
+  "trainer.changedOnly": "仅显示已修改",
+  "trainer.editedTitle": "已修改 {count} 项",
+  "trainer.noChanges": "还没有修改任何参数。",
+  "trainer.status.idle": "空闲",
 
   "field.browse": "选择",
+  "field.reset": "恢复默认值",
 
   "dataset.loading": "正在计算数据集信息…",
   "dataset.error": "无法读取数据集：{error}",
@@ -84,21 +86,18 @@ const zh: Messages = {
   "dataset.effectiveImages": "有效图片数",
   "dataset.offset": "时间步偏移",
   "dataset.offsetTitle": "负值：低噪声/细节；正值：高噪声/结构。为 0 时不改变原有行为。",
-  "dataset.offsetNote":
-    "Timestep offset：负值偏向低噪声（细节），正值偏向高噪声（结构）。记录仅适用于 FLUX / Anima 训练；0 保持旧行为。⚠ 需 sd-scripts main（&gt; v0.11.1，旧版本会静默忽略）。",
-  "dataset.adviceSigmaUniform": "<b>建议：</b>偏移在 <code>sigma</code> / <code>uniform</code> 模式下无效。如需使用该功能，请选择 <code>sigmoid</code> 作为起点。",
-  "dataset.adviceShift":
-    "<b>建议：</b><code>shift</code> / <code>flux_shift</code> 已经偏向高 timestep。从 <b>±0.25</b> 开始，谨慎使用正偏移；用 <code>show_timesteps=console</code> 先预览分布。",
+  "dataset.offsetNote": "Timestep offset：负值偏向低噪声（细节），正值偏向高噪声（结构）。记录仅适用于 FLUX / Anima 训练；0 保持旧行为。⚠ 需 sd-scripts main（> v0.11.1，旧版本会静默忽略）。",
+  "dataset.adviceSigmaUniform": "**建议：**偏移在 `sigma` / `uniform` 模式下无效。如需使用该功能，请选择 `sigmoid` 作为起点。",
+  "dataset.adviceShift": "**建议：**`shift` / `flux_shift` 已经偏向高 timestep。从 **±0.25** 开始，谨慎使用正偏移；用 `show_timesteps=console` 先预览分布。",
   "dataset.adviceDefault":
-    "<b>推荐起点：</b><code>timestep_sampling=sigmoid</code>、<code>sigmoid_scale=1.0</code>。先保持全部为 0；细节/近景子集可试 <b>-0.25</b>，全身/架构子集可试 <b>+0.25</b>。只在对比预览后再扩大到 <b>±0.5</b>。",
-  "dataset.noSubsets": "未检测到符合 <code>数字_概念名</code> 格式的子文件夹",
+    "**推荐起点：**`timestep_sampling=sigmoid`、`sigmoid_scale=1.0`。先保持全部为 0；细节/近景子集可试 **-0.25**，全身/架构子集可试 **+0.25**。只在对比预览后再扩大到 **±0.5**。",
+  "dataset.noSubsets": "未检测到符合 `数字_概念名` 格式的子文件夹",
   "dataset.totalImages": "原始图片总数",
   "dataset.totalWithRepeats": "乘以重复后的有效图片数",
   "dataset.effectiveBatch": "有效 batch size (batch × grad_accum)",
   "dataset.stepsPerEpoch": "每 epoch 最少步数",
   "dataset.totalSteps": "{epochs} epoch → 最少总步数",
-  "dataset.bucketNote":
-    "⚠ 以上为<b>下限估算</b>（假设所有图片落入同一分辨率桶）。ARB 分桶按宽高比将图片分入不同桶，每桶独立组 batch，碎片化会导致实际步数略高（通常 +1%~10%）。",
+  "dataset.bucketNote": "⚠ 以上为**下限估算**（假设所有图片落入同一分辨率桶）。ARB 分桶按宽高比将图片分入不同桶，每桶独立组 batch，碎片化会导致实际步数略高（通常 +1%~10%）。",
   "dataset.suggestTitle": "💡 参考 epoch 数（基于下限估算）",
   "dataset.suggestion": "达到 ~{steps} 步需要 {epochs} epoch",
 
@@ -108,13 +107,21 @@ const zh: Messages = {
 
   "proxy.notRunning": "{name} 未启动",
   "proxy.notStarted": "当前 UI 启动时没有启用这个服务，因此不会连接 {proxy}。",
-  "proxy.howToStart": "需要使用时，请用 <code>--enable-{service}</code> 重新启动 GUI，例如 <code>run_gui.ps1 --enable-{service}</code>。",
+  "proxy.howToStart": "需要使用时，请用 `--enable-{service}` 重新启动 GUI，例如 `run_gui.ps1 --enable-{service}`。",
 
   "toast.dismiss": "关闭通知",
 
   "api.html": "API 返回了 HTML。请通过 Python GUI 后端访问页面，而不是只用静态文件服务器。",
   "api.unparsable": "API 返回了无法解析的内容。",
   "api.failed": "请求失败",
+
+  "theme.system": "跟随系统",
+  "theme.light": "浅色",
+  "theme.dark": "深色",
+
+  "confirm.cancel": "取消",
+
+  "drawer.close": "关闭",
 };
 
 export default zh;

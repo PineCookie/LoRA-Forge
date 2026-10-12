@@ -46,16 +46,26 @@ const routes: RouteRecordRaw[] = [
   { path: "/:unknown(.*)*", component: HomeView, meta: { title: { text: BRAND } } },
 ];
 
-export const navigation: { path: string; label: Label }[] = [
-  { path: "/lora/index.html", label: { key: "nav.lora" } },
-  { path: "/lora/master.html", label: { text: "Stable Diffusion" } },
-  { path: "/lora/flux.html", label: { text: "Flux" } },
-  { path: "/lora/anima.html", label: { text: "Anima" } },
-  { path: "/lora/sd3.html", label: { text: "SD3.5" } },
-  { path: "/lora/basic.html", label: { text: "SD1.5" } },
-  { path: "/dreambooth/index.html", label: { text: "Dreambooth" } },
-  { path: "/task.html", label: { key: "nav.tasks" } },
-  { path: "/tensorboard.html", label: { text: "Tensorboard" } },
+// /lora/index.html is the home page under its old URL, so it is not listed
+export const navigation: { heading: { key: MessageKey }; items: { path: string; label: Label }[] }[] = [
+  {
+    heading: { key: "nav.train" },
+    items: [
+      { path: "/lora/anima.html", label: { text: "Anima" } },
+      { path: "/lora/flux.html", label: { text: "Flux" } },
+      { path: "/lora/master.html", label: { text: "Stable Diffusion" } },
+      { path: "/lora/sd3.html", label: { text: "SD3.5" } },
+      { path: "/lora/basic.html", label: { text: "SD1.5" } },
+      { path: "/dreambooth/index.html", label: { text: "Dreambooth" } },
+    ],
+  },
+  {
+    heading: { key: "nav.monitor" },
+    items: [
+      { path: "/task.html", label: { key: "nav.tasks" } },
+      { path: "/tensorboard.html", label: { text: "Tensorboard" } },
+    ],
+  },
 ];
 
 export const router = createRouter({

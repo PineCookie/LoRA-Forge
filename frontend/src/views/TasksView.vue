@@ -1,61 +1,69 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
-import { api } from "../api";
+import PageHeader from "../components/PageHeader.vue";
+import TaskStatus from "../components/TaskStatus.vue";
+import VersionInfo from "../components/VersionInfo.vue";
+import { useTasks } from "../composables/useTasks";
 import { t } from "../i18n";
-import { notify } from "../toast";
 
-interface Task {
-  id: string;
-  status: "CREATED" | "RUNNING" | "FINISHED" | "TERMINATED";
-}
-
-const tasks = ref<Task[]>([]);
-const loaded = ref(false);
-let timer: ReturnType<typeof setInterval> | undefined;
-
-async function refresh() {
-  try {
-    const data = await api<{ tasks: Task[] }>("/api/tasks");
-    tasks.value = [...(data.tasks ?? [])].reverse(); // newest first
-  } catch (error) {
-    console.warn("Failed to load tasks", error);
-  } finally {
-    loaded.value = true;
-  }
-}
-
-async function terminate(task: Task) {
-  if (!confirm(t("tasks.confirmTerminate", { id: task.id }))) return;
-  try {
-    await api(`/api/tasks/terminate/${encodeURIComponent(task.id)}`);
-    notify(t("tasks.terminated", { id: task.id }), "success");
-  } catch (error) {
-    notify(t("tasks.terminateFailed", { error: error instanceof Error ? error.message : String(error) }), "error");
-  }
-  await refresh();
-}
-
-onMounted(() => {
-  refresh();
-  timer = setInterval(refresh, 3000);
-});
-onBeforeUnmount(() => clearInterval(timer));
+const { tasks, terminate } = useTasks();
 </script>
 
 <template>
-  <section class="panel">
-    <h2>{{ t("tasks.title") }}</h2>
-    <p v-if="loaded && !tasks.length" class="muted">{{ t("tasks.empty") }}</p>
-    <article v-for="task in tasks" :key="task.id" class="task-row">
-      <div>
-        <strong class="task-id">{{ task.id }}</strong>
-        <p>
-          <span class="status-chip" :class="`status-${task.status.toLowerCase()}`">{{ t(`tasks.status.${task.status}`) }}</span>
-        </p>
-      </div>
-      <button v-if="task.status === 'CREATED' || task.status === 'RUNNING'" type="button" class="danger" @click="terminate(task)">
-        {{ t("tasks.terminate") }}
-      </button>
-    </article>
-  </section>
+  <PageHeader :title="t('tasks.title')" />
+  <div class="tasks">
+    <section class="panel">
+      <p v-if="tasks.loaded && !tasks.tasks.length" class="muted">{{ t("tasks.empty") }}</p>
+      <article v-for="task in tasks.tasks" :key="task.id" class="task">
+        <div>
+          <code class="id">{{ task.id }}</code>
+          <TaskStatus :task="task" />
+        </div>
+        <button v-if="task.status === 'CREATED' || task.status === 'RUNNING'" type="button" class="danger" @click="terminate(task)">
+          {{ t("tasks.terminate") }}
+        </button>
+      </article>
+    </section>
+    <VersionInfo />
+  </div>
 </template>
+
+<style scoped>
+.tasks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 18px;
+  align-items: start;
+  padding: 20px 24px 48px;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.task:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.task > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.id {
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .tasks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+</style>

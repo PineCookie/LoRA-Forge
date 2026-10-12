@@ -17,14 +17,43 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <section class="system-info">
+  <section class="panel system-info">
     <h2>{{ t("system.title") }}</h2>
-    <div class="version-info">
-      <div v-for="[label, value] in rows" :key="label" class="version-row">
-        <span class="version-label">{{ label }}</span>
-        <span class="version-value" :title="value">{{ value }}</span>
+    <dl v-if="rows.length">
+      <div v-for="[label, value] in rows" :key="label">
+        <dt>{{ label }}</dt>
+        <dd :title="value">{{ value }}</dd>
       </div>
-      <span v-if="!rows.length" class="version-label">{{ t("system.loading") }}</span>
-    </div>
+    </dl>
+    <p v-else class="muted">{{ t("system.loading") }}</p>
   </section>
 </template>
+
+<style scoped>
+dl {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+dt {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+dd {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

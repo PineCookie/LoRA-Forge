@@ -1,0 +1,118 @@
+/* Design tokens. Components only use these variables; useTheme() sets data-theme on <html>. */
+
+:root {
+  color-scheme: light;
+  --font-sans: Inter, "Segoe UI", "Microsoft YaHei", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, Monaco, monospace;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --header-height: 72px;
+
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --surface-sunken: #f1f4f9;
+  --border: #d9e0ec;
+  --border-strong: #b8c3d6;
+  --text: #182235;
+  --text-strong: #0f172a;
+  --muted: #667085;
+  --faint: #98a2b3;
+
+  --primary: #2f5be7;
+  --primary-hover: #2446c7;
+  --primary-soft: #edf3ff;
+  --primary-text: #2442a3;
+  --on-primary: #ffffff;
+  --focus-ring: rgba(47, 91, 231, 0.18);
+
+  --danger: #b42318;
+  --danger-soft: #fff1f0;
+  --danger-border: #ffccc7;
+  --warning: #92400e;
+  --warning-soft: #fffbeb;
+  --warning-border: #fde68a;
+  --success: #166534;
+  --success-soft: #f0fdf4;
+  --success-border: #86efac;
+  --info: #1e3a5f;
+  --info-soft: #eff6ff;
+  --info-border: #bfdbfe;
+  --edited: #f59e0b;
+  --edited-text: #92400e;
+
+  --code-bg: #eef2f8;
+  --code-block-bg: #101828;
+  --code-block-text: #d7e0ff;
+
+  --tone-general: #64748b;
+  --tone-quick: #059669;
+  --tone-model: #2563eb;
+  --tone-data: #0891b2;
+  --tone-save: #16a34a;
+  --tone-optimize: #7c3aed;
+  --tone-network: #db2777;
+  --tone-observe: #ca8a04;
+  --tone-performance: #ea580c;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 10px 24px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 24px 48px rgba(16, 24, 40, 0.18);
+  --backdrop: rgba(15, 23, 42, 0.32);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e131b;
+  --surface: #151b25;
+  --surface-muted: #1b2230;
+  --surface-sunken: #111721;
+  --border: #283244;
+  --border-strong: #3a4659;
+  --text: #dfe5ee;
+  --text-strong: #f5f7fb;
+  --muted: #98a2b3;
+  --faint: #6b7586;
+
+  --primary: #5b82ff;
+  --primary-hover: #7495ff;
+  --primary-soft: rgba(91, 130, 255, 0.14);
+  --primary-text: #a8bcff;
+  --on-primary: #ffffff;
+  --focus-ring: rgba(91, 130, 255, 0.35);
+
+  --danger: #fb7d72;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --danger-border: rgba(248, 113, 113, 0.38);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.1);
+  --warning-border: rgba(251, 191, 36, 0.35);
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.1);
+  --success-border: rgba(74, 222, 128, 0.35);
+  --info: #bcd4ff;
+  --info-soft: rgba(96, 165, 250, 0.1);
+  --info-border: rgba(96, 165, 250, 0.32);
+  --edited: #fbbf24;
+  --edited-text: #fcd34d;
+
+  --code-bg: #232b38;
+  --code-block-bg: #0a0e14;
+  --code-block-text: #d7e0ff;
+
+  --tone-general: #94a3b8;
+  --tone-quick: #34d399;
+  --tone-model: #60a5fa;
+  --tone-data: #22d3ee;
+  --tone-save: #4ade80;
+  --tone-optimize: #a78bfa;
+  --tone-network: #f472b6;
+  --tone-observe: #facc15;
+  --tone-performance: #fb923c;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.5);
+  --backdrop: rgba(0, 0, 0, 0.55);
+}

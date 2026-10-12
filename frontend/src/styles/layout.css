@@ -1,0 +1,13 @@
+/* The app shell: sidebar beside the page. #app is outside every component, so it is styled here. */
+
+#app {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+@media (max-width: 860px) {
+  #app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

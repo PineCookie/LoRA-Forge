@@ -1,16 +1,18 @@
 // UI text, English (the source language). zh.ts and ja.ts must have the same keys; the type
-// checker enforces it. Values marked "HTML" are rendered with v-html.
+// checker enforces it. Texts may use `code`, **bold** and <br>, rendered by RichText.
 
 const en = {
-  "app.eyebrow": "Training UI",
   "app.loading": "Loading training options…",
   "app.loadFailed": "The web UI failed to load",
   "app.sourceCode": "Source code",
   "app.language": "Language",
+  "app.theme": "Theme",
 
   "nav.lora": "LoRA training",
   "nav.tasks": "Tasks",
   "nav.about": "About",
+  "nav.train": "Train",
+  "nav.monitor": "Monitor",
 
   "home.title": "LoRA-Forge training UI",
   "home.intro": "Pick a training mode to configure it. Configs can be exported as JSON / TOML and imported again later.",
@@ -39,21 +41,21 @@ const en = {
   "trainer.expandAll": "Expand all",
   "trainer.collapseAll": "Collapse all",
   "trainer.noMatch": "No options match “{query}”.",
-  "trainer.note.optimizer": "Switching the optimizer resets some learning rates, the scheduler and optimizer_args to the values recommended for it.",
+  "trainer.note.optimizer":
+    "Switching the optimizer resets some learning rates, the scheduler and optimizer_args to the values recommended for it.",
+  "trainer.note.compile": "⚠ Needs sd-scripts v0.11.1+. Dynamic shapes default to false because of PyTorch #193194 (see compile_dynamic).",
   "trainer.note.lossAnima":
     "Anima uses the FlowMatch scheduler: the snr Huber schedule is not supported, and exponential may run on the network training path, but its timestep scaling makes it close to constant. constant is usually the better choice.",
   "trainer.note.lossMinSnr": "Min-SNR and Debiased Estimation loss have similar effects; enabling both is usually not recommended.",
-  "trainer.training": "Training",
   "trainer.start": "Start training",
   "trainer.submitting": "Submitting…",
   "trainer.previewTimesteps": "Preview timesteps",
   "trainer.stop": "Stop training",
-  "trainer.config": "Config",
+  "trainer.import": "Import…",
+  "trainer.exportJson": "Export JSON",
+  "trainer.exportToml": "Export TOML",
   "trainer.reset": "Reset all",
-  "trainer.downloadJson": "Download JSON",
-  "trainer.importJson": "Import JSON",
-  "trainer.downloadToml": "Download TOML",
-  "trainer.importToml": "Import TOML",
+  "trainer.confirmReset": "Reset every option to its default?",
   "trainer.generatedArgs": "Generated arguments",
   "trainer.noGeneratedArgs": "This config adds no extra arguments",
   "trainer.tomlPreview": "TOML preview",
@@ -63,18 +65,20 @@ const en = {
   "trainer.starting": "Starting training…",
   "trainer.previewSubmitted": "Timestep preview submitted",
   "trainer.submitted": "Training submitted",
-  "trainer.noRunningTask": "No training task is running",
-  "trainer.confirmStop": "Stop task {id}?",
-  "trainer.stopped": "Task {id} stopped",
-  "trainer.stopFailed": "Could not stop training: {error}",
   "trainer.copied": "TOML copied to the clipboard",
   "trainer.copyFailed": "Copy failed: the browser denied clipboard access",
   "trainer.wrongTrainType": "This page supports {allowed}, but the file is for {type}",
   "trainer.imported": "{format} imported",
   "trainer.importFailed": "{format} import failed: {error}",
   "trainer.tomlTables": "Only the flat TOML of training configs can be imported (no tables)",
+  "trainer.sections": "Sections",
+  "trainer.changedOnly": "Changed only",
+  "trainer.editedTitle": "{count} changed",
+  "trainer.noChanges": "No options changed yet.",
+  "trainer.status.idle": "Idle",
 
   "field.browse": "Browse",
+  "field.reset": "Reset to default",
 
   "dataset.loading": "Reading the dataset…",
   "dataset.error": "Cannot read the dataset: {error}",
@@ -85,28 +89,21 @@ const en = {
   "dataset.effectiveImages": "With repeats",
   "dataset.offset": "Timestep offset",
   "dataset.offsetTitle": "Negative: low noise / detail; positive: high noise / structure. 0 keeps the default behavior.",
-  // HTML
   "dataset.offsetNote":
-    "Timestep offset: negative values favor low noise (detail), positive values high noise (structure). Only used for FLUX / Anima training; 0 keeps the default behavior. ⚠ Needs sd-scripts main (&gt; v0.11.1); older versions silently ignore it.",
-  // HTML
-  "dataset.adviceSigmaUniform":
-    "<b>Advice:</b> offsets have no effect with <code>sigma</code> / <code>uniform</code>. To use them, start from <code>sigmoid</code>.",
-  // HTML
+    "Timestep offset: negative values favor low noise (detail), positive values high noise (structure). Only used for FLUX / Anima training; 0 keeps the default behavior. ⚠ Needs sd-scripts main (> v0.11.1); older versions silently ignore it.",
+  "dataset.adviceSigmaUniform": "**Advice:** offsets have no effect with `sigma` / `uniform`. To use them, start from `sigmoid`.",
   "dataset.adviceShift":
-    "<b>Advice:</b> <code>shift</code> / <code>flux_shift</code> already favor high timesteps. Start at <b>±0.25</b>, be careful with positive offsets, and preview the distribution with <code>show_timesteps=console</code> first.",
-  // HTML
+    "**Advice:** `shift` / `flux_shift` already favor high timesteps. Start at **±0.25**, be careful with positive offsets, and preview the distribution with `show_timesteps=console` first.",
   "dataset.adviceDefault":
-    "<b>Suggested start:</b> <code>timestep_sampling=sigmoid</code>, <code>sigmoid_scale=1.0</code>. Keep every offset at 0 first; try <b>-0.25</b> for detail / close-up subsets and <b>+0.25</b> for full-body / composition subsets. Only go up to <b>±0.5</b> after comparing previews.",
-  // HTML
-  "dataset.noSubsets": "No subfolders in the <code>repeats_name</code> format found",
+    "**Suggested start:** `timestep_sampling=sigmoid`, `sigmoid_scale=1.0`. Keep every offset at 0 first; try **-0.25** for detail / close-up subsets and **+0.25** for full-body / composition subsets. Only go up to **±0.5** after comparing previews.",
+  "dataset.noSubsets": "No subfolders in the `repeats_name` format found",
   "dataset.totalImages": "Images",
   "dataset.totalWithRepeats": "Images × repeats",
   "dataset.effectiveBatch": "Effective batch size (batch × grad_accum)",
   "dataset.stepsPerEpoch": "Minimum steps per epoch",
   "dataset.totalSteps": "Minimum total steps for {epochs} epochs",
-  // HTML
   "dataset.bucketNote":
-    "⚠ These are <b>lower bounds</b>: they assume every image lands in one resolution bucket. ARB sorts images into buckets by aspect ratio and batches each bucket separately, so the real step count is a little higher (usually +1% to 10%).",
+    "⚠ These are **lower bounds**: they assume every image lands in one resolution bucket. ARB sorts images into buckets by aspect ratio and batches each bucket separately, so the real step count is a little higher (usually +1% to 10%).",
   "dataset.suggestTitle": "💡 Epochs for a target step count (from the lower bound)",
   "dataset.suggestion": "~{steps} steps: {epochs} epochs",
 
@@ -116,15 +113,21 @@ const en = {
 
   "proxy.notRunning": "{name} is not running",
   "proxy.notStarted": "The UI was started without this service, so {proxy} is not connected.",
-  // HTML
-  "proxy.howToStart":
-    "To use it, restart the GUI with <code>--enable-{service}</code>, for example <code>run_gui.ps1 --enable-{service}</code>.",
+  "proxy.howToStart": "To use it, restart the GUI with `--enable-{service}`, for example `run_gui.ps1 --enable-{service}`.",
 
   "toast.dismiss": "Dismiss",
 
   "api.html": "The API returned HTML. Open the page through the Python GUI backend, not a static file server.",
   "api.unparsable": "The API returned a response that could not be parsed.",
   "api.failed": "Request failed",
+
+  "theme.system": "System",
+  "theme.light": "Light",
+  "theme.dark": "Dark",
+
+  "confirm.cancel": "Cancel",
+
+  "drawer.close": "Close",
 };
 
 export default en;

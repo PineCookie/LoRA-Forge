@@ -1,15 +1,17 @@
 import type { Messages } from "../i18n";
 
 const ja: Messages = {
-  "app.eyebrow": "学習 UI",
   "app.loading": "学習設定を読み込み中…",
   "app.loadFailed": "Web UI の読み込みに失敗しました",
   "app.sourceCode": "ソースコード",
   "app.language": "言語",
+  "app.theme": "テーマ",
 
   "nav.lora": "LoRA 学習",
   "nav.tasks": "タスク",
   "nav.about": "このアプリについて",
+  "nav.train": "学習",
+  "nav.monitor": "モニター",
 
   "home.title": "LoRA-Forge 学習 UI",
   "home.intro": "学習モードを選んで設定を始めます。設定は JSON / TOML で書き出し、後から読み込んで編集を続けられます。",
@@ -39,20 +41,19 @@ const ja: Messages = {
   "trainer.collapseAll": "すべて折りたたむ",
   "trainer.noMatch": "「{query}」に一致する設定はありません。",
   "trainer.note.optimizer": "オプティマイザを切り替えると、一部の学習率、スケジューラ、optimizer_args がそのオプティマイザの推奨値にリセットされます。",
+  "trainer.note.compile": "⚠ sd-scripts v0.11.1+ が必要です。PyTorch #193194 のため、動的シェイプは既定で false です（compile_dynamic を参照）。",
   "trainer.note.lossAnima":
     "Anima は FlowMatch スケジューラを使います。Huber schedule の snr は未対応です。exponential はネットワーク学習では動作する場合がありますが、タイムステップのスケーリングにより効果はほぼ一定になるため、通常は constant を推奨します。",
   "trainer.note.lossMinSnr": "Min-SNR と Debiased Estimation loss は効果が近いため、通常は同時に有効化しないことを推奨します。",
-  "trainer.training": "学習",
   "trainer.start": "学習を開始",
   "trainer.submitting": "送信中…",
   "trainer.previewTimesteps": "タイムステップ分布をプレビュー",
   "trainer.stop": "学習を中止",
-  "trainer.config": "設定",
+  "trainer.import": "読み込む…",
+  "trainer.exportJson": "JSON を書き出す",
+  "trainer.exportToml": "TOML を書き出す",
   "trainer.reset": "すべてリセット",
-  "trainer.downloadJson": "JSON をダウンロード",
-  "trainer.importJson": "JSON を読み込む",
-  "trainer.downloadToml": "TOML をダウンロード",
-  "trainer.importToml": "TOML を読み込む",
+  "trainer.confirmReset": "すべての設定を既定値に戻しますか？",
   "trainer.generatedArgs": "生成される引数",
   "trainer.noGeneratedArgs": "この設定では追加の引数は生成されません",
   "trainer.tomlPreview": "TOML プレビュー",
@@ -62,18 +63,20 @@ const ja: Messages = {
   "trainer.starting": "学習を開始しています…",
   "trainer.previewSubmitted": "タイムステップのプレビューを送信しました",
   "trainer.submitted": "学習タスクを送信しました",
-  "trainer.noRunningTask": "実行中の学習タスクはありません",
-  "trainer.confirmStop": "タスク {id} を中止しますか？",
-  "trainer.stopped": "タスク {id} を中止しました",
-  "trainer.stopFailed": "学習を中止できませんでした：{error}",
   "trainer.copied": "TOML をクリップボードにコピーしました",
   "trainer.copyFailed": "コピーに失敗しました：ブラウザがクリップボードへのアクセスを拒否しました",
   "trainer.wrongTrainType": "このページは {allowed} 用ですが、ファイルは {type} 用です",
   "trainer.imported": "{format} を読み込みました",
   "trainer.importFailed": "{format} の読み込みに失敗しました：{error}",
   "trainer.tomlTables": "読み込めるのは学習設定用のフラットな TOML だけです（テーブルは非対応）",
+  "trainer.sections": "セクション",
+  "trainer.changedOnly": "変更のみ",
+  "trainer.editedTitle": "{count} 件変更",
+  "trainer.noChanges": "まだ変更された設定はありません。",
+  "trainer.status.idle": "待機中",
 
   "field.browse": "選択",
+  "field.reset": "既定値に戻す",
 
   "dataset.loading": "データセットを読み込み中…",
   "dataset.error": "データセットを読み込めません：{error}",
@@ -85,21 +88,20 @@ const ja: Messages = {
   "dataset.offset": "タイムステップオフセット",
   "dataset.offsetTitle": "負の値：低ノイズ/細部、正の値：高ノイズ/構図。0 なら従来どおりの動作です。",
   "dataset.offsetNote":
-    "タイムステップオフセット：負の値は低ノイズ（細部）、正の値は高ノイズ（構図）寄りになります。FLUX / Anima の学習でのみ使われ、0 なら従来どおりです。⚠ sd-scripts main（&gt; v0.11.1）が必要で、古いバージョンでは無視されます。",
-  "dataset.adviceSigmaUniform":
-    "<b>アドバイス：</b><code>sigma</code> / <code>uniform</code> ではオフセットは効果がありません。使う場合は <code>sigmoid</code> から始めてください。",
+    "タイムステップオフセット：負の値は低ノイズ（細部）、正の値は高ノイズ（構図）寄りになります。FLUX / Anima の学習でのみ使われ、0 なら従来どおりです。⚠ sd-scripts main（> v0.11.1）が必要で、古いバージョンでは無視されます。",
+  "dataset.adviceSigmaUniform": "**アドバイス：**`sigma` / `uniform` ではオフセットは効果がありません。使う場合は `sigmoid` から始めてください。",
   "dataset.adviceShift":
-    "<b>アドバイス：</b><code>shift</code> / <code>flux_shift</code> はすでに高タイムステップ寄りです。<b>±0.25</b> から始め、正のオフセットは慎重に。まず <code>show_timesteps=console</code> で分布をプレビューしてください。",
+    "**アドバイス：**`shift` / `flux_shift` はすでに高タイムステップ寄りです。**±0.25** から始め、正のオフセットは慎重に。まず `show_timesteps=console` で分布をプレビューしてください。",
   "dataset.adviceDefault":
-    "<b>おすすめの出発点：</b><code>timestep_sampling=sigmoid</code>、<code>sigmoid_scale=1.0</code>。まずはすべて 0 のままにし、細部/アップのサブセットは <b>-0.25</b>、全身/構図のサブセットは <b>+0.25</b> を試してください。<b>±0.5</b> まで広げるのはプレビューを比較してからにしましょう。",
-  "dataset.noSubsets": "<code>繰り返し回数_名前</code> 形式のサブフォルダが見つかりません",
+    "**おすすめの出発点：**`timestep_sampling=sigmoid`、`sigmoid_scale=1.0`。まずはすべて 0 のままにし、細部/アップのサブセットは **-0.25**、全身/構図のサブセットは **+0.25** を試してください。**±0.5** まで広げるのはプレビューを比較してからにしましょう。",
+  "dataset.noSubsets": "`繰り返し回数_名前` 形式のサブフォルダが見つかりません",
   "dataset.totalImages": "画像の総数",
   "dataset.totalWithRepeats": "繰り返し込みの画像数",
   "dataset.effectiveBatch": "実効バッチサイズ（batch × grad_accum）",
   "dataset.stepsPerEpoch": "1 エポックあたりの最小ステップ数",
   "dataset.totalSteps": "{epochs} エポックの最小総ステップ数",
   "dataset.bucketNote":
-    "⚠ これは<b>下限の見積もり</b>です（すべての画像が同じ解像度バケットに入ると仮定）。ARB はアスペクト比ごとに画像をバケットへ振り分け、バケットごとにバッチを組むため、実際のステップ数は少し多くなります（通常 +1%〜10%）。",
+    "⚠ これは**下限の見積もり**です（すべての画像が同じ解像度バケットに入ると仮定）。ARB はアスペクト比ごとに画像をバケットへ振り分け、バケットごとにバッチを組むため、実際のステップ数は少し多くなります（通常 +1%〜10%）。",
   "dataset.suggestTitle": "💡 目標ステップ数に必要なエポック数（下限の見積もりから）",
   "dataset.suggestion": "~{steps} ステップ：{epochs} エポック",
 
@@ -109,13 +111,21 @@ const ja: Messages = {
 
   "proxy.notRunning": "{name} は起動していません",
   "proxy.notStarted": "この UI はこのサービスなしで起動されたため、{proxy} には接続しません。",
-  "proxy.howToStart": "使う場合は <code>--enable-{service}</code> を付けて GUI を再起動してください（例：<code>run_gui.ps1 --enable-{service}</code>）。",
+  "proxy.howToStart": "使う場合は `--enable-{service}` を付けて GUI を再起動してください（例：`run_gui.ps1 --enable-{service}`）。",
 
   "toast.dismiss": "閉じる",
 
   "api.html": "API が HTML を返しました。静的ファイルサーバーではなく、Python の GUI バックエンド経由でページを開いてください。",
   "api.unparsable": "API の応答を解析できませんでした。",
   "api.failed": "リクエストに失敗しました",
+
+  "theme.system": "システム",
+  "theme.light": "ライト",
+  "theme.dark": "ダーク",
+
+  "confirm.cancel": "キャンセル",
+
+  "drawer.close": "閉じる",
 };
 
 export default ja;

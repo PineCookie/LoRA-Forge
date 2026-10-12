@@ -1,61 +1,48 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { useRoute } from "vue-router";
 import { api, postJson } from "../api";
+import ConfigDrawer from "../components/ConfigDrawer.vue";
 import DatasetStats from "../components/DatasetStats.vue";
 import FormField from "../components/FormField.vue";
 import FormSection from "../components/FormSection.vue";
-import VersionInfo from "../components/VersionInfo.vue";
-import { formValueKey, initialFormValues, readForm, toFormValue, type FormValue, type FormValues } from "../config/form";
-import { expandImportedArgs } from "../config/import";
-import { redactConfigForLog, type TrainingConfig } from "../config/normalize";
-import type { SubsetOffsets } from "../config/offsets";
-import { applyDependentValues, applyExclusiveRules } from "../config/rules";
-import { fromToml, toToml } from "../config/toml";
+import PageHeader from "../components/PageHeader.vue";
+import SectionIndex from "../components/SectionIndex.vue";
+import TaskStatus from "../components/TaskStatus.vue";
+import { confirmAction } from "../composables/useConfirm";
+import { useConfigFile } from "../composables/useConfigFile";
+import { useScrollSpy } from "../composables/useScrollSpy";
+import { useTasks } from "../composables/useTasks";
+import { useTrainerForm } from "../composables/useTrainerForm";
+import { redactConfigForLog } from "../config/normalize";
 import { isFieldVisible } from "../config/visibility";
 import { t, tr } from "../i18n";
-import { buildGroups, schemaOptions, type Field, type Group } from "../schema/groups";
-import { getSchema, store } from "../store";
+import { labelText } from "../router";
+import { groupTone, type Field, type Group } from "../schema/groups";
+import { store } from "../store";
 import { notify } from "../toast";
 
 const props = defineProps<{ schemaName: string }>();
-const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const route = useRoute();
 
-const schema = getSchema(props.schemaName);
-const groups: Group[] = schema ? buildGroups(schema, props.schemaName, store.cards) : [];
-const fieldMap = new Map(groups.flatMap((group) => group.fields.map((field) => [field.name, field] as const)));
+const form = useTrainerForm(props.schemaName);
+const { groups, values, offsets, datasetDir, datasetRefresh } = form;
+const { toml, generatedArgs, exportAs, importFile, copyToml } = useConfigFile(form);
+const { activeTask, refresh: refreshTasks, terminate } = useTasks();
+const { active: activeSection, refresh: refreshSpy, pin: pinSection } = useScrollSpy("[data-section-index]");
+
 const supportsTimestepPreview = ["flux-lora", "anima-lora"].includes(props.schemaName);
-
-const values = ref<FormValues>({});
-const initialKeys = ref<Record<string, string>>({});
-const offsets = reactive<SubsetOffsets>({ dir: null, values: {} });
-const datasetRefresh = ref(0);
 const busy = ref(false);
+const drawerOpen = ref(false);
 const search = ref("");
+const changedOnly = ref(false);
 
-function resetForm() {
-  const next = initialFormValues(groups);
-  applyDependentValues(next);
-  values.value = next;
-  initialKeys.value = Object.fromEntries(Object.entries(next).map(([name, value]) => [name, formValueKey(value)]));
-  offsets.dir = null;
-  offsets.values = {};
-  datasetRefresh.value += 1;
-}
-resetForm();
+const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-function onInput(name: string, value: FormValue) {
-  values.value[name] = value;
-  applyExclusiveRules(values.value, name);
-  applyDependentValues(values.value);
-}
-
-const isEdited = (name: string) => formValueKey(values.value[name]) !== initialKeys.value[name];
-
-// --- search and sections ---------------------------------------------------------------
+// --- which fields and sections are shown ---------------------------------------------------
 
 const query = computed(() => search.value.trim().toLowerCase());
+const filtering = computed(() => Boolean(query.value) || changedOnly.value);
 
 function matchesSearch(field: Field) {
   if (!query.value) return true;
@@ -63,25 +50,46 @@ function matchesSearch(field: Field) {
   return [field.name, description, tr(description)].some((text) => text.toLowerCase().includes(query.value));
 }
 
-const shownFields = (group: Group) => group.fields.filter((field) => isFieldVisible(field.name, values.value) && matchesSearch(field));
-const sectionKey = (group: Group, index: number) => `${route.path}:${index}:${group.title}`;
-const isCollapsed = (group: Group, index: number) => !query.value && store.collapsedSections.has(sectionKey(group, index));
+const fieldShown = (field: Field) =>
+  isFieldVisible(field.name, values.value) && matchesSearch(field) && (!changedOnly.value || form.isEdited(field.name));
 
-function toggleSection(group: Group, index: number) {
-  const key = sectionKey(group, index);
+const sections = computed(() =>
+  groups
+    .map((group, index) => ({ group, index, tone: groupTone(group.title), fields: group.fields.filter(fieldShown), edited: form.editedCount(group) }))
+    .filter((section) => section.fields.length),
+);
+const shownCount = computed(() => sections.value.reduce((count, section) => count + section.fields.length, 0));
+const indexItems = computed(() => sections.value.map(({ group, index, tone, edited }) => ({ index, title: group.title, tone, edited })));
+
+// collapsed sections survive navigation between pages; filters always show everything they match
+const sectionKey = (index: number) => `${route.path}:${index}`;
+const isCollapsed = (index: number) => !filtering.value && store.collapsedSections.has(sectionKey(index));
+
+function toggleSection(index: number) {
+  const key = sectionKey(index);
   if (store.collapsedSections.has(key)) store.collapsedSections.delete(key);
   else store.collapsedSections.add(key);
+  refreshSpy();
 }
 
 function setAllCollapsed(collapsed: boolean) {
-  groups.forEach((group, index) => {
-    if (collapsed) store.collapsedSections.add(sectionKey(group, index));
-    else store.collapsedSections.delete(sectionKey(group, index));
-  });
+  for (const index of groups.keys()) {
+    if (collapsed) store.collapsedSections.add(sectionKey(index));
+    else store.collapsedSections.delete(sectionKey(index));
+  }
+  refreshSpy();
+}
+
+async function jumpTo(index: number) {
+  store.collapsedSections.delete(sectionKey(index));
+  pinSection(index);
+  await nextTick();
+  document.getElementById(`section-${index}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function sectionNote(group: Group) {
   if (group.title === "Learning rate and optimizer") return t("trainer.note.optimizer");
+  if (group.title === "torch.compile / CUDA performance") return t("trainer.note.compile");
   if (group.title !== "Loss") return undefined;
   if (props.schemaName === "anima-lora") return t("trainer.note.lossAnima");
   const names = new Set(group.fields.map((field) => field.name));
@@ -89,43 +97,11 @@ function sectionNote(group: Group) {
   return undefined;
 }
 
-const visibleCount = computed(() => groups.reduce((count, group) => count + shownFields(group).length, 0));
-
-// --- previews --------------------------------------------------------------------------
-
-const config = computed(() => readForm(values.value, groups));
-const tomlPreview = computed(() => toToml(config.value));
-const generatedArgs = computed(() =>
-  (["optimizer_args", "network_args"] as const).map((name) => ({ name, args: (config.value[name] as string[] | undefined) ?? [] })).filter((section) => section.args.length),
-);
-
-const numberValue = (name: string) => parseInt(String(values.value[name] ?? ""), 10) || 1;
-const datasetDir = computed(() => String(values.value.train_data_dir ?? ""));
-const trainType = computed(() => String(values.value.model_train_type ?? ""));
-
-// --- training --------------------------------------------------------------------------
-
-function buildRunConfig(previewTimesteps: boolean): TrainingConfig {
-  const runConfig = readForm(values.value, groups);
-  // only submit offsets recorded for the dataset currently selected in the form
-  if (offsets.dir === datasetDir.value.trim()) {
-    const recorded = Object.fromEntries(Object.entries(offsets.values).filter(([, value]) => Number(value) !== 0));
-    if (Object.keys(recorded).length) runConfig.subset_timestep_sampling_offsets = recorded;
-  }
-  if (previewTimesteps) {
-    runConfig.show_timesteps ||= "console";
-  } else {
-    // sd-scripts exits after rendering --show_timesteps; a real run must never inherit it
-    delete runConfig.show_timesteps;
-    delete runConfig.show_timesteps_offset;
-    delete runConfig.show_timesteps_resolution;
-  }
-  return runConfig;
-}
+// --- actions -------------------------------------------------------------------------------
 
 async function startRun(previewTimesteps: boolean) {
   if (busy.value) return;
-  const runConfig = buildRunConfig(previewTimesteps);
+  const runConfig = form.runConfig(previewTimesteps);
   console.log(previewTimesteps ? "Previewing timesteps with config:" : "Form submitted with config:", redactConfigForLog(runConfig));
   busy.value = true;
   try {
@@ -137,190 +113,213 @@ async function startRun(previewTimesteps: boolean) {
     notify(errorText(error), "error");
   } finally {
     busy.value = false;
-  }
-}
-
-async function stopTraining() {
-  try {
-    const data = await api<{ tasks: { id: string; status: string }[] }>("/api/tasks");
-    const task = (data.tasks ?? []).find((item) => item.status === "RUNNING");
-    if (!task) {
-      notify(t("trainer.noRunningTask"), "warning");
-      return;
-    }
-    if (!confirm(t("trainer.confirmStop", { id: task.id }))) return;
-    await api(`/api/tasks/terminate/${encodeURIComponent(task.id)}`);
-    notify(t("trainer.stopped", { id: task.id }), "success");
-  } catch (error) {
-    notify(t("trainer.stopFailed", { error: errorText(error) }), "error");
+    void refreshTasks();
   }
 }
 
 async function pickPath(name: string, pickerType: string) {
   try {
     const data = await api<{ path: string }>(`/api/pick_file?picker_type=${encodeURIComponent(pickerType)}`);
-    onInput(name, data.path);
+    form.setValue(name, data.path);
   } catch (error) {
     notify(errorText(error), "error");
   }
 }
 
-// --- export / import -------------------------------------------------------------------
-
-function download(text: string, type: string, extension: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${config.value.output_name || "training-config"}.${extension}`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-const exportJson = () => download(JSON.stringify(config.value, null, 2), "application/json", "json");
-const exportToml = () => download(tomlPreview.value, "application/toml;charset=utf-8", "toml");
-
-async function copyToml() {
-  try {
-    await navigator.clipboard.writeText(tomlPreview.value);
-    notify(t("trainer.copied"), "success");
-  } catch {
-    notify(t("trainer.copyFailed"), "error");
-  }
-}
-
-function allowedTrainTypes(): string[] {
-  const field = fieldMap.get("model_train_type");
-  const options = field ? (schemaOptions(field.schema) ?? []).map(String) : [];
-  if (options.length) return options;
-  const initial = initialKeys.value.model_train_type;
-  return initial ? [initial] : [];
-}
-
-function applyImported(imported: TrainingConfig) {
-  const importedType = imported.model_train_type;
-  const allowed = allowedTrainTypes();
-  if (importedType && allowed.length && !allowed.includes(importedType)) {
-    throw new Error(t("trainer.wrongTrainType", { allowed: allowed.join(" / "), type: importedType }));
-  }
-
-  for (const [name, value] of Object.entries(expandImportedArgs(imported))) {
-    const field = fieldMap.get(name);
-    if (field && name in values.value) values.value[name] = toFormValue(name, field.schema, value, { imported: true });
-  }
-  applyExclusiveRules(values.value, null); // full pass: fix constrained combinations from the file
-  applyDependentValues(values.value);
-  datasetRefresh.value += 1;
-}
-
-async function importFile(event: Event, format: "json" | "toml") {
+function onImport(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    applyImported(format === "json" ? JSON.parse(text) : fromToml(text));
-    notify(t("trainer.imported", { format: format.toUpperCase() }), "success");
-  } catch (error) {
-    notify(t("trainer.importFailed", { format: format.toUpperCase(), error: errorText(error) }), "error");
-  } finally {
-    input.value = ""; // allow importing the same file again
-  }
+  if (file) void importFile(file);
+  input.value = ""; // allow importing the same file again
+}
+
+async function resetAll() {
+  if (await confirmAction(t("trainer.confirmReset"), t("trainer.reset"))) form.reset();
 }
 </script>
 
 <template>
-  <section v-if="!schema" class="panel error">{{ t("trainer.schemaMissing", { name: schemaName }) }}</section>
+  <section v-if="!form.schema" class="panel missing">{{ t("trainer.schemaMissing", { name: schemaName }) }}</section>
 
-  <form v-else class="trainer" @submit.prevent="startRun(false)">
-    <div class="form-grid">
-      <div class="form-toolbar">
-        <input v-model="search" class="form-search" type="search" :placeholder="t('trainer.search')" :aria-label="t('trainer.searchLabel')" />
-        <span v-if="query" class="form-toolbar-count">{{ t("trainer.matchCount", { count: visibleCount }) }}</span>
-        <template v-else>
-          <button type="button" class="ghost-button" @click="setAllCollapsed(false)">{{ t("trainer.expandAll") }}</button>
-          <button type="button" class="ghost-button" @click="setAllCollapsed(true)">{{ t("trainer.collapseAll") }}</button>
-        </template>
+  <template v-else>
+    <PageHeader :title="labelText(route.meta.title)">
+      <div class="config-actions">
+        <label class="button">
+          {{ t("trainer.import") }}
+          <input type="file" accept=".json,.toml,application/json,text/plain" @change="onImport" />
+        </label>
+        <button type="button" @click="exportAs('json')">{{ t("trainer.exportJson") }}</button>
+        <button type="button" @click="exportAs('toml')">{{ t("trainer.exportToml") }}</button>
+        <button type="button" @click="drawerOpen = true">{{ t("trainer.tomlPreview") }}</button>
       </div>
+      <TaskStatus :task="activeTask" />
+      <button v-if="supportsTimestepPreview" type="button" :disabled="busy || !!activeTask" @click="startRun(true)">
+        {{ t("trainer.previewTimesteps") }}
+      </button>
+      <button v-if="activeTask" type="button" class="danger" @click="terminate(activeTask)">{{ t("trainer.stop") }}</button>
+      <button type="button" class="primary start" :disabled="busy || !!activeTask" @click="startRun(false)">
+        {{ t(busy ? "trainer.submitting" : "trainer.start") }}
+      </button>
+    </PageHeader>
 
-      <template v-for="(group, index) in groups" :key="`${index}:${group.title}`">
+    <div class="trainer">
+      <SectionIndex
+        class="index"
+        :items="indexItems"
+        :active="activeSection"
+        @jump="jumpTo"
+        @expand-all="setAllCollapsed(false)"
+        @collapse-all="setAllCollapsed(true)"
+      />
+
+      <div class="sections">
+        <div class="toolbar">
+          <input v-model="search" class="search" type="search" :placeholder="t('trainer.search')" :aria-label="t('trainer.searchLabel')" />
+          <span v-if="filtering" class="count">{{ t("trainer.matchCount", { count: shownCount }) }}</span>
+          <label class="changed-only">
+            <input v-model="changedOnly" type="checkbox" />
+            {{ t("trainer.changedOnly") }}
+          </label>
+          <button type="button" class="ghost small reset-all" @click="resetAll">{{ t("trainer.reset") }}</button>
+        </div>
+
         <FormSection
-          v-if="shownFields(group).length"
-          :title="group.title"
-          :note="sectionNote(group)"
-          :collapsed="isCollapsed(group, index)"
-          @toggle="toggleSection(group, index)"
+          v-for="section in sections"
+          :key="section.index"
+          :index="section.index"
+          :title="section.group.title"
+          :tone="section.tone"
+          :edited-count="section.edited"
+          :note="sectionNote(section.group)"
+          :collapsed="isCollapsed(section.index)"
+          @toggle="toggleSection(section.index)"
         >
           <FormField
-            v-for="field in shownFields(group)"
+            v-for="field in section.fields"
             :key="field.name"
             :field="field"
             :model-value="values[field.name]"
-            :edited="isEdited(field.name)"
-            @update:model-value="onInput(field.name, $event)"
+            :edited="form.isEdited(field.name)"
+            @update:model-value="form.setValue(field.name, $event)"
+            @reset="form.resetField(field.name)"
             @pick="pickPath(field.name, $event)"
           />
           <DatasetStats
-            v-if="group.title === 'Dataset'"
+            v-if="section.group.title === 'Dataset'"
+            v-model:offsets="offsets"
             :dir="datasetDir"
-            :batch-size="numberValue('train_batch_size')"
-            :grad-acc="numberValue('gradient_accumulation_steps')"
-            :epochs="numberValue('max_train_epochs')"
-            :supports-offsets="['flux-lora', 'anima-lora'].includes(trainType)"
+            :batch-size="form.numberValue('train_batch_size')"
+            :grad-acc="form.numberValue('gradient_accumulation_steps')"
+            :epochs="form.numberValue('max_train_epochs')"
+            :supports-offsets="supportsTimestepPreview"
             :timestep-sampling="String(values.timestep_sampling ?? 'sigmoid')"
-            :offsets="offsets"
             :refresh-key="datasetRefresh"
           />
         </FormSection>
-      </template>
 
-      <p v-if="query && !visibleCount" class="panel empty-search">{{ t("trainer.noMatch", { query: search }) }}</p>
+        <p v-if="!sections.length" class="panel empty">
+          {{ query ? t("trainer.noMatch", { query: search }) : t("trainer.noChanges") }}
+        </p>
+      </div>
     </div>
 
-    <aside class="actions">
-      <section class="action-group action-train">
-        <h2>{{ t("trainer.training") }}</h2>
-        <button type="submit" class="primary" :disabled="busy">{{ t(busy ? "trainer.submitting" : "trainer.start") }}</button>
-        <button v-if="supportsTimestepPreview" type="button" :disabled="busy" @click="startRun(true)">{{ t("trainer.previewTimesteps") }}</button>
-        <button type="button" class="danger" @click="stopTraining">{{ t("trainer.stop") }}</button>
-      </section>
-
-      <section class="action-group action-config">
-        <h2>{{ t("trainer.config") }}</h2>
-        <button type="button" id="reset-form" @click="resetForm">{{ t("trainer.reset") }}</button>
-        <div class="config-action-row">
-          <button type="button" class="download-button" @click="exportJson">{{ t("trainer.downloadJson") }}</button>
-          <label class="import-button import-config-button">
-            {{ t("trainer.importJson") }}<input type="file" accept="application/json,.json" @change="importFile($event, 'json')" />
-          </label>
-        </div>
-        <div class="config-action-row">
-          <button type="button" class="download-button" @click="exportToml">{{ t("trainer.downloadToml") }}</button>
-          <label class="import-button import-config-button">
-            {{ t("trainer.importToml") }}<input type="file" accept=".toml,text/plain" @change="importFile($event, 'toml')" />
-          </label>
-        </div>
-      </section>
-
-      <section class="generated-args">
-        <h2>{{ t("trainer.generatedArgs") }}</h2>
-        <div class="args-preview">
-          <div v-for="section in generatedArgs" :key="section.name" class="args-section">
-            <div class="args-name">{{ section.name }}:</div>
-            <div v-for="arg in section.args" :key="arg" class="args-value">{{ arg }}</div>
-          </div>
-          <span v-if="!generatedArgs.length" class="args-empty">{{ t("trainer.noGeneratedArgs") }}</span>
-        </div>
-      </section>
-
-      <section class="config-preview">
-        <h2>
-          {{ t("trainer.tomlPreview") }}
-          <button type="button" class="icon-button copy-button" :title="t('trainer.copyTitle')" @click="copyToml">{{ t("trainer.copy") }}</button>
-        </h2>
-        <pre id="preview">{{ tomlPreview }}</pre>
-      </section>
-
-      <VersionInfo />
-    </aside>
-  </form>
+    <ConfigDrawer
+      v-model:open="drawerOpen"
+      :toml="toml"
+      :generated-args="generatedArgs"
+      @copy="copyToml"
+    />
+  </template>
 </template>
+
+<style scoped>
+.missing {
+  margin: 24px;
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+}
+
+.trainer {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  /* room below the last section, so sections near the end can still scroll to the top */
+  padding: 16px 24px 40vh;
+}
+
+.sections {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.toolbar {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: -16px 0 0;
+  padding: 12px 0 8px;
+  background: var(--bg);
+}
+
+.search {
+  flex: 1 1 260px;
+  min-width: 0;
+  padding-left: 32px;
+  background: var(--surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat 10px center;
+}
+
+.count {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-right: 10px;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.reset-all {
+  margin-left: auto;
+}
+
+.config-actions input {
+  display: none;
+}
+
+.changed-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .trainer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .index {
+    display: none;
+  }
+}
+</style>
