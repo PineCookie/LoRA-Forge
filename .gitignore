@@ -32,7 +32,7 @@ config/presets/test*.toml
 !sd-models/put stable diffusion model here.txt
 !logs/.keep
 
-tests/
+/tests/
 # built web UI (CI builds it for releases; the launcher builds it for git checkouts)
 frontend/dist/
 frontend/node_modules/

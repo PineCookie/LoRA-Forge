@@ -1,0 +1,103 @@
+import { describe, expect, it } from "vitest";
+import { initialFormValues, readForm, toFormValue } from "../src/config/form";
+import { applyDependentValues, applyExclusiveRules } from "../src/config/rules";
+import { isFieldVisible } from "../src/config/visibility";
+import { loadGroups } from "./helpers";
+
+describe("schema groups", () => {
+  it("builds every backend schema", () => {
+    for (const name of ["anima-lora", "dreambooth", "flux-lora", "lora-basic", "lora-master", "lumina2-lora", "sd3-lora"]) {
+      const groups = loadGroups(name);
+      expect(groups.length, name).toBeGreaterThan(3);
+      expect(groups.flatMap((group) => group.fields).some((field) => field.name === "ui_custom_params"), name).toBe(false);
+    }
+  });
+
+  it("adds the GPU picker only with two or more cards, defaulting to the first", () => {
+    expect(loadGroups("anima-lora", ["GPU 0: A"]).some((group) => group.title === "显卡设置")).toBe(false);
+    const groups = loadGroups("anima-lora", ["GPU 0: A", "GPU 1: B"]);
+    expect(initialFormValues(groups).gpu_ids).toEqual(["GPU 0: A"]);
+  });
+});
+
+describe("anima defaults", () => {
+  const groups = loadGroups("anima-lora");
+  const values = initialFormValues(groups);
+  applyDependentValues(values);
+  const config = readForm(values, groups);
+
+  it("submits the expected core options", () => {
+    expect(config.model_train_type).toBe("anima-lora");
+    expect(config.network_module).toBe("networks.lora_anima");
+    expect(config.resolution).toBe("1024,1024");
+    expect(config.full_bf16).toBe(true);
+    expect(config.mixed_precision).toBe("bf16");
+    expect(config.network_train_unet_only).toBe(true);
+  });
+
+  it("drops preview-only and form-only keys", () => {
+    for (const key of ["enable_preview", "positive_prompts", "full_precision", "network_reg_dims", "optimizer_args_custom"]) {
+      expect(config, key).not.toHaveProperty(key);
+    }
+  });
+
+  it("shows the resolution as WxH in the form", () => {
+    expect(values.resolution).toBe("1024x1024");
+  });
+});
+
+describe("rules", () => {
+  it("forces Prodigy values and the max_grad_norm reset", () => {
+    const groups = loadGroups("anima-lora");
+    const values = initialFormValues(groups);
+    values.optimizer_type = "Prodigy";
+    applyDependentValues(values);
+    expect(values.max_grad_norm).toBe("0");
+    const config = readForm(values, groups);
+    expect(config.optimizer_args).toEqual(expect.arrayContaining(["decouple=True", "use_bias_correction=True", "d_coef=2.0"]));
+  });
+
+  it("keeps offload options exclusive, block swap winning", () => {
+    const values = initialFormValues(loadGroups("anima-lora"));
+    values.cpu_offload_checkpointing = true;
+    applyExclusiveRules(values, "cpu_offload_checkpointing");
+    expect(values.blocks_to_swap).toBe("");
+    values.blocks_to_swap = "8";
+    applyExclusiveRules(values, "blocks_to_swap");
+    expect(values.cpu_offload_checkpointing).toBe(false);
+  });
+
+  it("locks network_train_unet_only while caching text encoder outputs on Anima", () => {
+    const values = initialFormValues(loadGroups("anima-lora"));
+    values.network_train_text_encoder_only = true;
+    applyExclusiveRules(values, "network_train_text_encoder_only");
+    expect(values.cache_text_encoder_outputs).toBe(false);
+    expect(values.network_train_unet_only).toBe(false);
+  });
+
+  it("syncs mixed_precision with full_precision", () => {
+    const values = initialFormValues(loadGroups("anima-lora"));
+    values.full_precision = "full_fp16";
+    applyExclusiveRules(values, "full_precision");
+    expect(values.mixed_precision).toBe("fp16");
+  });
+});
+
+describe("visibility", () => {
+  it("shows dependent fields only for their controlling value", () => {
+    const values = initialFormValues(loadGroups("anima-lora"));
+    expect(isFieldVisible("huber_c", values)).toBe(false);
+    values.loss_type = "huber";
+    expect(isFieldVisible("huber_c", values)).toBe(true);
+    expect(isFieldVisible("wandb_api_key", values)).toBe(false);
+    expect(isFieldVisible("network_dim", values)).toBe(true);
+  });
+});
+
+describe("imported values", () => {
+  it("selects imported GPUs in the multi-select", () => {
+    const groups = loadGroups("anima-lora", ["GPU 0: A", "GPU 1: B"]);
+    const field = groups.flatMap((group) => group.fields).find((item) => item.name === "gpu_ids")!;
+    expect(toFormValue("gpu_ids", field.schema, ["GPU 1: B", "GPU 9: gone"], { imported: true })).toEqual(["GPU 1: B"]);
+  });
+});
