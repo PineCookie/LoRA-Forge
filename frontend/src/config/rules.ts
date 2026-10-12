@@ -12,6 +12,8 @@ function checked(values: FormValues, name: string) {
   return values[name] === true;
 }
 
+const SD15_TYPES = ["sd-lora", "sd-dreambooth"];
+
 /** Force the values the selected optimizer requires (e.g. learning_rate=1 for DAdaptation). */
 export function applyDependentValues(values: FormValues) {
   const rule = optimizerRuleFor(values.optimizer_type);
@@ -29,6 +31,10 @@ export function applyDependentValues(values: FormValues) {
 export function applyExclusiveRules(values: FormValues, edited: string | null) {
   const trainType = String(values.model_train_type ?? "");
   const textEncoderCachingLocksUnet = ["anima-lora", "sdxl-lora"].includes(trainType);
+
+  // sd-scripts' SD1.5 trainers assert a bucket step that is a multiple of 64 (an imported config may
+  // carry SDXL's 32)
+  if (SD15_TYPES.includes(trainType) && Number(values.bucket_reso_steps) % 64) setField(values, "bucket_reso_steps", "64");
 
   if (edited === "compile_fullgraph" && checked(values, edited)) setField(values, "split_attn", false);
   if (edited === "split_attn" && checked(values, edited)) setField(values, "compile_fullgraph", false);

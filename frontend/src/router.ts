@@ -1,6 +1,7 @@
 import { watch } from "vue";
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { locale, t, type MessageKey } from "./i18n";
+import { TRAINER_PAGES } from "./pages";
 import HomeView from "./views/HomeView.vue";
 import ProxyView from "./views/ProxyView.vue";
 import RunsView from "./views/RunsView.vue";
@@ -20,20 +21,16 @@ declare module "vue-router" {
 
 const BRAND = "LoRA-Forge";
 
-function trainer(path: string, title: string, schemaName: string): RouteRecordRaw {
-  return { path, alias: path.replace(/\.html$/, ".md"), component: TrainerView, props: { schemaName }, meta: { title: { text: title } } };
+/** A trainer page; `oldPaths` are URLs of pages it replaced, so bookmarks keep working. */
+function trainer(path: string, title: Label, schemaName: string, oldPaths: string[] = []): RouteRecordRaw {
+  const alias = [path, ...oldPaths].flatMap((url) => (url === path ? [url.replace(/\.html$/, ".md")] : [url, url.replace(/\.html$/, ".md")]));
+  return { path, alias, component: TrainerView, props: { schemaName }, meta: { title } };
 }
 
-// The .html paths are the URLs the GUI has always used, so bookmarks keep working.
 const routes: RouteRecordRaw[] = [
   { path: "/", component: HomeView, meta: { title: { text: BRAND } } },
   { path: "/lora/index.html", alias: "/lora/index.md", component: HomeView, meta: { title: { key: "nav.lora" } } },
-  trainer("/lora/master.html", "Stable Diffusion", "lora-master"),
-  trainer("/lora/flux.html", "Flux", "flux-lora"),
-  trainer("/lora/anima.html", "Anima", "anima-lora"),
-  trainer("/lora/sd3.html", "SD3.5", "sd3-lora"),
-  trainer("/lora/basic.html", "SD1.5", "lora-basic"),
-  trainer("/dreambooth/index.html", "Dreambooth", "dreambooth"),
+  ...TRAINER_PAGES.map((page) => trainer(page.path, page.title, page.schemaName, page.oldPaths)),
   // /task.html was the task list this page replaced
   { path: "/runs.html", alias: ["/runs.md", "/task.html", "/task.md"], component: RunsView, meta: { title: { key: "nav.runs" } } },
   {
@@ -51,14 +48,7 @@ const routes: RouteRecordRaw[] = [
 export const navigation: { heading: { key: MessageKey }; items: { path: string; label: Label }[] }[] = [
   {
     heading: { key: "nav.train" },
-    items: [
-      { path: "/lora/anima.html", label: { text: "Anima" } },
-      { path: "/lora/flux.html", label: { text: "Flux" } },
-      { path: "/lora/master.html", label: { text: "Stable Diffusion" } },
-      { path: "/lora/sd3.html", label: { text: "SD3.5" } },
-      { path: "/lora/basic.html", label: { text: "SD1.5" } },
-      { path: "/dreambooth/index.html", label: { text: "Dreambooth" } },
-    ],
+    items: TRAINER_PAGES.map((page) => ({ path: page.path, label: page.title })),
   },
   {
     heading: { key: "nav.monitor" },

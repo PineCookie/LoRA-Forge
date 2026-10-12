@@ -31,7 +31,7 @@ Schema.intersect([
             enable_bucket: Schema.boolean().default(true).description("Enable ARB buckets so images can have different aspect ratios"),
             min_bucket_reso: Schema.number().default(512).description("Minimum ARB bucket resolution"),
             max_bucket_reso: Schema.number().default(2048).description("Maximum ARB bucket side length. For square images keep Anima at 1536 or below; for 2:1 and other wide images raise it to 2048 or more, but VRAM use grows with the total pixel count"),
-            bucket_reso_steps: Schema.number().default(16).description("ARB bucket resolution step. Anima: 16 recommended"),
+            bucket_reso_steps: Schema.number().default(16).description("ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. Anima accepts multiples of 16; with compile_dynamic_seq more bucket sizes cost no extra compiles"),
         })
     ).description("Dataset"),
 

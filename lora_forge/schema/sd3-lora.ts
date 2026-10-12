@@ -19,7 +19,7 @@ Schema.intersect([
             enable_bucket: Schema.boolean().default(true).description("Enable ARB buckets so images can have different aspect ratios"),
             min_bucket_reso: Schema.number().default(256).description("Minimum ARB bucket resolution"),
             max_bucket_reso: Schema.number().default(2048).description("Maximum ARB bucket resolution"),
-            bucket_reso_steps: Schema.number().default(64).description("ARB bucket resolution step"),
+            bucket_reso_steps: Schema.number().default(32).description("ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. SD3.5 accepts multiples of 32"),
         })
     ).description("Dataset"),
 
@@ -75,8 +75,10 @@ Schema.intersect([
     // Data augmentation
     SHARED_SCHEMAS.DATA_ENCHANCEMENT,
 
-    // Other options
-    SHARED_SCHEMAS.OTHER,
+    // Other options. SD3.5 does not use clip_skip, so SHARED_SCHEMAS.OTHER is not reused here.
+    Schema.object({
+        seed: Schema.number().default(1337).description("Random seed"),
+    }).description("Other"),
 
     // Full precision
     SHARED_SCHEMAS.FULL_PRECISION_MODE,

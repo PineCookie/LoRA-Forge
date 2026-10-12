@@ -179,6 +179,11 @@ export function normalizeTrainingConfig(config: TrainingConfig) {
     delete config.v_parameterization;
   }
   if (!["sd-lora", "sd-dreambooth"].includes(config.model_train_type)) delete config.v2;
+  // sdxl_train.py only uses the text encoder learning rates with --train_text_encoder
+  if (!config.train_text_encoder) {
+    delete config.learning_rate_te1;
+    delete config.learning_rate_te2;
+  }
   if (!config.v_parameterization) delete config.scale_v_pred_loss_like_noise_pred;
 
   if (config.enable_block_weights) {

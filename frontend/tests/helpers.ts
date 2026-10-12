@@ -6,7 +6,7 @@ import { buildGroups } from "../src/schema/groups";
 export const schemaDir = fileURLToPath(new URL("../../lora_forge/schema/", import.meta.url));
 
 /** Every trainer schema the backend serves. */
-export const SCHEMA_NAMES = ["anima-lora", "dreambooth", "flux-lora", "lora-basic", "lora-master", "sd3-lora"];
+export const SCHEMA_NAMES = ["anima-lora", "flux-lora", "sd-dreambooth", "sd-lora", "sd3-lora", "sdxl-finetune", "sdxl-lora"];
 
 export const loadShared = () => evaluateSchema(readFileSync(`${schemaDir}shared.ts`, "utf8"), null);
 

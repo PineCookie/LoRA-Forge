@@ -3,15 +3,20 @@ import { RouterLink } from "vue-router";
 import PageHeader from "../components/PageHeader.vue";
 import VersionInfo from "../components/VersionInfo.vue";
 import { t, type MessageKey } from "../i18n";
+import { TRAINER_PAGES } from "../pages";
+import { labelText } from "../router";
 
-const modes: { path: string; title: string; text: MessageKey }[] = [
-  { path: "/lora/anima.html", title: "Anima", text: "home.mode.anima" },
-  { path: "/lora/flux.html", title: "Flux", text: "home.mode.flux" },
-  { path: "/lora/master.html", title: "Stable Diffusion", text: "home.mode.master" },
-  { path: "/lora/sd3.html", title: "SD3.5", text: "home.mode.sd3" },
-  { path: "/lora/basic.html", title: "SD1.5", text: "home.mode.basic" },
-  { path: "/dreambooth/index.html", title: "Dreambooth", text: "home.mode.dreambooth" },
-];
+const DESCRIPTIONS: Record<string, MessageKey> = {
+  "anima-lora": "home.mode.anima",
+  "sdxl-lora": "home.mode.sdxl",
+  "flux-lora": "home.mode.flux",
+  "sd3-lora": "home.mode.sd3",
+  "sdxl-finetune": "home.mode.sdxlFinetune",
+  "sd-lora": "home.mode.sd15",
+  "sd-dreambooth": "home.mode.sdDreambooth",
+};
+
+const modes = TRAINER_PAGES.map((page) => ({ path: page.path, title: page.title, text: DESCRIPTIONS[page.schemaName] }));
 </script>
 
 <template>
@@ -20,8 +25,8 @@ const modes: { path: string; title: string; text: MessageKey }[] = [
     <p class="muted">{{ t("home.intro") }}</p>
     <div class="modes">
       <RouterLink v-for="mode in modes" :key="mode.path" :to="mode.path" class="panel mode">
-        <strong>{{ mode.title }}</strong>
-        <span>{{ t(mode.text) }}</span>
+        <strong>{{ labelText(mode.title) }}</strong>
+        <span v-if="mode.text">{{ t(mode.text) }}</span>
       </RouterLink>
     </div>
     <VersionInfo class="system" />

@@ -1,34 +1,13 @@
 Schema.intersect([
-    Schema.intersect([
-        Schema.object({
-            model_train_type: Schema.union(["sd-dreambooth", "sdxl-finetune"]).default("sd-dreambooth").description("Training type"),
-            pretrained_model_name_or_path: Schema.string().role("filepicker", { type: "model-file" }).description("Base model file"),
-            resume: Schema.string().role("filepicker", { type: "folder" }).description("Resume training from a state saved with `save_state`: enter its folder"),
-            vae: Schema.string().role("filepicker", { type: "model-file" }).description("(Optional) VAE model file; replaces the VAE inside the base model"),
-        }).description("Model"),
-
-        Schema.union([
-            Schema.object({
-                model_train_type: Schema.const("sd-dreambooth"),
-                v2: Schema.boolean().default(false).description("Enable for base models built on SD 2.0 or later"),
-            }),
-            Schema.object({}),
-        ]),
-
-        Schema.union([
-            Schema.object({
-                model_train_type: Schema.const("sd-dreambooth").required(),
-                v_parameterization: Schema.boolean().default(false).description("V-pred models need v-parameterization, e.g. SD2 768-v, NoobXL V-Pred, or models fine-tuned from a V-pred model"),
-                scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("V-pred models only: scale the v-prediction loss like the noise prediction loss"),
-            }),
-            Schema.object({
-                model_train_type: Schema.const("sdxl-finetune").required(),
-                v_parameterization: Schema.boolean().default(false).description("V-pred models need v-parameterization, e.g. SD2 768-v, NoobXL V-Pred, or models fine-tuned from a V-pred model"),
-                scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("V-pred models only: scale the v-prediction loss like the noise prediction loss"),
-            }),
-            Schema.object({}),
-        ]),
-    ]),
+    Schema.object({
+        model_train_type: Schema.string().default("sd-dreambooth").disabled().description("Training type"),
+        pretrained_model_name_or_path: Schema.string().role("filepicker", { type: "model-file" }).description("Base model file"),
+        resume: Schema.string().role("filepicker", { type: "folder" }).description("Resume training from a state saved with `save_state`: enter its folder"),
+        vae: Schema.string().role("filepicker", { type: "model-file" }).description("(Optional) VAE model file; replaces the VAE inside the base model"),
+        v2: Schema.boolean().default(false).description("Enable for base models built on SD 2.0 or later"),
+        v_parameterization: Schema.boolean().default(false).description("V-pred models need v-parameterization, e.g. SD2 768-v, NoobXL V-Pred, or models fine-tuned from a V-pred model"),
+        scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("V-pred models only: scale the v-prediction loss like the noise prediction loss"),
+    }).description("Model"),
 
     Schema.object({
         train_data_dir: Schema.string().role("filepicker", { type: "folder" }).default("./train/aki").description("Training dataset folder"),
@@ -38,7 +17,7 @@ Schema.intersect([
         enable_bucket: Schema.boolean().default(true).description("Enable ARB buckets so images can have different aspect ratios"),
         min_bucket_reso: Schema.number().default(256).description("Minimum ARB bucket resolution"),
         max_bucket_reso: Schema.number().default(1024).description("Maximum ARB bucket resolution"),
-        bucket_reso_steps: Schema.number().default(64).description("ARB bucket resolution step; SDXL can use 32"),
+        bucket_reso_steps: Schema.number().default(64).description("ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. SD1.5 needs multiples of 64"),
     }).description("Dataset"),
 
     Schema.object({
@@ -53,11 +32,10 @@ Schema.intersect([
     Schema.object({
         max_train_epochs: Schema.number().min(1).default(10).description("Maximum training epochs"),
         train_batch_size: Schema.number().min(1).default(1).description("Batch size"),
-        stop_text_encoder_training: Schema.number().min(-1).description("sd-dreambooth only. Stop training the text encoder at step N; -1 does not train the text encoder"),
+        stop_text_encoder_training: Schema.number().min(-1).description("Stop training the text encoder at step N; -1 does not train the text encoder"),
         gradient_checkpointing: Schema.boolean().default(false).description("Gradient checkpointing"),
         gradient_accumulation_steps: Schema.number().min(1).description("Gradient accumulation steps"),
     }).description("Training"),
-
 
     Schema.intersect([
         Schema.object({
@@ -84,24 +62,8 @@ Schema.intersect([
 
         Schema.object({
             learning_rate: Schema.string().default("1e-6").description("Learning rate"),
+            learning_rate_te: Schema.string().default("5e-7").description("Text encoder learning rate"),
         }).description("Learning rate and optimizer"),
-
-        Schema.union([
-            Schema.object({
-                model_train_type: Schema.const("sd-dreambooth"),
-                learning_rate_te: Schema.string().default("5e-7").description("Text encoder learning rate"),
-            }),
-            Schema.object({}),
-        ]),
-
-        Schema.union([
-            Schema.object({
-                model_train_type: Schema.const("sdxl-finetune").required(),
-                learning_rate_te1: Schema.string().default("5e-7").description("SDXL text encoder 1 (ViT-L) learning rate"),
-                learning_rate_te2: Schema.string().default("5e-7").description("SDXL text encoder 2 (BiG-G) learning rate"),
-            }),
-            Schema.object({}),
-        ]),
 
         Schema.object({
             lr_scheduler: Schema.union([

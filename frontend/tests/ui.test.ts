@@ -47,7 +47,7 @@ describe("essentials", () => {
     const values = initialFormValues(groups);
     const shown = groups.flatMap((group) => group.fields).filter((field) => isEssential(field.name) && isFieldVisible(field.name, values));
     const names = shown.map((field) => field.name);
-    expect(names).toEqual(expect.arrayContaining(["pretrained_model_name_or_path", "train_data_dir", "output_name", "max_train_epochs", "network_dim"].filter((n) => n !== "network_dim" || name !== "dreambooth")));
+    expect(names).toEqual(expect.arrayContaining(["pretrained_model_name_or_path", "train_data_dir", "output_name", "max_train_epochs", "network_dim"].filter((n) => n !== "network_dim" || !["sd-dreambooth", "sdxl-finetune"].includes(name))));
     expect(shown.length, names.join(", ")).toBeGreaterThanOrEqual(12);
     expect(shown.length, names.join(", ")).toBeLessThanOrEqual(30);
   });

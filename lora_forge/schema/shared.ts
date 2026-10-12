@@ -9,7 +9,7 @@
                 enable_bucket: Schema.boolean().default(true).description("Enable ARB buckets so images can have different aspect ratios"),
                 min_bucket_reso: Schema.number().default(256).description("Minimum ARB bucket resolution"),
                 max_bucket_reso: Schema.number().default(1024).description("Maximum ARB bucket resolution"),
-                bucket_reso_steps: Schema.number().default(64).description("ARB bucket resolution step; SDXL can use 32 (lower values do not work for SDXL)"),
+                bucket_reso_steps: Schema.number().default(64).description("ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. SD1.5 needs multiples of 64"),
                 bucket_no_upscale: Schema.boolean().default(true).description("Do not upscale images to fit ARB buckets"),
             },
             CAPTION_SETTINGS: {

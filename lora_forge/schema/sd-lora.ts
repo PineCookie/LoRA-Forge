@@ -1,37 +1,20 @@
 Schema.intersect([
-    Schema.intersect([
-        Schema.object({
-            model_train_type: Schema.union(["sd-lora", "sdxl-lora"]).default("sd-lora").description("Training type"),
-            pretrained_model_name_or_path: Schema.string().role('filepicker', { type: "model-file" }).description("Base model file"),
-            resume: Schema.string().role('filepicker', { type: "folder" }).description("Resume training from a state saved with `save_state`: enter its folder"),
-            vae: Schema.string().role('filepicker', { type: "model-file" }).description("(Optional) VAE model file; replaces the VAE inside the base model"),
-        }).description("Model"),
-
-        Schema.union([
-            Schema.object({
-                model_train_type: Schema.const("sd-lora"),
-                v2: Schema.boolean().default(false).description("Enable for base models built on SD 2.0 or later"),
-            }),
-            Schema.object({}),
-        ]),
-
-        Schema.union([
-            Schema.object({
-                model_train_type: Schema.const("sd-lora").required(),
-                v_parameterization: Schema.boolean().default(false).description("V-pred models need v-parameterization, e.g. SD2 768-v, NoobXL V-Pred, or models fine-tuned from a V-pred model"),
-                scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("V-pred models only: scale the v-prediction loss like the noise prediction loss"),
-            }),
-            Schema.object({
-                model_train_type: Schema.const("sdxl-lora").required(),
-                v_parameterization: Schema.boolean().default(false).description("V-pred models need v-parameterization, e.g. SD2 768-v, NoobXL V-Pred, or models fine-tuned from a V-pred model"),
-                scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("V-pred models only: scale the v-prediction loss like the noise prediction loss"),
-            }),
-            Schema.object({}),
-        ]),
-    ]),
+    Schema.object({
+        model_train_type: Schema.string().default("sd-lora").disabled().description("Training type"),
+        pretrained_model_name_or_path: Schema.string().role('filepicker', { type: "model-file" }).description("Base model file"),
+        resume: Schema.string().role('filepicker', { type: "folder" }).description("Resume training from a state saved with `save_state`: enter its folder"),
+        vae: Schema.string().role('filepicker', { type: "model-file" }).description("(Optional) VAE model file; replaces the VAE inside the base model"),
+        v2: Schema.boolean().default(false).description("Enable for base models built on SD 2.0 or later"),
+        v_parameterization: Schema.boolean().default(false).description("V-pred models need v-parameterization, e.g. SD2 768-v, NoobXL V-Pred, or models fine-tuned from a V-pred model"),
+        scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("V-pred models only: scale the v-prediction loss like the noise prediction loss"),
+    }).description("Model"),
 
     // Dataset
-    Schema.object(SHARED_SCHEMAS.RAW.DATASET_SETTINGS).description("Dataset"),
+    Schema.object(
+        UpdateSchema(SHARED_SCHEMAS.RAW.DATASET_SETTINGS, {
+            bucket_reso_steps: Schema.number().default(64).description("ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. SD1.5 needs multiples of 64"),
+        })
+    ).description("Dataset"),
 
     // Saving
     SHARED_SCHEMAS.SAVE_SETTINGS,
@@ -41,7 +24,7 @@ Schema.intersect([
         train_batch_size: Schema.number().min(1).default(1).description("Batch size; higher uses more VRAM"),
         gradient_checkpointing: Schema.boolean().default(false).description("Gradient checkpointing"),
         gradient_accumulation_steps: Schema.number().min(1).description("Gradient accumulation steps"),
-        network_train_unet_only: Schema.boolean().default(false).description("Train the U-Net only; recommended for SDXL LoRAs"),
+        network_train_unet_only: Schema.boolean().default(false).description("Train the U-Net only"),
         network_train_text_encoder_only: Schema.boolean().default(false).description("Train the text encoder only"),
     }).description("Training"),
 
@@ -64,16 +47,11 @@ Schema.intersect([
             enable_base_weight: Schema.boolean().default(false).description('Enable base weights (difference training)'),
         }).description("Network"),
 
-        // LyCORIS options
         SHARED_SCHEMAS.LYCORIS_MAIN,
         SHARED_SCHEMAS.LYCORIS_LOKR,
-
-        // DyLoRA options
         SHARED_SCHEMAS.NETWORK_OPTION_DYLORA,
-
-        // Block-wise learning rate options
+        // SD1.5's U-Net: 12 down / 1 mid / 12 up blocks
         SHARED_SCHEMAS.NETWORK_OPTION_BLOCK_WEIGHTS,
-
         SHARED_SCHEMAS.NETWORK_OPTION_BASEWEIGHT,
     ]),
 
@@ -92,14 +70,14 @@ Schema.intersect([
     // Data augmentation
     SHARED_SCHEMAS.DATA_ENCHANCEMENT,
 
-    // Other options
+    // Other options (seed, clip_skip)
     SHARED_SCHEMAS.OTHER,
 
     // Full precision
     SHARED_SCHEMAS.FULL_PRECISION_MODE,
 
-    // Speed and memory
-    Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, {}, ["full_fp16", "full_bf16"])).description("Speed and memory"),
+    // Speed and memory; text encoder output caching is SDXL-only in sd-scripts' LoRA trainers
+    Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, {}, ["full_fp16", "full_bf16", "cache_text_encoder_outputs", "cache_text_encoder_outputs_to_disk"])).description("Speed and memory"),
 
     // Distributed training
     SHARED_SCHEMAS.DISTRIBUTED_TRAINING
