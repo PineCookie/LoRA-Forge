@@ -11,10 +11,9 @@ export interface Group {
   fields: Field[];
 }
 
-export type Tone = "general" | "quick" | "model" | "data" | "save" | "optimize" | "network" | "observe" | "performance";
+export type Tone = "general" | "model" | "data" | "save" | "optimize" | "network" | "observe" | "performance";
 
 const GROUP_TONES: Record<string, Tone> = {
-  "⚡ Quick setup": "quick",
   Model: "model",
   "Anima options": "model",
   "FLUX options": "model",
@@ -40,6 +39,42 @@ const GROUP_TONES: Record<string, Tone> = {
   GPU: "performance",
   "torch.compile / CUDA performance": "performance",
 };
+
+export type MergedSectionId = "model" | "data" | "training" | "network" | "preview" | "speed";
+
+/** The broader sections the Essentials view merges the schema sections into, in page order. */
+export const MERGED_SECTIONS: { id: MergedSectionId; tone: Tone }[] = [
+  { id: "model", tone: "model" },
+  { id: "data", tone: "data" },
+  { id: "training", tone: "optimize" },
+  { id: "network", tone: "network" },
+  { id: "preview", tone: "observe" },
+  { id: "speed", tone: "performance" },
+];
+
+const MERGED_BY_TITLE: Record<string, MergedSectionId> = {
+  Model: "model",
+  Dataset: "data",
+  Saving: "data",
+  Captions: "data",
+  Logging: "data",
+  "Data augmentation": "data",
+  Network: "network",
+  "Network options": "network",
+  "Base weights": "network",
+  "Block-wise learning rates": "network",
+  "Preview images": "preview",
+  "Speed and memory": "speed",
+  "Full precision": "speed",
+  "torch.compile / CUDA performance": "speed",
+  "Distributed training": "speed",
+  GPU: "speed",
+};
+
+/** The Essentials section a schema section belongs to; the rest (training, optimizer, model options) is "training". */
+export function mergedSectionOf(title: string): MergedSectionId {
+  return MERGED_BY_TITLE[title] ?? "training";
+}
 
 /** Accent colour of a section; titles without an entry are "general". */
 export function groupTone(title: string): Tone {

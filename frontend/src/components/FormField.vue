@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { controlKind, type FormValue } from "../config/form";
+import { controlKind, isWideField, type FormValue } from "../config/form";
 import { t, tr } from "../i18n";
 import { schemaOptions, type Field } from "../schema/groups";
 import RichText from "./RichText.vue";
@@ -12,6 +12,7 @@ const emit = defineEmits<{ pick: [pickerType: string]; reset: [] }>();
 const id = computed(() => `field-${props.field.name}`);
 const meta = computed(() => props.field.schema.meta);
 const kind = computed(() => controlKind(props.field.schema));
+const wide = computed(() => isWideField(props.field.name, props.field.schema));
 const options = computed(() => (schemaOptions(props.field.schema) ?? []).map(String));
 const pickerType = computed(() => (meta.value.role?.name === "filepicker" ? String(meta.value.role.options.type || "folder") : null));
 const description = computed(() => tr(meta.value.description ?? ""));
@@ -23,7 +24,7 @@ const selected = computed({ get: () => (Array.isArray(model.value) ? model.value
 </script>
 
 <template>
-  <div class="field" :class="{ edited, inline: kind === 'checkbox' }">
+  <div class="field" :class="{ edited, wide, inline: kind === 'checkbox' }">
     <div class="head">
       <input v-if="kind === 'checkbox'" :id="id" v-model="checked" type="checkbox" :disabled="meta.disabled" />
       <label class="name" :for="id">{{ field.name }}</label>
@@ -36,9 +37,12 @@ const selected = computed({ get: () => (Array.isArray(model.value) ? model.value
       <select v-if="kind === 'select'" :id="id" v-model="text" :disabled="meta.disabled">
         <option v-for="option in options" :key="option" :value="option">{{ option }}</option>
       </select>
-      <select v-else-if="kind === 'multiselect'" :id="id" v-model="selected" multiple :disabled="meta.disabled">
-        <option v-for="option in options" :key="option" :value="option">{{ option }}</option>
-      </select>
+      <div v-else-if="kind === 'multiselect'" :id="id" class="choices" role="group" :aria-label="field.name">
+        <label v-for="option in options" :key="option" class="choice">
+          <input v-model="selected" type="checkbox" :value="option" :disabled="meta.disabled" />
+          {{ option }}
+        </label>
+      </div>
       <textarea v-else-if="kind === 'textarea'" :id="id" v-model="text" rows="4" :disabled="meta.disabled" />
       <!-- not v-model: Vue casts type=number values to numbers, the form keeps the typed text -->
       <input
@@ -109,7 +113,21 @@ const selected = computed({ get: () => (Array.isArray(model.value) ? model.value
   align-items: center;
 }
 
-.edited .control :is(input, select, textarea) {
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 4px 0;
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.edited .control :is(input:not([type="checkbox"]), select, textarea) {
   border-color: var(--edited);
 }
 

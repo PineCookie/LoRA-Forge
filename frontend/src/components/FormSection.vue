@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { tr, t } from "../i18n";
+import { t } from "../i18n";
 import type { Tone } from "../schema/groups";
 
 defineProps<{
-  /** position in the page's groups; anchors the section for the index */
-  index: number;
-  /** English section title from the schema; shown translated */
+  /** anchors the section for the index and the scroll position */
+  sectionId: string;
+  /** shown as is (already translated) */
   title: string;
   tone: Tone;
   collapsed: boolean;
   editedCount: number;
-  note?: string;
+  notes?: string[];
 }>();
 
 defineEmits<{ toggle: [] }>();
@@ -18,19 +18,19 @@ defineEmits<{ toggle: [] }>();
 
 <template>
   <section
-    :id="`section-${index}`"
+    :id="`section-${sectionId}`"
     class="form-section"
     :class="[`tone-${tone}`, { collapsed }]"
-    :data-section-index="index"
+    :data-section="sectionId"
     :style="{ '--accent': `var(--tone-${tone})` }"
   >
     <button type="button" class="header" :aria-expanded="!collapsed" @click="$emit('toggle')">
-      <span class="title">{{ tr(title) }}</span>
+      <span class="title">{{ title }}</span>
       <span v-if="editedCount" class="badge" :title="t('trainer.editedTitle', { count: editedCount })">{{ editedCount }}</span>
       <span class="chevron" aria-hidden="true">{{ collapsed ? "▸" : "▾" }}</span>
     </button>
     <div v-show="!collapsed" class="body">
-      <p v-if="note" class="note">{{ note }}</p>
+      <p v-for="note in notes" :key="note" class="note">{{ note }}</p>
       <slot />
     </div>
   </section>
@@ -45,12 +45,6 @@ defineEmits<{ toggle: [] }>();
   border-radius: var(--radius);
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--surface)) 0, var(--surface) 52px);
   box-shadow: var(--shadow-sm);
-}
-
-.tone-quick {
-  border-width: 2px;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .header {
@@ -77,10 +71,6 @@ defineEmits<{ toggle: [] }>();
   white-space: normal;
 }
 
-.tone-quick .title {
-  color: var(--accent);
-}
-
 .badge {
   padding: 0 7px;
   border-radius: 999px;
@@ -98,7 +88,8 @@ defineEmits<{ toggle: [] }>();
 
 .body {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* at most three columns; fewer when a column would get narrower than 260px */
+  grid-template-columns: repeat(auto-fill, minmax(max(260px, calc((100% - 40px) / 3)), 1fr));
   gap: 16px 20px;
   padding: 0 18px 18px;
 }

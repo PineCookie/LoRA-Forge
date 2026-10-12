@@ -35,6 +35,7 @@ describe("anima defaults", () => {
     expect(config.full_bf16).toBe(true);
     expect(config.mixed_precision).toBe("bf16");
     expect(config.network_train_unet_only).toBe(true);
+    expect(config.qwen_image_vae_2d).toBe(true);
   });
 
   it("drops preview-only and form-only keys", () => {
@@ -101,5 +102,12 @@ describe("imported values", () => {
     const groups = loadGroups("anima-lora", ["GPU 0: A", "GPU 1: B"]);
     const field = groups.flatMap((group) => group.fields).find((item) => item.name === "gpu_ids")!;
     expect(toFormValue("gpu_ids", field.schema, ["GPU 1: B", "GPU 9: gone"], { imported: true })).toEqual(["GPU 1: B"]);
+  });
+
+  it("selects a GPU saved without its name", () => {
+    const groups = loadGroups("anima-lora", ["GPU 0: A (24 GB)", "GPU 1: B (24 GB)"]);
+    const field = groups.flatMap((group) => group.fields).find((item) => item.name === "gpu_ids")!;
+    expect(toFormValue("gpu_ids", field.schema, ["GPU 1"], { imported: true })).toEqual(["GPU 1: B (24 GB)"]);
+    expect(toFormValue("gpu_ids", field.schema, ["GPU 10"], { imported: true })).toEqual([]);
   });
 });

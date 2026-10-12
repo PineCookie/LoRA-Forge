@@ -3,11 +3,11 @@ import { onBeforeUnmount, onMounted, ref } from "vue";
 const USER_SCROLL_EVENTS = ["wheel", "touchstart", "keydown", "mousedown"] as const;
 
 /**
- * Index of the section currently at the top of the page. Sections are the elements matching
- * `selector`, each with its index in `data-section-index`; `offset` is the sticky header height.
+ * Id of the section currently at the top of the page. Sections are the elements matching
+ * `selector`, each with its id in `data-section`; `offset` is the sticky header height.
  */
 export function useScrollSpy(selector: string, offset = 160) {
-  const active = ref<number | null>(null);
+  const active = ref<string | null>(null);
   let frame = 0;
   // after a jump the target stays active until the user scrolls themselves: a section near the
   // end of the page cannot reach the top, so position alone would highlight a later one
@@ -27,7 +27,7 @@ export function useScrollSpy(selector: string, offset = 160) {
     }
     const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
     if (atBottom) current = sections[sections.length - 1];
-    active.value = Number(current.dataset.sectionIndex);
+    active.value = current.dataset.section ?? null;
   }
 
   const schedule = () => {
@@ -38,10 +38,10 @@ export function useScrollSpy(selector: string, offset = 160) {
     pinned = false;
   };
 
-  /** Mark `index` active (after a jump) until the user scrolls. */
-  function pin(index: number) {
+  /** Mark section `id` active (after a jump) until the user scrolls. */
+  function pin(id: string) {
     pinned = true;
-    active.value = index;
+    active.value = id;
   }
 
   onMounted(() => {

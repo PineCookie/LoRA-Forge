@@ -37,8 +37,10 @@ export function useConfigFile(form: TrainerForm) {
     const format: ConfigFormat = file.name.toLowerCase().endsWith(".json") ? "json" : "toml";
     try {
       const text = await file.text();
-      form.applyImported(format === "json" ? JSON.parse(text) : fromToml(text));
-      notify(t("trainer.imported", { format: format.toUpperCase() }), "success");
+      const unused = form.applyImported(format === "json" ? JSON.parse(text) : fromToml(text));
+      const name = format.toUpperCase();
+      if (unused.length) notify(t("trainer.importedUnused", { format: name, keys: unused.join(", ") }), "warning");
+      else notify(t("trainer.imported", { format: name }), "success");
     } catch (error) {
       notify(t("trainer.importFailed", { format: format.toUpperCase(), error: errorText(error) }), "error");
     }

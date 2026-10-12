@@ -47,6 +47,11 @@ const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = 
   wandb_api_key: ["log_with", "wandb"],
 };
 
+/** The field whose value shows or hides `name`, if any. */
+export function controllerOf(name: string): string | undefined {
+  return VISIBILITY_RULES[name]?.[0];
+}
+
 /** Whether a field is shown for the current form values. Hidden fields are still submitted. */
 export function isFieldVisible(name: string, values: FormValues): boolean {
   const rule = VISIBILITY_RULES[name];

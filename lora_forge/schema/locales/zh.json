@@ -227,6 +227,5 @@
   "V-pred models only: scale the v-prediction loss like the noise prediction loss": "仅用于 V-Pred 模型：像 noise prediction loss 一样缩放 v-prediction loss",
   "VAE encoding batch size": "vae 编码批量大小",
   "wandb API key": "wandb 的 api 密钥",
-  "Weights of the merged LoRAs, one number per line": "合并入底模的 LoRA 权重，一行一个数字",
-  "⚡ Quick setup": "⚡ 快速配置"
+  "Weights of the merged LoRAs, one number per line": "合并入底模的 LoRA 权重，一行一个数字"
 }

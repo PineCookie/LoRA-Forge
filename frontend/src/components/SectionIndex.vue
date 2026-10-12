@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { t, tr } from "../i18n";
+import { t } from "../i18n";
 import type { Tone } from "../schema/groups";
 
 export interface IndexItem {
-  index: number;
+  id: string;
+  /** shown as is (already translated) */
   title: string;
   tone: Tone;
   edited: number;
 }
 
-defineProps<{ items: IndexItem[]; active: number | null }>();
-defineEmits<{ jump: [index: number]; expandAll: []; collapseAll: [] }>();
+defineProps<{ items: IndexItem[]; active: string | null }>();
+defineEmits<{ jump: [id: string]; expandAll: []; collapseAll: [] }>();
 </script>
 
 <template>
@@ -23,15 +24,15 @@ defineEmits<{ jump: [index: number]; expandAll: []; collapseAll: [] }>();
     <button
       v-for="item in items"
       class="item"
-      :key="item.index"
+      :key="item.id"
       type="button"
-      :class="{ active: item.index === active }"
-      :aria-current="item.index === active ? 'location' : undefined"
+      :class="{ active: item.id === active }"
+      :aria-current="item.id === active ? 'location' : undefined"
       :style="{ '--accent': `var(--tone-${item.tone})` }"
-      @click="$emit('jump', item.index)"
+      @click="$emit('jump', item.id)"
     >
       <span class="dot" aria-hidden="true" />
-      <span class="title">{{ tr(item.title) }}</span>
+      <span class="title">{{ item.title }}</span>
       <span v-if="item.edited" class="badge" :title="t('trainer.editedTitle', { count: item.edited })">{{ item.edited }}</span>
     </button>
   </nav>

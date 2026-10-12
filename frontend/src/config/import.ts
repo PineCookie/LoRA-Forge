@@ -25,6 +25,9 @@ function splitArg(arg: unknown): [text: string, name: string, value: string] {
   return separator >= 0 ? [text, text.slice(0, separator), text.slice(separator + 1)] : [text, text, ""];
 }
 
+/** Keys expandImportedArgs() turns into other fields, so they count as used. */
+export const EXPANDED_KEYS = new Set(["network_args", "optimizer_args", "full_fp16", "full_bf16"]);
+
 export function expandImportedArgs(config: TrainingConfig): TrainingConfig {
   const result: TrainingConfig = { ...config };
 

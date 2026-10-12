@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, reactive, ref, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import { api, postJson } from "../api";
 import ConfigDrawer from "../components/ConfigDrawer.vue";
@@ -11,14 +11,16 @@ import SectionIndex from "../components/SectionIndex.vue";
 import TaskStatus from "../components/TaskStatus.vue";
 import { confirmAction } from "../composables/useConfirm";
 import { useConfigFile } from "../composables/useConfigFile";
+import { optionView, setOptionView, type OptionView } from "../composables/useOptionView";
 import { useScrollSpy } from "../composables/useScrollSpy";
 import { useTasks } from "../composables/useTasks";
 import { useTrainerForm } from "../composables/useTrainerForm";
+import { isEssential } from "../config/essentials";
 import { redactConfigForLog } from "../config/normalize";
 import { isFieldVisible } from "../config/visibility";
 import { t, tr } from "../i18n";
 import { labelText } from "../router";
-import { groupTone, type Field, type Group } from "../schema/groups";
+import { groupTone, MERGED_SECTIONS, mergedSectionOf, type Field, type Group, type Tone } from "../schema/groups";
 import { store } from "../store";
 import { notify } from "../toast";
 
@@ -29,7 +31,7 @@ const form = useTrainerForm(props.schemaName);
 const { groups, values, offsets, datasetDir, datasetRefresh } = form;
 const { toml, generatedArgs, exportAs, importFile, copyToml } = useConfigFile(form);
 const { activeTask, refresh: refreshTasks, terminate } = useTasks();
-const { active: activeSection, refresh: refreshSpy, pin: pinSection } = useScrollSpy("[data-section-index]");
+const { active: activeSection, refresh: refreshSpy, pin: pinSection } = useScrollSpy("[data-section]");
 
 const supportsTimestepPreview = ["flux-lora", "anima-lora"].includes(props.schemaName);
 const busy = ref(false);
@@ -50,41 +52,39 @@ function matchesSearch(field: Field) {
   return [field.name, description, tr(description)].some((text) => text.toLowerCase().includes(query.value));
 }
 
+// Essentials hides the less common options, but never one that differs from its default; a search
+// always looks through every option
+const essentialsOnly = computed(() => optionView.value === "essentials" && !query.value);
+// an option stays once it was edited, so setting it back to its default does not make it vanish
+// under the cursor; "Reset all" starts over
+const revealed = reactive(new Set<string>());
+watchEffect(() => {
+  for (const group of groups) for (const field of group.fields) if (form.isEdited(field.name)) revealed.add(field.name);
+});
+const inView = (field: Field) => !essentialsOnly.value || isEssential(field.name) || revealed.has(field.name);
+
 const fieldShown = (field: Field) =>
-  isFieldVisible(field.name, values.value) && matchesSearch(field) && (!changedOnly.value || form.isEdited(field.name));
+  isFieldVisible(field.name, values.value) && matchesSearch(field) && (!changedOnly.value || form.isEdited(field.name)) && inView(field);
 
-const sections = computed(() =>
-  groups
-    .map((group, index) => ({ group, index, tone: groupTone(group.title), fields: group.fields.filter(fieldShown), edited: form.editedCount(group) }))
-    .filter((section) => section.fields.length),
+const hiddenCount = computed(() =>
+  essentialsOnly.value ? groups.flatMap((group) => group.fields).filter((field) => isFieldVisible(field.name, values.value) && !inView(field)).length : 0,
 );
-const shownCount = computed(() => sections.value.reduce((count, section) => count + section.fields.length, 0));
-const indexItems = computed(() => sections.value.map(({ group, index, tone, edited }) => ({ index, title: group.title, tone, edited })));
 
-// collapsed sections survive navigation between pages; filters always show everything they match
-const sectionKey = (index: number) => `${route.path}:${index}`;
-const isCollapsed = (index: number) => !filtering.value && store.collapsedSections.has(sectionKey(index));
+const VIEWS: { view: OptionView; label: "trainer.view.essentials" | "trainer.view.all" }[] = [
+  { view: "essentials", label: "trainer.view.essentials" },
+  { view: "all", label: "trainer.view.all" },
+];
 
-function toggleSection(index: number) {
-  const key = sectionKey(index);
-  if (store.collapsedSections.has(key)) store.collapsedSections.delete(key);
-  else store.collapsedSections.add(key);
-  refreshSpy();
-}
-
-function setAllCollapsed(collapsed: boolean) {
-  for (const index of groups.keys()) {
-    if (collapsed) store.collapsedSections.add(sectionKey(index));
-    else store.collapsedSections.delete(sectionKey(index));
-  }
-  refreshSpy();
-}
-
-async function jumpTo(index: number) {
-  store.collapsedSections.delete(sectionKey(index));
-  pinSection(index);
-  await nextTick();
-  document.getElementById(`section-${index}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+interface DisplaySection {
+  id: string;
+  /** shown as is (already translated) */
+  title: string;
+  tone: Tone;
+  fields: Field[];
+  edited: number;
+  notes: string[];
+  /** holds the dataset folder, so the dataset panel goes here */
+  dataset: boolean;
 }
 
 function sectionNote(group: Group) {
@@ -95,6 +95,71 @@ function sectionNote(group: Group) {
   const names = new Set(group.fields.map((field) => field.name));
   if (names.has("min_snr_gamma") && names.has("debiased_estimation_loss")) return t("trainer.note.lossMinSnr");
   return undefined;
+}
+
+const notesOf = (groupsShown: Group[]) => groupsShown.map(sectionNote).filter((note): note is string => Boolean(note));
+
+// All options: the schema's own sections. Essentials: their few options merged into six broader
+// sections, so the page is not a stack of one-option sections.
+const sections = computed<DisplaySection[]>(() => {
+  const shown = groups.map((group) => ({ group, fields: group.fields.filter(fieldShown) })).filter((entry) => entry.fields.length);
+  if (!essentialsOnly.value) {
+    return shown.map(({ group, fields }) => ({
+      id: `g${groups.indexOf(group)}`,
+      title: tr(group.title),
+      tone: groupTone(group.title),
+      fields,
+      edited: form.editedCount(group),
+      notes: notesOf([group]),
+      dataset: group.title === "Dataset",
+    }));
+  }
+  return MERGED_SECTIONS.map(({ id, tone }) => {
+    const members = shown.filter(({ group }) => mergedSectionOf(group.title) === id);
+    return {
+      id: `e-${id}`,
+      title: t(`trainer.merged.${id}`),
+      tone,
+      fields: members.flatMap((member) => member.fields),
+      edited: members.reduce((count, member) => count + form.editedCount(member.group), 0),
+      notes: notesOf(members.map((member) => member.group)),
+      dataset: members.some((member) => member.group.title === "Dataset"),
+    };
+  }).filter((section) => section.fields.length);
+});
+// another view or filter changes the section ids: find the current one again
+watch(
+  () => sections.value.map((section) => section.id).join(),
+  () => refreshSpy(),
+  { flush: "post" },
+);
+const shownCount = computed(() => sections.value.reduce((count, section) => count + section.fields.length, 0));
+const indexItems = computed(() => sections.value.map(({ id, title, tone, edited }) => ({ id, title, tone, edited })));
+
+// collapsed sections survive navigation between pages; filters always show everything they match
+const sectionKey = (id: string) => `${route.path}:${id}`;
+const isCollapsed = (id: string) => !filtering.value && store.collapsedSections.has(sectionKey(id));
+
+function toggleSection(id: string) {
+  const key = sectionKey(id);
+  if (store.collapsedSections.has(key)) store.collapsedSections.delete(key);
+  else store.collapsedSections.add(key);
+  refreshSpy();
+}
+
+function setAllCollapsed(collapsed: boolean) {
+  for (const { id } of sections.value) {
+    if (collapsed) store.collapsedSections.add(sectionKey(id));
+    else store.collapsedSections.delete(sectionKey(id));
+  }
+  refreshSpy();
+}
+
+async function jumpTo(id: string) {
+  store.collapsedSections.delete(sectionKey(id));
+  pinSection(id);
+  await nextTick();
+  document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // --- actions -------------------------------------------------------------------------------
@@ -134,7 +199,9 @@ function onImport(event: Event) {
 }
 
 async function resetAll() {
-  if (await confirmAction(t("trainer.confirmReset"), t("trainer.reset"))) form.reset();
+  if (!(await confirmAction(t("trainer.confirmReset"), t("trainer.reset")))) return;
+  form.reset();
+  revealed.clear();
 }
 </script>
 
@@ -174,6 +241,18 @@ async function resetAll() {
 
       <div class="sections">
         <div class="toolbar">
+          <div class="view-switch" role="group" :aria-label="t('trainer.view.label')">
+            <button
+              v-for="item in VIEWS"
+              :key="item.view"
+              type="button"
+              :class="{ selected: optionView === item.view }"
+              :aria-pressed="optionView === item.view"
+              @click="setOptionView(item.view)"
+            >
+              {{ t(item.label) }}
+            </button>
+          </div>
           <input v-model="search" class="search" type="search" :placeholder="t('trainer.search')" :aria-label="t('trainer.searchLabel')" />
           <span v-if="filtering" class="count">{{ t("trainer.matchCount", { count: shownCount }) }}</span>
           <label class="changed-only">
@@ -185,14 +264,14 @@ async function resetAll() {
 
         <FormSection
           v-for="section in sections"
-          :key="section.index"
-          :index="section.index"
-          :title="section.group.title"
+          :key="section.id"
+          :section-id="section.id"
+          :title="section.title"
           :tone="section.tone"
           :edited-count="section.edited"
-          :note="sectionNote(section.group)"
-          :collapsed="isCollapsed(section.index)"
-          @toggle="toggleSection(section.index)"
+          :notes="section.notes"
+          :collapsed="isCollapsed(section.id)"
+          @toggle="toggleSection(section.id)"
         >
           <FormField
             v-for="field in section.fields"
@@ -205,7 +284,7 @@ async function resetAll() {
             @pick="pickPath(field.name, $event)"
           />
           <DatasetStats
-            v-if="section.group.title === 'Dataset'"
+            v-if="section.dataset"
             v-model:offsets="offsets"
             :dir="datasetDir"
             :batch-size="form.numberValue('train_batch_size')"
@@ -216,6 +295,11 @@ async function resetAll() {
             :refresh-key="datasetRefresh"
           />
         </FormSection>
+
+        <p v-if="hiddenCount && !changedOnly" class="more">
+          {{ t("trainer.hiddenCount", { count: hiddenCount }) }}
+          <button type="button" class="small" @click="setOptionView('all')">{{ t("trainer.showAll") }}</button>
+        </p>
 
         <p v-if="!sections.length" class="panel empty">
           {{ query ? t("trainer.noMatch", { query: search }) : t("trainer.noChanges") }}
@@ -241,7 +325,9 @@ async function resetAll() {
 
 .trainer {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
+  /* a readable form width on large screens: the index and form stay together, centred */
+  grid-template-columns: 210px minmax(0, 1280px);
+  justify-content: center;
   gap: 24px;
   align-items: start;
   /* room below the last section, so sections near the end can still scroll to the top */
@@ -296,6 +382,43 @@ async function resetAll() {
 
 .config-actions input {
   display: none;
+}
+
+.view-switch {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.view-switch button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.view-switch button.selected {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--muted);
 }
 
 .changed-only {

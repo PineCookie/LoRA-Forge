@@ -10,13 +10,6 @@ Schema.intersect([
     }).description("Model"),
 
     Schema.object({
-        train_data_dir: SHARED_SCHEMAS.RAW.DATASET_SETTINGS.train_data_dir,
-        output_name: SHARED_SCHEMAS.RAW.SAVE_FIELDS.output_name,
-        output_dir: SHARED_SCHEMAS.RAW.SAVE_FIELDS.output_dir,
-        logging_dir: SHARED_SCHEMAS.RAW.LOG_FIELDS.logging_dir,
-    }).description("⚡ Quick setup"),
-
-    Schema.object({
         timestep_sampling: Schema.union(["sigma", "uniform", "sigmoid", "shift", "flux_shift"]).default("sigmoid").description("Timestep sampling"),
         show_timesteps: Schema.union(["console", "image"]).description("Output format of the timestep distribution preview. Run it with the “Preview timesteps” button; ignored when training. ⚠ Needs sd-scripts v0.11.1+"),
         show_timesteps_resolution: Schema.string().default("1024").description("Image resolution the preview assumes (H or H,W); used by flux_shift"),
@@ -40,12 +33,12 @@ Schema.intersect([
             min_bucket_reso: Schema.number().default(512).description("Minimum ARB bucket resolution"),
             max_bucket_reso: Schema.number().default(2048).description("Maximum ARB bucket side length. For square images keep Anima at 1536 or below; for 2:1 and other wide images raise it to 2048 or more, but VRAM use grows with the total pixel count"),
             bucket_reso_steps: Schema.number().default(16).description("ARB bucket resolution step. Anima: 16 recommended"),
-        }, ["train_data_dir"])
+        })
     ).description("Dataset"),
 
-    // Saving (output_name / output_dir moved to ⚡ Quick setup)
+    // Saving
     Schema.intersect([
-        Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.SAVE_FIELDS, {}, ["output_name", "output_dir"])).description("Saving"),
+        Schema.object(SHARED_SCHEMAS.RAW.SAVE_FIELDS).description("Saving"),
         Schema.union([
             Schema.object({
                 save_state: Schema.const(true).required(),
@@ -110,9 +103,9 @@ Schema.intersect([
         ]),
     ]),
 
-    // Logging (logging_dir moved to ⚡ Quick setup)
+    // Logging
     Schema.intersect([
-        Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.LOG_FIELDS, {}, ["logging_dir"])).description("Logging"),
+        Schema.object(SHARED_SCHEMAS.RAW.LOG_FIELDS).description("Logging"),
         Schema.union([
             Schema.object({
                 log_with: Schema.const("wandb").required(),
@@ -154,7 +147,7 @@ Schema.intersect([
             unsloth_offload_checkpointing: Schema.boolean().default(false).description("Offload activations to CPU RAM asynchronously (faster than cpu offload). Cannot be combined with the two options above"),
             vae_chunk_size: Schema.number().min(2).step(2).description("Spatial chunk size for VAE encoding/decoding (an even number). Empty disables chunking; with qwen_image_vae_2d it barely affects peak VRAM"),
             vae_disable_cache: Schema.boolean().default(false).description("Disable the VAE's internal cache to save VRAM. No effect with qwen_image_vae_2d, which has no temporal cache"),
-            qwen_image_vae_2d: Schema.boolean().default(false).description("Image-only 2D Qwen-Image VAE (Conv3d→Conv2d): about 2× faster with about 1/3 of the peak VRAM; best combined with cache_latents. ⚠ Needs sd-scripts v0.11.1+"),
+            qwen_image_vae_2d: Schema.boolean().default(true).description("Image-only 2D Qwen-Image VAE (Conv3d→Conv2d): about 2× faster with about 1/3 of the peak VRAM; best combined with cache_latents. ⚠ Needs sd-scripts v0.11.1+"),
             text_encoder_batch_size: Schema.number().min(1).description("Batch size for caching text encoder outputs; empty uses the dataset batch size"),
         }, ["fp8_base", "fp8_base_unet", "no_half_vae", "lowram", "full_fp16", "full_bf16", "xformers", "sdpa"])
     ).description("Speed and memory"),

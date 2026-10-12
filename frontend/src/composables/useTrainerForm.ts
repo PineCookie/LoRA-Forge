@@ -1,6 +1,6 @@
 import { computed, ref } from "vue";
 import { formValueKey, initialFormValues, readForm, toFormValue, type FormValue, type FormValues } from "../config/form";
-import { expandImportedArgs } from "../config/import";
+import { EXPANDED_KEYS, expandImportedArgs } from "../config/import";
 import type { TrainingConfig } from "../config/normalize";
 import type { SubsetOffsets } from "../config/offsets";
 import { applyDependentValues, applyExclusiveRules } from "../config/rules";
@@ -59,8 +59,11 @@ export function useTrainerForm(schemaName: string) {
     return initial ? [initial] : [];
   }
 
-  /** Load an imported config into the form; throws when it is for another training type. */
-  function applyImported(imported: TrainingConfig) {
+  /**
+   * Load an imported config into the form; throws when it is for another training type. Returns
+   * the keys of the file this page has no option for (they are not kept).
+   */
+  function applyImported(imported: TrainingConfig): string[] {
     const importedType = imported.model_train_type;
     const allowed = allowedTrainTypes();
     if (importedType && allowed.length && !allowed.includes(importedType)) {
@@ -73,6 +76,8 @@ export function useTrainerForm(schemaName: string) {
     applyExclusiveRules(values.value, null); // full pass: fix constrained combinations from the file
     applyDependentValues(values.value);
     datasetRefresh.value += 1;
+    // gpu_ids depends on the machine: with one GPU the page has no picker, which is not worth a warning
+    return Object.keys(imported).filter((name) => !fieldMap.has(name) && !EXPANDED_KEYS.has(name) && name !== "gpu_ids");
   }
 
   /** The config sent to /api/run, with the offsets recorded for the current dataset folder. */

@@ -227,6 +227,5 @@
   "V-pred models only: scale the v-prediction loss like the noise prediction loss": "V-Pred モデル専用：v-prediction loss を noise prediction loss と同様にスケーリング",
   "VAE encoding batch size": "VAE エンコードのバッチサイズ",
   "wandb API key": "wandb の API キー",
-  "Weights of the merged LoRAs, one number per line": "マージする LoRA の重み（1 行に 1 つの数値）",
-  "⚡ Quick setup": "⚡ クイック設定"
+  "Weights of the merged LoRAs, one number per line": "マージする LoRA の重み（1 行に 1 つの数値）"
 }

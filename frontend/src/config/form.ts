@@ -18,6 +18,15 @@ export function controlKind(node: SchemaNode): ControlKind {
   return "text";
 }
 
+// text options whose values are long lists or patterns
+const LONG_TEXT_FIELDS = new Set(["network_reg_dims", "network_reg_lrs", "down_lr_weight", "mid_lr_weight", "up_lr_weight"]);
+
+/** Fields that get a whole form row: paths, multi-line text, lists, long patterns. */
+export function isWideField(name: string, node: SchemaNode): boolean {
+  const kind = controlKind(node);
+  return kind === "textarea" || kind === "multiselect" || node.meta.role?.name === "filepicker" || LONG_TEXT_FIELDS.has(name);
+}
+
 function optionStrings(node: SchemaNode) {
   return (schemaOptions(node) ?? []).map(String);
 }
@@ -30,7 +39,9 @@ export function toFormValue(name: string, node: SchemaNode, value: unknown, { im
     case "multiselect": {
       const options = optionStrings(node);
       const list = Array.isArray(value) ? value : value === undefined || value === "" ? [] : [value];
-      return list.map(String).filter((item) => options.includes(item));
+      // "GPU 0" (a config from another machine or an older version) selects "GPU 0: <name> (..)"
+      const match = (item: string) => options.find((option) => option === item || option.startsWith(`${item}:`));
+      return list.map((item) => match(String(item))).filter((item): item is string => item !== undefined);
     }
     case "select": {
       const options = optionStrings(node);
