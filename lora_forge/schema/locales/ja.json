@@ -146,7 +146,6 @@
   "Options": "設定",
   "Other": "その他",
   "Output folder": "保存先フォルダ",
-  "Output format of the timestep distribution preview. Run it with the “Preview timesteps” button; ignored when training. ⚠ Needs sd-scripts v0.11.1+": "タイムステップ分布プレビューの出力形式。「タイムステップ分布をプレビュー」ボタンで実行し、学習時は無視されます。⚠ sd-scripts v0.11.1+ が必要",
   "Output name": "保存名",
   "Overall learning rate; ignored once separate U-Net and text encoder learning rates are set.": "全体の学習率。U-Net とテキストエンコーダの学習率を個別に設定するとこの値は無視されます。",
   "Preview height": "プレビュー画像の高さ",

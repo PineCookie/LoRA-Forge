@@ -32,6 +32,7 @@ dependencies = [
     "numpy>=2.4.5",
     "opencv-python",
     "pillow>=12.2.0",
+    # not imported directly: diffusers loads it for the preview samplers (dpmsolver, lms, ...)
     "scipy>=1.17.1",
     "sentencepiece>=0.2.1",
     # App/runtime utilities
@@ -42,18 +43,20 @@ dependencies = [
     "tqdm>=4.67.3",
     "toml>=0.10.2",
     "voluptuous>=0.16.0",
+    # Training logs (log_with = tensorboard / wandb)
+    "tensorboard>=2.20.0",
+    "wandb>=0.27.0",
     # UI/server
     "fastapi>=0.136.1",
     "httpx>=0.28.1",
-    "tensorboard>=2.20.0",
     "uvicorn>=0.47.0",
-    "wandb>=0.27.0",
-    "ninja>=1.13.0",
 ]
 
 [project.optional-dependencies]
 flash-attn = [
     "flash-attn",
+    # only needed when flash-attn has to be built from source
+    "ninja>=1.13.0",
 ]
 
 [tool.uv.sources]

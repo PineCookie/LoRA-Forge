@@ -105,7 +105,7 @@ const en = {
     "Timestep offset: negative values favor low noise (detail), positive values high noise (structure). Only used for FLUX / Anima training; 0 keeps the default behavior. ⚠ Needs sd-scripts main (> v0.11.1); older versions silently ignore it.",
   "dataset.adviceSigmaUniform": "**Advice:** offsets have no effect with `sigma` / `uniform`. To use them, start from `sigmoid`.",
   "dataset.adviceShift":
-    "**Advice:** `shift` / `flux_shift` already favor high timesteps. Start at **±0.25**, be careful with positive offsets, and preview the distribution with `show_timesteps=console` first.",
+    "**Advice:** `shift` / `flux_shift` already favor high timesteps. Start at **±0.25**, be careful with positive offsets, and check the distribution with **Preview timesteps** first.",
   "dataset.adviceDefault":
     "**Suggested start:** `timestep_sampling=sigmoid`, `sigmoid_scale=1.0`. Keep every offset at 0 first; try **-0.25** for detail / close-up subsets and **+0.25** for full-body / composition subsets. Only go up to **±0.5** after comparing previews.",
   "dataset.noSubsets": "No subfolders in the `repeats_name` format found",

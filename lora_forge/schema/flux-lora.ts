@@ -11,7 +11,6 @@ Schema.intersect([
 
     Schema.object({
         timestep_sampling: Schema.union(["sigma", "uniform", "sigmoid", "shift"]).default("sigmoid").description("Timestep sampling"),
-        show_timesteps: Schema.union(["console", "image"]).description("Output format of the timestep distribution preview. Run it with the “Preview timesteps” button; ignored when training. ⚠ Needs sd-scripts v0.11.1+"),
         show_timesteps_resolution: Schema.string().default("1024").description("Image resolution the preview assumes (H or H,W); used by flux_shift"),
         show_timesteps_offset: Schema.number().step(0.01).default(0.0).description("Timestep offset for the preview only; no effect with sigma/uniform. ⚠ Needs sd-scripts main (> v0.11.1)"),
         sigmoid_scale: Schema.number().step(0.001).default(1.0).description("Sigmoid scale"),

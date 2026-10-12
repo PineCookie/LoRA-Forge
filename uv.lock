@@ -494,7 +494,6 @@ dependencies = [
     { name = "imagesize" },
     { name = "lion-pytorch" },
     { name = "lycoris-lora" },
-    { name = "ninja" },
     { name = "numpy" },
     { name = "opencv-python" },
     { name = "packaging" },
@@ -525,6 +524,7 @@ dependencies = [
 [package.optional-dependencies]
 flash-attn = [
     { name = "flash-attn" },
+    { name = "ninja" },
 ]
 
 [package.metadata]
@@ -542,7 +542,7 @@ requires-dist = [
     { name = "imagesize", specifier = ">=2.0.0" },
     { name = "lion-pytorch" },
     { name = "lycoris-lora", specifier = ">=3.4.0" },
-    { name = "ninja", specifier = ">=1.13.0" },
+    { name = "ninja", marker = "extra == 'flash-attn'", specifier = ">=1.13.0" },
     { name = "numpy", specifier = ">=2.4.5" },
     { name = "opencv-python" },
     { name = "packaging", specifier = ">=26.2" },

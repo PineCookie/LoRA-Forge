@@ -88,7 +88,8 @@ export function useTrainerForm(schemaName: string) {
       if (Object.keys(recorded).length) result.subset_timestep_sampling_offsets = recorded;
     }
     if (previewTimesteps) {
-      result.show_timesteps ||= "console";
+      // the preview is printed to the training log; "image" would open a matplotlib window on the server
+      result.show_timesteps = "console";
     } else {
       // sd-scripts exits after rendering --show_timesteps; a real run must never inherit it
       delete result.show_timesteps;

@@ -87,7 +87,7 @@ GUI 会在提交时校验 `qwen3` / `vae`（缺失或路径不存在会直接提
 | `compile_fullgraph cannot be used with --split_attn` | 两者互斥 |
 | 训练第一步报 `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` | torch 2.14（含 2.14.1）的 Dynamo bug（PyTorch #193194，动态形状 + 非重入 checkpoint）；保持 `compile_dynamic=false`（GUI 默认），或等 torch 2.15（修复 PR #193254）。见第 9 节 |
 | 训练时刷屏 `remark: <file>:<line>:0: N instructions in function` | triton-windows `3.8.0.post28` 的 Windows 回归（[triton-windows #54](https://github.com/triton-lang/triton-windows/issues/54)），**与本节的 Dynamo bug 无关**；升级到 `triton-windows>=3.8.0.post29` 即默认隐藏。见第 10 节 |
-| 预览"没输出" | `show_timesteps=image` 会打开 matplotlib 窗口并阻塞；在无界面环境请用 `console` |
+| 预览"没输出" | 预览结果输出在训练日志（控制台）里；GUI 只使用 `console`，`image` 需要 matplotlib，且会在服务器上弹出窗口 |
 
 ## 7. 元数据与出图
 

@@ -100,7 +100,7 @@ const zh: Messages = {
   "dataset.offsetTitle": "负值：低噪声/细节；正值：高噪声/结构。为 0 时不改变原有行为。",
   "dataset.offsetNote": "Timestep offset：负值偏向低噪声（细节），正值偏向高噪声（结构）。记录仅适用于 FLUX / Anima 训练；0 保持旧行为。⚠ 需 sd-scripts main（> v0.11.1，旧版本会静默忽略）。",
   "dataset.adviceSigmaUniform": "**建议：**偏移在 `sigma` / `uniform` 模式下无效。如需使用该功能，请选择 `sigmoid` 作为起点。",
-  "dataset.adviceShift": "**建议：**`shift` / `flux_shift` 已经偏向高 timestep。从 **±0.25** 开始，谨慎使用正偏移；用 `show_timesteps=console` 先预览分布。",
+  "dataset.adviceShift": "**建议：**`shift` / `flux_shift` 已经偏向高 timestep。从 **±0.25** 开始，谨慎使用正偏移；先用「预览时间步分布」查看分布。",
   "dataset.adviceDefault":
     "**推荐起点：**`timestep_sampling=sigmoid`、`sigmoid_scale=1.0`。先保持全部为 0；细节/近景子集可试 **-0.25**，全身/架构子集可试 **+0.25**。只在对比预览后再扩大到 **±0.5**。",
   "dataset.noSubsets": "未检测到符合 `数字_概念名` 格式的子文件夹",

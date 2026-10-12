@@ -146,7 +146,6 @@
   "Options": "参数",
   "Other": "其他设置",
   "Output folder": "模型保存文件夹",
-  "Output format of the timestep distribution preview. Run it with the “Preview timesteps” button; ignored when training. ⚠ Needs sd-scripts v0.11.1+": "预览时间步分布的格式。用上方“预览时间步分布”按钮触发，训练时会忽略。⚠ 需 sd-scripts v0.11.1+",
   "Output name": "模型保存名称",
   "Overall learning rate; ignored once separate U-Net and text encoder learning rates are set.": "总学习率, 在分开设置 U-Net 与文本编码器学习率后这个值失效。",
   "Preview height": "预览图高",

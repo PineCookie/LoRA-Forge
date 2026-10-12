@@ -25,8 +25,9 @@ function splitArg(arg: unknown): [text: string, name: string, value: string] {
   return separator >= 0 ? [text, text.slice(0, separator), text.slice(separator + 1)] : [text, text, ""];
 }
 
-/** Keys expandImportedArgs() turns into other fields, so they count as used. */
-export const EXPANDED_KEYS = new Set(["network_args", "optimizer_args", "full_fp16", "full_bf16"]);
+/** Keys an import uses without a field of the same name: expanded into other fields by
+ * expandImportedArgs(), or set by the page itself (show_timesteps, by "Preview timesteps"). */
+export const EXPANDED_KEYS = new Set(["network_args", "optimizer_args", "full_fp16", "full_bf16", "show_timesteps"]);
 
 export function expandImportedArgs(config: TrainingConfig): TrainingConfig {
   const result: TrainingConfig = { ...config };
