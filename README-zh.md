@@ -108,9 +108,13 @@ npm run typecheck
 
 新增或修改参数说明时，请把英文原文同时加入两个 JSON 文件；缺少或残留翻译时 `npm test` 会失败。终端输出和导出的 TOML 文件始终为英文。
 
+### 运行记录
+
+「运行记录」页面会跟踪每次训练：进度、速度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件以及控制台输出。训练失败时会直接显示错误。记录保存在 `logs/runs` 中，关闭 GUI 后仍会保留，方便对比以往的训练；删除记录不会影响训练出的文件。此功能不需要 TensorBoard。
+
 ### TensorBoard
 
-启动 GUI 时加上 `--enable-tensorboard`（例如 `run_gui.ps1 --enable-tensorboard`），即可在 TensorBoard 页面中查看。它读取 `logs` 文件夹，监听 http://127.0.0.1:6006/。
+TensorBoard 为可选功能。启动 GUI 时加上 `--enable-tensorboard`（例如 `run_gui.ps1 --enable-tensorboard`），即可在 TensorBoard 页面中查看。它读取 `logs` 文件夹，监听 http://127.0.0.1:6006/。
 
 ## 程序参数
 

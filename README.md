@@ -109,9 +109,13 @@ The web UI is in English, Chinese and Japanese. It follows the browser language 
 
 When you add or reword an option, add its English text to both JSON files; `npm test` fails while a translation is missing or left over. Terminal output and exported TOML files stay in English.
 
+### Runs
+
+The Runs page follows every training: progress, speed and time left, loss and learning rate charts, sample images, saved LoRA files and the console output. A failed run opens on the error. Records are kept in `logs/runs` after the GUI exits, so past runs can be compared; deleting a record leaves the trained files alone. It needs no TensorBoard.
+
 ### TensorBoard
 
-Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-tensorboard`) to open TensorBoard from the TensorBoard page. It reads the `logs` folder and listens on http://127.0.0.1:6006/.
+TensorBoard is optional. Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-tensorboard`) to open TensorBoard from the TensorBoard page. It reads the `logs` folder and listens on http://127.0.0.1:6006/.
 
 ## Program arguments
 

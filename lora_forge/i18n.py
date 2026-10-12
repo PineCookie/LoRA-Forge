@@ -53,9 +53,19 @@ class LocaleMiddleware:
 MESSAGES: dict[str, dict[str, str]] = {
     # --- /api/run ----------------------------------------------------------------------------
     "run.started": {
-        "en": "Training started. Task ID: {id}",
-        "zh": "训练开始，任务 ID：{id}",
-        "ja": "学習を開始しました。タスク ID：{id}",
+        "en": "Training started. Follow it on the Runs page.",
+        "zh": "训练已开始，可在「运行记录」页面查看进度。",
+        "ja": "学習を開始しました。「実行履歴」ページで進捗を確認できます。",
+    },
+    "runs.notFound": {
+        "en": "This run record does not exist (any more).",
+        "zh": "该运行记录不存在（或已删除）。",
+        "ja": "この実行記録は存在しません（削除済みの可能性があります）。",
+    },
+    "runs.stillRunning": {
+        "en": "This run is still running. Stop it before deleting its record.",
+        "zh": "该运行仍在进行中，请先停止再删除记录。",
+        "ja": "この実行はまだ進行中です。記録を削除する前に停止してください。",
     },
     "run.serverError": {
         "en": "Server error: {error}",

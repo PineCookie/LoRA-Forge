@@ -4,9 +4,11 @@ import asyncio
 import hashlib
 import json
 import os
+from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
 
 from lora_forge import launcher, sd_scripts
 from lora_forge.app.models import APIResponse, APIResponseFail, APIResponsePending, APIResponseSuccess
@@ -14,10 +16,10 @@ from lora_forge.devices import printable_devices
 from lora_forge.file_dialogs import open_directory_selector, open_file_selector
 from lora_forge.i18n import t
 from lora_forge.log import log
-from lora_forge.training import runner
+from lora_forge.training import runner, runs
 from lora_forge.training.config import TrainingConfigError, prepare_training, redact_config
 from lora_forge.training.dataset import count_images, subset_folders
-from lora_forge.training.tasks import tm
+from lora_forge.training.tasks import TaskStatus, tm
 
 router = APIRouter()
 
@@ -57,13 +59,13 @@ async def run_training(request: Request):
         config: dict = json.loads((await request.body()).decode("utf-8"))
         log.info(f"Training config received: {redact_config(config)}")
         prepared = prepare_training(config)
-        task_id = runner.start_training(prepared.toml_file, prepared.trainer_file, prepared.gpu_ids, prepared.cpu_threads)
+        task_id, run_id = runner.start_training(prepared)
     except (TrainingConfigError, runner.TaskNotStartedError) as e:
         return APIResponseFail(message=str(e))
     except Exception as e:
         log.error(f"Error in /run endpoint: {e}", exc_info=True)
         return APIResponseFail(message=t("run.serverError", error=e))
-    return APIResponseSuccess(message=t("run.started", id=task_id))
+    return APIResponseSuccess(message=t("run.started"), data={"task_id": task_id, "run_id": run_id})
 
 
 @router.get("/pick_file")
@@ -109,7 +111,122 @@ async def get_dataset_info(train_data_dir: str = "") -> APIResponse:
 
 @router.get("/tasks", response_model_exclude_none=True)
 async def get_tasks() -> APIResponse:
-    return APIResponseSuccess(data={"tasks": tm.dump()})
+    def collect():
+        tasks = tm.dump()
+        for task in tasks:
+            if task["run_id"] and task["status"] in ("CREATED", "RUNNING"):
+                task["progress"] = runs.summary(task["run_id"])
+        return tasks
+
+    return APIResponseSuccess(data={"tasks": await asyncio.to_thread(collect)})
+
+
+# --- runs (the monitor) ------------------------------------------------------------------------
+
+def _run_status(info: runs.RunInfo) -> str:
+    """The recorded status, corrected for a run whose GUI process exited while it ran."""
+    if info.status != "running":
+        return info.status
+    task = tm.find_by_run(info.id)
+    if task is None:
+        return "interrupted"
+    return "starting" if task.status == TaskStatus.CREATED else "running"
+
+
+def _run_data(info: runs.RunInfo) -> dict:
+    data = asdict(info)
+    data["status"] = _run_status(info)
+    # the folder and the config path are local paths; the UI shows names only
+    data["config_file"] = os.path.basename(info.config_file)
+    return data
+
+
+def _find_run(run_id: str) -> runs.RunInfo:
+    try:
+        return runs.read_info(run_id)
+    except (runs.RunNotFoundError, OSError, ValueError, TypeError):
+        raise runs.RunNotFoundError(run_id)
+
+
+@router.get("/runs")
+async def list_runs() -> APIResponse:
+    def collect():
+        result = []
+        for info in runs.list_runs():
+            data = _run_data(info)
+            if data["status"] in ("starting", "running"):
+                data["progress"] = runs.summary(info.id)
+            result.append(data)
+        return result
+
+    return APIResponseSuccess(data={"runs": await asyncio.to_thread(collect)})
+
+
+@router.get("/runs/{run_id}")
+async def get_run(run_id: str) -> APIResponse:
+    def collect():
+        info = _find_run(run_id)
+        return {
+            "run": _run_data(info),
+            "progress": runs.summary(run_id),
+            "samples": runs.samples(info),
+            "checkpoints": runs.checkpoints(info),
+        }
+
+    try:
+        return APIResponseSuccess(data=await asyncio.to_thread(collect))
+    except runs.RunNotFoundError:
+        return APIResponseFail(message=t("runs.notFound"))
+
+
+@router.get("/runs/{run_id}/events")
+async def get_run_events(run_id: str, offset: int = 0) -> APIResponse:
+    try:
+        events, next_offset = await asyncio.to_thread(runs.read_events, run_id, offset)
+    except runs.RunNotFoundError:
+        return APIResponseFail(message=t("runs.notFound"))
+    return APIResponseSuccess(data={"events": events, "offset": next_offset})
+
+
+@router.get("/runs/{run_id}/output")
+async def get_run_output(run_id: str, lines: int = 400) -> APIResponse:
+    try:
+        output = await asyncio.to_thread(runs.tail_output, run_id, max(1, min(lines, 2000)))
+    except runs.RunNotFoundError:
+        return APIResponseFail(message=t("runs.notFound"))
+    return APIResponseSuccess(data={"lines": output})
+
+
+@router.get("/runs/{run_id}/samples/{name}")
+async def get_run_sample(run_id: str, name: str):
+    try:
+        path = await asyncio.to_thread(runs.sample_file, _find_run(run_id), name)
+    except runs.RunNotFoundError:
+        path = None
+    if path is None:
+        raise HTTPException(status_code=404)
+    return FileResponse(path)
+
+
+@router.post("/runs/{run_id}/stop")
+async def stop_run(run_id: str) -> APIResponse:
+    task = tm.find_by_run(run_id)
+    if task is None:
+        return APIResponseFail(message=t("runs.notFound"))
+    tm.terminate_task(task.task_id)
+    return APIResponseSuccess()
+
+
+@router.delete("/runs/{run_id}")
+async def delete_run(run_id: str) -> APIResponse:
+    try:
+        info = _find_run(run_id)
+        if _run_status(info) in ("starting", "running"):
+            return APIResponseFail(message=t("runs.stillRunning"))
+        await asyncio.to_thread(runs.delete_run, run_id)
+    except (runs.RunNotFoundError, OSError):
+        return APIResponseFail(message=t("runs.notFound"))
+    return APIResponseSuccess()
 
 
 @router.get("/tasks/terminate/{task_id}", response_model_exclude_none=True)

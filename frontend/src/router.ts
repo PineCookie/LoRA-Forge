@@ -3,7 +3,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 import { locale, t, type MessageKey } from "./i18n";
 import HomeView from "./views/HomeView.vue";
 import ProxyView from "./views/ProxyView.vue";
-import TasksView from "./views/TasksView.vue";
+import RunsView from "./views/RunsView.vue";
 import TrainerView from "./views/TrainerView.vue";
 
 /** A name shown as it is (model names) or a UI message key. */
@@ -34,7 +34,8 @@ const routes: RouteRecordRaw[] = [
   trainer("/lora/sd3.html", "SD3.5", "sd3-lora"),
   trainer("/lora/basic.html", "SD1.5", "lora-basic"),
   trainer("/dreambooth/index.html", "Dreambooth", "dreambooth"),
-  { path: "/task.html", alias: "/task.md", component: TasksView, meta: { title: { key: "nav.tasks" } } },
+  // /task.html was the task list this page replaced
+  { path: "/runs.html", alias: ["/runs.md", "/task.html", "/task.md"], component: RunsView, meta: { title: { key: "nav.runs" } } },
   {
     path: "/tensorboard.html",
     alias: "/tensorboard.md",
@@ -62,7 +63,7 @@ export const navigation: { heading: { key: MessageKey }; items: { path: string; 
   {
     heading: { key: "nav.monitor" },
     items: [
-      { path: "/task.html", label: { key: "nav.tasks" } },
+      { path: "/runs.html", label: { key: "nav.runs" } },
       { path: "/tensorboard.html", label: { text: "Tensorboard" } },
     ],
   },

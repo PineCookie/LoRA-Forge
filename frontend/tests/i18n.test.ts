@@ -61,9 +61,9 @@ describe("t and tr", () => {
   });
 
   it("fills in parameters in the current language", () => {
-    expect(t("tasks.terminated", { id: "abc" })).toBe("Task abc terminated");
+    expect(t("runs.stepOf", { n: 12, total: 400 })).toBe("Step 12 / 400");
     locale.value = "zh";
-    expect(t("tasks.terminated", { id: "abc" })).toBe("已终止任务 abc");
+    expect(t("runs.stepOf", { n: 12, total: 400 })).toBe("第 12 / 400 步");
   });
 
   it("translates schema text and falls back to English", () => {

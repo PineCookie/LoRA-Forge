@@ -55,6 +55,11 @@ class PreparedRun:
     trainer_file: str
     gpu_ids: Optional[list]
     cpu_threads: int
+    # for the monitor's run record
+    run_id: str
+    model_train_type: str
+    config: dict
+    preview: bool
 
 
 def redact_config(config: dict) -> dict:
@@ -252,4 +257,14 @@ def prepare_training(config: dict) -> PreparedRun:
     with open(toml_file, "w", encoding="utf-8") as f:
         f.write(toml.dumps(config))
 
-    return PreparedRun(toml_file=toml_file, trainer_file=trainer_file, gpu_ids=gpu_ids, cpu_threads=cpu_threads)
+    return PreparedRun(
+        toml_file=toml_file,
+        trainer_file=trainer_file,
+        gpu_ids=gpu_ids,
+        cpu_threads=cpu_threads,
+        run_id=timestamp,
+        model_train_type=model_train_type,
+        config=config,
+        # sd-scripts only prints the timestep distribution and exits
+        preview=bool(config.get("show_timesteps")),
+    )

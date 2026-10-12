@@ -3,10 +3,15 @@ import { api } from "../api";
 import { t } from "../i18n";
 import { notify } from "../toast";
 import { confirmAction } from "./useConfirm";
+import type { RunProgress } from "./useRuns";
 
 export interface Task {
   id: string;
   status: "CREATED" | "RUNNING" | "FINISHED" | "TERMINATED";
+  /** the Runs page record of this task */
+  run_id?: string | null;
+  /** while it runs */
+  progress?: RunProgress;
 }
 
 const POLL_INTERVAL = 3000;
@@ -30,15 +35,16 @@ async function refresh() {
 /** The task that blocks a new run: starting or running. */
 const activeTask = computed(() => state.tasks.find((task) => task.status === "RUNNING" || task.status === "CREATED"));
 
-async function terminate(task: Task) {
-  if (!(await confirmAction(t("tasks.confirmTerminate", { id: task.id }), t("tasks.terminate")))) return;
+async function terminate(task: Pick<Task, "id">) {
+  if (!(await confirmAction(t("tasks.confirmTerminate"), t("tasks.terminate")))) return false;
   try {
     await api(`/api/tasks/terminate/${encodeURIComponent(task.id)}`);
-    notify(t("tasks.terminated", { id: task.id }), "success");
+    notify(t("tasks.terminated"), "success");
   } catch (error) {
     notify(t("tasks.terminateFailed", { error: error instanceof Error ? error.message : String(error) }), "error");
   }
   await refresh();
+  return true;
 }
 
 /** Task list kept fresh while at least one component uses it. */

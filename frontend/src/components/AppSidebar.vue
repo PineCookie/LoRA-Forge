@@ -21,7 +21,7 @@ const { activeTask } = useTasks();
         <h2>{{ t(group.heading.key) }}</h2>
         <RouterLink v-for="item in group.items" :key="item.path" :to="item.path" exact-active-class="active">
           {{ labelText(item.label) }}
-          <span v-if="item.path === '/task.html' && activeTask" class="running-dot" :title="t(`tasks.status.${activeTask.status}`)" />
+          <span v-if="item.path === '/runs.html' && activeTask" class="running-dot" :title="t(`tasks.status.${activeTask.status}`)" />
         </RouterLink>
       </section>
     </nav>
