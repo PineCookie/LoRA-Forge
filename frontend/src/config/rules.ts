@@ -1,0 +1,80 @@
+import type { FormValues } from "./form";
+import { optimizerRuleFor } from "./normalize";
+
+// Live coupling between form fields. These mutate the form values in place, like a user edit.
+
+function setField(values: FormValues, name: string, value: string | boolean) {
+  if (!(name in values)) return;
+  values[name] = typeof values[name] === "boolean" ? Boolean(value) : String(value);
+}
+
+function checked(values: FormValues, name: string) {
+  return values[name] === true;
+}
+
+/** Force the values the selected optimizer requires (e.g. learning_rate=1 for DAdaptation). */
+export function applyDependentValues(values: FormValues) {
+  const rule = optimizerRuleFor(values.optimizer_type);
+  if (!rule) return;
+  for (const [name, value] of Object.entries(rule.values)) {
+    if (name in values) values[name] = String(value);
+  }
+}
+
+/**
+ * Keep combinations that sd-scripts asserts on out of the form. `edited` is the field the user just
+ * changed (null for a full pass, e.g. after an import); the full pass afterwards also fixes
+ * imported configs.
+ */
+export function applyExclusiveRules(values: FormValues, edited: string | null) {
+  const trainType = String(values.model_train_type ?? "");
+  const textEncoderCachingLocksUnet = ["anima-lora", "sdxl-lora"].includes(trainType);
+
+  if (edited === "compile_fullgraph" && checked(values, edited)) setField(values, "split_attn", false);
+  if (edited === "split_attn" && checked(values, edited)) setField(values, "compile_fullgraph", false);
+
+  if (edited === "blocks_to_swap" && Number(values.blocks_to_swap) > 0) {
+    setField(values, "cpu_offload_checkpointing", false);
+    setField(values, "unsloth_offload_checkpointing", false);
+  }
+  if (edited === "cpu_offload_checkpointing" && checked(values, edited)) {
+    setField(values, "unsloth_offload_checkpointing", false);
+    setField(values, "blocks_to_swap", "");
+  }
+  if (edited === "unsloth_offload_checkpointing" && checked(values, edited)) {
+    setField(values, "cpu_offload_checkpointing", false);
+    setField(values, "blocks_to_swap", "");
+  }
+
+  // only Anima/SDXL assert "unet_only or no TE caching"; FLUX/SD3 cache one encoder while
+  // training the other
+  if (textEncoderCachingLocksUnet) {
+    if (edited === "cache_text_encoder_outputs" && checked(values, edited)) {
+      setField(values, "network_train_text_encoder_only", false);
+      setField(values, "network_train_unet_only", true);
+    }
+    if (edited === "network_train_text_encoder_only" && checked(values, edited)) {
+      setField(values, "cache_text_encoder_outputs", false);
+      setField(values, "cache_text_encoder_outputs_to_disk", false);
+      setField(values, "network_train_unet_only", false);
+    }
+  }
+
+  // full pass, same priority as normalizeConstraintCombinations(): an explicit block count wins
+  // over the offload flags
+  if (checked(values, "compile_fullgraph")) setField(values, "split_attn", false);
+  if ((Number(values.blocks_to_swap) || 0) > 0) {
+    setField(values, "cpu_offload_checkpointing", false);
+    setField(values, "unsloth_offload_checkpointing", false);
+  } else if (checked(values, "cpu_offload_checkpointing") || checked(values, "unsloth_offload_checkpointing")) {
+    setField(values, "blocks_to_swap", "");
+  }
+  if (textEncoderCachingLocksUnet && checked(values, "cache_text_encoder_outputs")) {
+    setField(values, "network_train_text_encoder_only", false);
+    setField(values, "network_train_unet_only", true);
+  }
+
+  // sd-scripts requires mixed_precision to match full_fp16 / full_bf16
+  if (values.full_precision === "full_fp16") setField(values, "mixed_precision", "fp16");
+  else if (values.full_precision === "full_bf16") setField(values, "mixed_precision", "bf16");
+}

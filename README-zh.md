@@ -46,12 +46,14 @@ LoRA & Dreambooth 训练图形界面、脚本预设与一键训练环境，用�
 
 ### 必要依赖
 
-Python 3.12 和 Git
+Python 3.12 和 Git。通过 git clone 运行时还需要 [Node.js](https://nodejs.org/) 20 或更高版本：启动器会在首次启动和更新后用它构建网页界面。
 
-### 克隆带子模块的仓库
+### 获取代码
+
+可以从 [Releases](https://github.com/PineCookie/lora-forge/releases) 下载完整压缩包（网页界面已预先构建，无需 Node.js），或克隆仓库：
 
 ```sh
-git clone --recurse-submodules https://github.com/PineCookie/lora-forge
+git clone https://github.com/PineCookie/lora-forge
 ```
 
 ## ✨ LoRA Forge GUI
@@ -94,6 +96,20 @@ uv sync -U --extra flash-attn --find-links ./wheelhouse --no-build-package flash
 运行 `bash run_gui.sh`，然后在浏览器中打开 [http://127.0.0.1:28000](http://127.0.0.1:28000)。
 如需自动打开浏览器，请运行 `python gui.py --open-browser`。
 
+### 网页界面开发
+
+网页界面是位于 `frontend/` 的 Vue 3 + TypeScript 应用。需要热重载开发时，先用 `--skip-frontend-build` 启动 GUI，然后：
+
+```sh
+cd frontend
+npm ci
+npm run dev        # 启动界面开发服务器，并把 /api 转发到 28000 端口的 GUI
+npm test           # 单元测试（会读取 mikazuki/schema 中的 schema）
+npm run typecheck
+```
+
+发布由 GitHub Actions 完成：推送 `v*` 标签即会发布带完整压缩包的 Release。
+
 ### TensorBoard
 
 启动 GUI 时加上 `--enable-tensorboard`（例如 `run_gui.ps1 --enable-tensorboard`），即可在 TensorBoard 页面中查看。它读取 `logs` 文件夹，监听 http://127.0.0.1:6006/。
@@ -106,6 +122,7 @@ uv sync -U --extra flash-attn --find-links ./wheelhouse --no-build-package flash
 | `--port`                     | int   | 28000        | 运行服务器的端口                                |
 | `--listen`                   | bool  | false        | 启用服务器的监听模式                            |
 | `--skip-prepare-sd-scripts`  | bool  | false        | 跳过克隆 kohya-ss/sd-scripts                    |
+| `--skip-frontend-build`      | bool  | false        | 启动时不（重新）构建网页界面                     |
 | `--sd-scripts-branch`        | str   | "main"        | 克隆 kohya-ss/sd-scripts 时使用的分支或标签           |
 | `--enable-tensorboard`       | bool  | false        | 启用 TensorBoard                                |
 | `--tensorboard-host`         | str   | "127.0.0.1"  | 运行 TensorBoard 的主机                         |

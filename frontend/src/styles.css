@@ -180,7 +180,6 @@ textarea {
   background: rgba(255, 255, 255, 0.98);
   box-shadow: var(--shadow-md);
   pointer-events: auto;
-  animation: toast-in 0.18s ease-out;
 }
 
 .toast-success {
@@ -216,26 +215,19 @@ textarea {
   color: var(--text);
 }
 
-.toast.is-leaving {
-  animation: toast-out 0.18s ease-in forwards;
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
 }
 
-@keyframes toast-out {
-  to {
-    opacity: 0;
-    transform: translateY(8px);
-  }
+.toast-move {
+  transition: transform 0.18s ease;
 }
 
 #content {
@@ -992,6 +984,185 @@ button.danger:hover {
 
 .fatal pre {
   white-space: pre-wrap;
+}
+
+/* --- additions for the Vue UI --- */
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.loading {
+  color: var(--muted);
+}
+
+.panel.error,
+.panel.fatal {
+  border-color: #ffccc7;
+  background: var(--danger-soft);
+}
+
+.panel.fatal pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
+button:disabled,
+button:disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.hint code,
+.section-note code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #eef2f8;
+  font-family: "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, Monaco, monospace;
+  font-size: 11px;
+}
+
+.form-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 6px;
+  background: var(--bg);
+}
+
+.form-search {
+  flex: 1;
+  min-width: 0;
+  padding-left: 32px;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 10px center;
+}
+
+.form-toolbar-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ghost-button {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ghost-button:hover {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.empty-search {
+  color: var(--muted);
+  text-align: center;
+}
+
+/* keep rows at their content height when only a few sections are shown (search, short pages) */
+.form-grid,
+.mode-card {
+  align-content: start;
+}
+
+.actions {
+  overflow: auto;
+}
+
+.config-preview {
+  min-height: 280px;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--surface-muted);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.copy-button {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.args-empty {
+  color: #98a2b3;
+}
+
+.task-id {
+  font-family: "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, Monaco, monospace;
+  font-size: 13px;
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.status-running {
+  border-color: #86efac;
+  background: var(--import-soft);
+  color: var(--import);
+}
+
+.status-created {
+  border-color: #fde68a;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.status-terminated {
+  border-color: #ffccc7;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.home {
+  display: grid;
+  gap: 16px;
+  max-width: 960px;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.mode-card {
+  display: grid;
+  gap: 6px;
+  border-top: 3px solid var(--primary);
+  transition: box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.mode-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.mode-card span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 @media (max-width: 980px) {

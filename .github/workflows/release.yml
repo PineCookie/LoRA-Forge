@@ -1,0 +1,55 @@
+name: Release
+
+# Push a tag like v1.2.0 to publish a GitHub Release with a ready-to-run zip (repository + built
+# web UI, so no Node.js is needed) and the built UI on its own. Tags with a "-" (v1.2.0-rc1) are
+# published as pre-releases.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build the web UI
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+
+      # lets the launcher see that the shipped UI matches the shipped source, so it never rebuilds
+      - name: Record the source the UI was built from
+        run: python -m mikazuki.frontend stamp
+
+      - name: Package
+        run: |
+          name="lora-forge-${GITHUB_REF_NAME}"
+          mkdir -p release
+          git archive --format=tar --prefix="${name}/" HEAD | tar -x -C release
+          cp -r frontend/dist "release/${name}/frontend/dist"
+          (cd release && zip -qr "${name}.zip" "${name}")
+          (cd frontend && zip -qr "../release/frontend-dist-${GITHUB_REF_NAME}.zip" dist)
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then prerelease="--prerelease"; fi
+          gh release create "${GITHUB_REF_NAME}" release/*.zip --title "${GITHUB_REF_NAME}" --generate-notes --verify-tag ${prerelease}

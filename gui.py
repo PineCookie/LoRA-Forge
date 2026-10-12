@@ -12,6 +12,7 @@ from mikazuki.launch_utils import (
     find_avaliable_ports,
     prepare_sd_scripts,
 )
+from mikazuki.frontend import ensure_frontend
 from mikazuki.log import log
 
 parser = argparse.ArgumentParser(description="GUI for stable diffusion training")
@@ -21,6 +22,7 @@ parser.add_argument("--listen", action="store_true")
 parser.add_argument("--enable-tensorboard", action="store_true")
 parser.add_argument("--disable-auto-mirror", action="store_true")
 parser.add_argument("--skip-prepare-sd-scripts", action="store_true")
+parser.add_argument("--skip-frontend-build", action="store_true", help="Do not (re)build the web UI in frontend/ on launch")
 parser.add_argument("--sd-scripts-branch", type=str, default="main", help="Branch or tag to use from kohya-ss/sd-scripts (e.g. 'sd3', 'main', 'v0.11.1')")
 parser.add_argument("--tensorboard-host", type=str, default="127.0.0.1", help="Port to run the tensorboard")
 parser.add_argument("--tensorboard-port", type=int, default=6006, help="Port to run the tensorboard")
@@ -42,6 +44,9 @@ def launch():
 
     if not args.skip_prepare_sd_scripts:
         prepare_sd_scripts(args.sd_scripts_branch)
+
+    if not args.skip_frontend_build:
+        ensure_frontend()
 
     if not check_port_avaliable(args.port):
         avaliable = find_avaliable_ports(30000, 30000+20)

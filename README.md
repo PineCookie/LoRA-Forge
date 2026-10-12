@@ -47,12 +47,14 @@ LoRA & Dreambooth training GUI, script presets, and one-click training environme
 
 ### Required Dependencies
 
-Python 3.12 and Git
+Python 3.12 and Git. When running from a git clone, also [Node.js](https://nodejs.org/) 20 or newer: the launcher uses it to build the web UI on first start and after updates.
 
-### Clone repo with submodules
+### Get the code
+
+Either download the ready-to-run zip from [Releases](https://github.com/PineCookie/lora-forge/releases) (the web UI is prebuilt, no Node.js needed), or clone the repository:
 
 ```sh
-git clone --recurse-submodules https://github.com/PineCookie/lora-forge
+git clone https://github.com/PineCookie/lora-forge
 ```
 
 ## ✨ LoRA Forge GUI
@@ -95,6 +97,20 @@ The `-U` flag lets uv update your local lockfile to use the wheel, and `--no-bui
 Run `bash run_gui.sh`, then open [http://127.0.0.1:28000](http://127.0.0.1:28000) in your browser.
 To open the browser automatically, run `python gui.py --open-browser`.
 
+### Web UI development
+
+The web UI is a Vue 3 + TypeScript app in `frontend/`. To work on it with hot reload, start the GUI with `--skip-frontend-build`, then:
+
+```sh
+cd frontend
+npm ci
+npm run dev        # serves the UI and forwards /api to the GUI on port 28000
+npm test           # unit tests (they evaluate the schemas in mikazuki/schema)
+npm run typecheck
+```
+
+Releases are built by GitHub Actions: pushing a `v*` tag publishes a release with the ready-to-run zip.
+
 ### TensorBoard
 
 Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-tensorboard`) to open TensorBoard from the TensorBoard page. It reads the `logs` folder and listens on http://127.0.0.1:6006/.
@@ -107,6 +123,7 @@ Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-ten
 | `--port`                      | int   | 28000         | Port to run the server                           |
 | `--listen`                    | bool  | false         | Enable listening mode for the server             |
 | `--skip-prepare-sd-scripts`   | bool  | false         | Skip cloning kohya-ss/sd-scripts                |
+| `--skip-frontend-build`       | bool  | false         | Do not (re)build the web UI on launch            |
 | `--sd-scripts-branch`         | str   | "main"        | Branch or tag to clone from kohya-ss/sd-scripts        |
 | `--enable-tensorboard`        | bool  | false         | Enable TensorBoard                               |
 | `--tensorboard-host`          | str   | "127.0.0.1"   | Host to run TensorBoard                          |
