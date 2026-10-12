@@ -134,7 +134,7 @@ TensorBoard 为可选功能。启动 GUI 时加上 `--enable-tensorboard`（例�
 
 ## 文档
 
-- [Anima LoRA 训练说明](docs/anima.md)：哪些选项真正生效、每个功能需要的 sd-scripts 版本、加速/显存组合，以及常见的"静默失效"陷阱。
+- [Anima LoRA 训练说明](docs/anima-zh.md)：哪些选项真正生效、每个功能需要的 sd-scripts 版本、加速/显存组合，以及常见的"静默失效"陷阱。
 - 「关于」页会显示当前 sd-scripts 的**兼容性**状态。
 
 ## 项目结构

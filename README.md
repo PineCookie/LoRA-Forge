@@ -158,7 +158,7 @@ Branches are updated with `git pull --ff-only`, so the update stops instead of o
 
 Which Anima options actually take effect, the sd-scripts version each one needs, the speed/memory
 recipes and the known silent-failure traps are documented in [docs/anima.md](docs/anima.md)
-(Chinese). The About page shows the sd-scripts compatibility of the installed checkout.
+([中文](docs/anima-zh.md)). The About page shows the sd-scripts compatibility of the installed checkout.
 
 ## Project layout
 
