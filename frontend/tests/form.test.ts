@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { initialFormValues, readForm, toFormValue } from "../src/config/form";
 import { applyDependentValues, applyExclusiveRules } from "../src/config/rules";
 import { isFieldVisible } from "../src/config/visibility";
-import { loadGroups } from "./helpers";
+import { loadGroups, SCHEMA_NAMES } from "./helpers";
 
 describe("schema groups", () => {
   it("builds every backend schema", () => {
-    for (const name of ["anima-lora", "dreambooth", "flux-lora", "lora-basic", "lora-master", "sd3-lora"]) {
+    for (const name of SCHEMA_NAMES) {
       const groups = loadGroups(name);
       expect(groups.length, name).toBeGreaterThan(3);
       // the base model has no placeholder path: the user picks it
@@ -16,7 +16,7 @@ describe("schema groups", () => {
   });
 
   it("adds the GPU picker only with two or more cards, defaulting to the first", () => {
-    expect(loadGroups("anima-lora", ["GPU 0: A"]).some((group) => group.title === "显卡设置")).toBe(false);
+    expect(loadGroups("anima-lora", ["GPU 0: A"]).some((group) => group.title === "GPU")).toBe(false);
     const groups = loadGroups("anima-lora", ["GPU 0: A", "GPU 1: B"]);
     expect(initialFormValues(groups).gpu_ids).toEqual(["GPU 0: A"]);
   });

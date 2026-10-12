@@ -16,14 +16,14 @@ if ($args -contains "--cn") {
     $Env:UV_DEFAULT_INDEX = "https://pypi.tuna.tsinghua.edu.cn/simple"
     $Env:PIP_INDEX_URL = "https://pypi.tuna.tsinghua.edu.cn/simple"
     $Env:HF_ENDPOINT = "https://hf-mirror.com"
-    Write-Host -ForegroundColor Cyan "使用国内镜像 (PyPI: TUNA, Hugging Face: hf-mirror)。PyTorch 仍从 pyproject.toml 配置的 PyTorch 源下载。"
+    Write-Host -ForegroundColor Cyan "Using mirrors in China (PyPI: TUNA, Hugging Face: hf-mirror). PyTorch still comes from the index set in pyproject.toml."
 }
 $isGui = -not ($forwarded.Count -gt 0 -and $forwarded[0] -eq "update-sd-scripts")
 
 function Exit-WithError([string]$Message) {
     Write-Host -ForegroundColor Red $Message
     # keeps a window opened with "Run with PowerShell" open long enough to read the error
-    Read-Host "Press Enter to exit / 按回车退出" | Out-Null
+    Read-Host "Press Enter to exit" | Out-Null
     exit 1
 }
 
@@ -35,10 +35,10 @@ if (Test-Path (Join-Path $PortablePython "python.exe")) {
 
 $UseUvModule = $false
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    Write-Host "uv not found, installing it with pip... / 未找到 uv，正在用 pip 安装..."
+    Write-Host "uv not found, installing it with pip..."
     python -m pip install --upgrade uv
     if ($LASTEXITCODE -ne 0) {
-        Exit-WithError "Installing uv failed. Install Python 3.12 or uv (https://docs.astral.sh/uv/) and try again. / uv 安装失败，请安装 Python 3.12 或 uv 后重试。"
+        Exit-WithError "Installing uv failed. Install Python 3.12 or uv (https://docs.astral.sh/uv/) and try again."
     }
     $UseUvModule = $true
 }
@@ -114,12 +114,12 @@ function Enable-MSVCEnvironment {
 if ($isGui) {
     $vsLoaded = Enable-MSVCEnvironment
     if (-not (Test-Path (Join-Path $ScriptDir ".venv"))) {
-        Write-Host -ForegroundColor Cyan "First start: installing dependencies (PyTorch etc.), this can take a while... / 首次启动：正在安装依赖（PyTorch 等），可能需要较长时间..."
+        Write-Host -ForegroundColor Cyan "First start: installing dependencies (PyTorch etc.), this can take a while..."
     }
 }
 
 Invoke-Uv run --project $ScriptDir python (Join-Path $ScriptDir "main.py") @forwarded
 if ($isGui -and $LASTEXITCODE -ne 0) {
-    Exit-WithError "LoRA-Forge exited with an error (code $LASTEXITCODE). / LoRA-Forge 异常退出。"
+    Exit-WithError "LoRA-Forge exited with an error (code $LASTEXITCODE)."
 }
 exit $LASTEXITCODE

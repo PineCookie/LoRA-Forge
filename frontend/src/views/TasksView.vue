@@ -1,19 +1,13 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { api } from "../api";
+import { t } from "../i18n";
 import { notify } from "../toast";
 
 interface Task {
   id: string;
   status: "CREATED" | "RUNNING" | "FINISHED" | "TERMINATED";
 }
-
-const STATUS_LABELS: Record<Task["status"], string> = {
-  CREATED: "等待启动",
-  RUNNING: "运行中",
-  FINISHED: "已结束",
-  TERMINATED: "已终止",
-};
 
 const tasks = ref<Task[]>([]);
 const loaded = ref(false);
@@ -31,12 +25,12 @@ async function refresh() {
 }
 
 async function terminate(task: Task) {
-  if (!confirm(`确定要终止任务 ${task.id} 吗？`)) return;
+  if (!confirm(t("tasks.confirmTerminate", { id: task.id }))) return;
   try {
     await api(`/api/tasks/terminate/${encodeURIComponent(task.id)}`);
-    notify(`已终止任务 ${task.id}`, "success");
+    notify(t("tasks.terminated", { id: task.id }), "success");
   } catch (error) {
-    notify(`终止任务失败：${error instanceof Error ? error.message : error}`, "error");
+    notify(t("tasks.terminateFailed", { error: error instanceof Error ? error.message : String(error) }), "error");
   }
   await refresh();
 }
@@ -50,14 +44,18 @@ onBeforeUnmount(() => clearInterval(timer));
 
 <template>
   <section class="panel">
-    <h2>任务列表</h2>
-    <p v-if="loaded && !tasks.length" class="muted">没有正在记录的任务。</p>
+    <h2>{{ t("tasks.title") }}</h2>
+    <p v-if="loaded && !tasks.length" class="muted">{{ t("tasks.empty") }}</p>
     <article v-for="task in tasks" :key="task.id" class="task-row">
       <div>
         <strong class="task-id">{{ task.id }}</strong>
-        <p><span class="status-chip" :class="`status-${task.status.toLowerCase()}`">{{ STATUS_LABELS[task.status] ?? task.status }}</span></p>
+        <p>
+          <span class="status-chip" :class="`status-${task.status.toLowerCase()}`">{{ t(`tasks.status.${task.status}`) }}</span>
+        </p>
       </div>
-      <button v-if="task.status === 'CREATED' || task.status === 'RUNNING'" type="button" class="danger" @click="terminate(task)">终止</button>
+      <button v-if="task.status === 'CREATED' || task.status === 'RUNNING'" type="button" class="danger" @click="terminate(task)">
+        {{ t("tasks.terminate") }}
+      </button>
     </article>
   </section>
 </template>

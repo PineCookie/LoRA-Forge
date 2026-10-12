@@ -84,19 +84,19 @@ def ensure_frontend():
     if npm is None:
         if is_built():
             log.warning("The web UI may be out of date with frontend/, and Node.js (npm) was not found to rebuild it. "
-                        "Install Node.js 20+ to rebuild it automatically. / 网页界面可能不是最新版本，未找到 Node.js (npm)，无法自动重新构建。")
+                        "Install Node.js 20+ to rebuild it automatically.")
         else:
             log.error("The web UI is not built and Node.js (npm) was not found. Install Node.js 20+ and restart, "
-                      "or use the ready-to-run zip from GitHub Releases. / 网页界面尚未构建且未找到 Node.js，请安装 Node.js 20+ 后重启，或下载 Releases 中的完整压缩包。")
+                      "or use the ready-to-run zip from GitHub Releases.")
         return
 
-    log.info("Building the web UI (frontend/dist)... / 正在构建网页界面...")
+    log.info("Building the web UI (frontend/dist)...")
     try:
         build(npm)
     except (OSError, subprocess.CalledProcessError) as e:
-        log.error(f"Building the web UI failed: {e}. Run `npm ci && npm run build` in frontend/ to see the details. / 网页界面构建失败。")
+        log.error(f"Building the web UI failed: {e}. Run `npm ci && npm run build` in frontend/ to see the details.")
         return
-    log.info("Web UI built. / 网页界面构建完成。")
+    log.info("Web UI built.")
 
 
 if __name__ == "__main__":

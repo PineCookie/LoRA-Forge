@@ -114,7 +114,7 @@ class TaskManager:
         running_tasks = [t for _, t in self.tasks.items() if t.status in (TaskStatus.CREATED, TaskStatus.RUNNING)]
         if len(running_tasks) >= self.max_concurrent:
             log.error(
-                f"Unable to create a task because there are already {len(running_tasks)} tasks running, reaching the maximum concurrent limit. / 无法创建任务，因为已经有 {len(running_tasks)} 个任务正在运行，已达到最大并发限制。")
+                f"Unable to create a task because there are already {len(running_tasks)} tasks running, reaching the maximum concurrent limit.")
             return None
         task_id = str(uuid.uuid4())
         task = Task(task_id=task_id, command=command, environ=environ)

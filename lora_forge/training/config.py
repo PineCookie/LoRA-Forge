@@ -10,6 +10,7 @@ from typing import Optional, Tuple
 import toml
 
 from lora_forge import sd_scripts
+from lora_forge.i18n import join_list, t
 from lora_forge.log import log
 from lora_forge.training import validation
 from lora_forge.training.dataset import count_images, subset_folders
@@ -104,11 +105,11 @@ def create_offset_dataset_config(config: dict, offsets: dict, dataset_path: str)
 
     subsets = _scan_subsets(config.get("train_data_dir", ""))
     if not subsets:
-        raise TrainingConfigError("未检测到可用的训练子文件夹；请使用 `重复次数_名称` 格式。")
+        raise TrainingConfigError(t("run.offsetsNoSubsets"))
 
     unknown_names = set(parsed_offsets) - {name for name, _subset in subsets}
     if unknown_names:
-        raise TrainingConfigError("下列时间步偏移对应的子文件夹不存在：" + ", ".join(sorted(unknown_names)))
+        raise TrainingConfigError(t("run.offsetsUnknown", names=join_list(sorted(unknown_names))))
 
     general = {}
     for key in DATASET_CONFIG_KEYS:
@@ -161,17 +162,17 @@ def get_sample_prompts(config: dict) -> Tuple[Optional[str], str]:
 
     if randomly_choice_prompt:
         if len(sub_dir) != 1:
-            raise TrainingConfigError('训练数据集下有多个子文件夹，无法启用随机选取 Prompt 功能')
+            raise TrainingConfigError(t("run.randomPromptSubsets"))
 
         txt_files = glob(os.path.join(sub_dir[0], '*.txt'))
         if not txt_files:
-            raise TrainingConfigError('训练数据集路径没有 txt 文件')
+            raise TrainingConfigError(t("run.randomPromptNoTxt"))
         sample_prompt_file = random.choice(txt_files)
         try:
             with open(sample_prompt_file, 'r', encoding='utf-8') as f:
                 positive_prompts = f.read()
         except IOError:
-            log.error(f"读取 {sample_prompt_file} 文件失败")
+            log.error(f"Failed to read {sample_prompt_file}")
 
     return positive_prompts, f'{positive_prompts} --n {negative_prompts}  --w {sample_width} --h {sample_height} --l {sample_cfg}  --s {sample_steps}  --d {sample_seed}'
 
@@ -194,7 +195,7 @@ def prepare_training(config: dict) -> PreparedRun:
     model_train_type = config.pop("model_train_type", "sd-lora")
     trainer_file = TRAINERS.get(model_train_type)
     if trainer_file is None:
-        raise TrainingConfigError(f"未知的训练类型：{model_train_type}")
+        raise TrainingConfigError(t("run.unknownType", type=model_train_type))
 
     train_data_dir = config.get("train_data_dir", "")
     if model_train_type != "sdxl-finetune":
@@ -206,7 +207,7 @@ def prepare_training(config: dict) -> PreparedRun:
     cpu_threads = 8 if train_data_dir and os.path.isdir(train_data_dir) and count_images(train_data_dir) > 200 else 2
 
     if not str(config.get("pretrained_model_name_or_path", "")).strip():
-        raise TrainingConfigError("请选择底模：pretrained_model_name_or_path 未填写。")
+        raise TrainingConfigError(t("run.noBaseModel"))
     validated, message = validation.validate_model(config["pretrained_model_name_or_path"], model_train_type)
     if not validated:
         raise TrainingConfigError(message)
@@ -219,10 +220,7 @@ def prepare_training(config: dict) -> PreparedRun:
 
     # Anima / FLUX / SD3 have no weighted tokenization (their strategy does not implement it)
     if model_train_type in {"anima-lora", "flux-lora", "sd3-lora"} and config.get("weighted_captions"):
-        raise TrainingConfigError(
-            "当前训练类型不支持 weighted_captions：只有 SD / SDXL / Lumina 实现了加权分词，"
-            "Anima / FLUX / SD3 会静默忽略或直接报错。请关闭该选项后重试。"
-        )
+        raise TrainingConfigError(t("run.weightedCaptions"))
 
     # sd-scripts ignores unknown config keys, so an outdated checkout would accept these
     # options and do nothing; refuse them instead of running a silent no-op.
@@ -235,7 +233,7 @@ def prepare_training(config: dict) -> PreparedRun:
     prompt_file = str(config.get("prompt_file", "")).strip()
     if prompt_file:
         if not os.path.exists(prompt_file):
-            raise TrainingConfigError(f"Prompt 文件 {prompt_file} 不存在，请检查路径。")
+            raise TrainingConfigError(t("run.promptFileMissing", path=prompt_file))
         config["sample_prompts"] = prompt_file
     else:
         positive_prompt, sample_prompts_arg = get_sample_prompts(config=config)

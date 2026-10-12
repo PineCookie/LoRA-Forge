@@ -11,15 +11,12 @@ def check_torch_gpu():
         log.info(f'Torch {torch.__version__}')
         if not torch.cuda.is_available():
             log.error("Torch is not able to use GPU, please check your torch installation.")
-            log.error("！！！Torch 无法使用 GPU，您无法正常开始训练！！！\n您的显卡可能并不支持，或是 torch 安装有误。请检查您的 torch 安装。")
             if "cpu" in torch.__version__:
                 log.error("You are using torch CPU, please install the GPU build: run `uv sync` in the LoRA-Forge folder.")
-                log.error("！！！您正在使用 CPU 版本的 torch，无法正常开始训练。请在 LoRA-Forge 目录运行 `uv sync` 重新安装！！！")
             return
 
         if Version(torch.__version__) < Version("2.3.0"):
             log.warning("Torch version is lower than 2.3.0, which may not be able to train FLUX model properly. Run `uv sync` in the LoRA-Forge folder to upgrade Torch.")
-            log.warning("！！！Torch 版本低于 2.3.0，将无法正常训练 FLUX 模型。请在 LoRA-Forge 目录运行 `uv sync` 升级 Torch！！！")
 
         if torch.version.cuda:
             log.info(

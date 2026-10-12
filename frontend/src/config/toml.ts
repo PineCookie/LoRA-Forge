@@ -1,11 +1,13 @@
+import { t } from "../i18n";
 import type { TrainingConfig } from "./normalize";
 
-// Minimal TOML for the flat training configs this UI exports and imports (no tables).
+// Minimal TOML for the flat training configs this UI exports and imports (no tables). Section
+// comments are English in every UI language, so an exported file does not depend on it.
 
 const TOML_KEY_ORDER: { section: string; keys: string[] }[] = [
-  { section: "模型", keys: ["pretrained_model_name_or_path", "qwen3", "vae", "llm_adapter_path", "t5_tokenizer_path", "resume"] },
+  { section: "Model", keys: ["pretrained_model_name_or_path", "qwen3", "vae", "llm_adapter_path", "t5_tokenizer_path", "resume"] },
   {
-    section: "数据集",
+    section: "Dataset",
     keys: [
       "train_data_dir", "reg_data_dir", "prior_loss_weight", "resolution", "enable_bucket", "min_bucket_reso", "max_bucket_reso",
       "bucket_reso_steps", "bucket_no_upscale", "cache_latents", "cache_latents_to_disk", "caption_extension", "shuffle_caption",
@@ -14,14 +16,14 @@ const TOML_KEY_ORDER: { section: string; keys: string[] }[] = [
     ],
   },
   {
-    section: "网络",
+    section: "Network",
     keys: [
       "network_module", "network_weights", "network_dim", "network_alpha", "network_dropout", "scale_weight_norms", "enable_base_weight",
       "base_weights", "base_weights_multiplier", "network_train_unet_only", "network_train_text_encoder_only",
     ],
   },
   {
-    section: "训练",
+    section: "Training",
     keys: [
       "train_batch_size", "max_train_epochs", "gradient_checkpointing", "gradient_accumulation_steps", "learning_rate", "unet_lr",
       "text_encoder_lr", "optimizer_type", "lr_scheduler", "lr_warmup_steps", "lr_restart_cycles", "lr_scheduler_num_cycles", "loss_type",
@@ -29,14 +31,14 @@ const TOML_KEY_ORDER: { section: string; keys: string[] }[] = [
     ],
   },
   {
-    section: "Anima 专用",
+    section: "Anima",
     keys: [
       "timestep_sampling", "weighting_scheme", "sigmoid_scale", "discrete_flow_shift", "logit_mean", "logit_std", "mode_scale",
       "qwen3_max_token_length", "t5_max_token_length", "llm_adapter_lr", "self_attn_lr", "cross_attn_lr", "mlp_lr", "mod_lr",
     ],
   },
   {
-    section: "精度与速度",
+    section: "Precision and speed",
     keys: [
       "mixed_precision", "full_precision", "xformers", "sdpa", "cache_text_encoder_outputs", "cache_text_encoder_outputs_to_disk",
       "attn_mode", "split_attn", "blocks_to_swap", "cpu_offload_checkpointing", "unsloth_offload_checkpointing", "vae_chunk_size",
@@ -48,24 +50,24 @@ const TOML_KEY_ORDER: { section: string; keys: string[] }[] = [
     keys: ["compile", "compile_backend", "compile_mode", "compile_dynamic", "compile_fullgraph", "compile_cache_size_limit", "cuda_allow_tf32", "cuda_cudnn_benchmark"],
   },
   {
-    section: "保存",
+    section: "Saving",
     keys: [
       "output_name", "output_dir", "save_model_as", "save_precision", "save_every_n_epochs", "save_state", "save_last_n_epochs",
       "save_n_epoch_ratio", "log_with", "logging_dir",
     ],
   },
   {
-    section: "预览图",
+    section: "Preview images",
     keys: [
       "enable_preview", "positive_prompts", "negative_prompts", "sample_width", "sample_height", "sample_cfg", "sample_seed", "sample_steps",
       "sample_sampler", "sample_every_n_epochs", "randomly_choice_prompt", "prompt_file",
     ],
   },
   {
-    section: "数据增强",
+    section: "Data augmentation",
     keys: ["color_aug", "flip_aug", "random_crop", "noise_offset", "min_snr_gamma", "ip_noise_gamma", "multires_noise_iterations", "multires_noise_discount"],
   },
-  { section: "其他", keys: ["seed", "network_args"] },
+  { section: "Other", keys: ["seed", "network_args"] },
 ];
 
 const KEY_ORDER = new Map(
@@ -96,7 +98,7 @@ export function toToml(config: TrainingConfig): string {
     lines.push(`${key} = ${tomlValue(value)}`);
   }
   if (unknown.length) {
-    lines.push("# --- 其他 ---");
+    lines.push("# --- Other ---");
     for (const [key, value] of unknown) lines.push(`${key} = ${tomlValue(value)}`);
   }
   return `${lines.join("\n")}\n`;
@@ -160,7 +162,7 @@ export function fromToml(text: string): TrainingConfig {
     const commentAt = indexOutsideQuotes(rawLine, "#");
     const line = (commentAt >= 0 ? rawLine.slice(0, commentAt) : rawLine).trim();
     if (!line || line.startsWith("[[")) continue;
-    if (line.startsWith("[")) throw new Error("当前导入器只支持训练配置使用的扁平 TOML");
+    if (line.startsWith("[")) throw new Error(t("trainer.tomlTables"));
     const separator = indexOutsideQuotes(line, "=");
     if (separator < 1) continue;
     result[line.slice(0, separator).trim()] = parseTomlValue(line.slice(separator + 1).trim());

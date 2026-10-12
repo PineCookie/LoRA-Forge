@@ -105,7 +105,7 @@ export const SAMPLE_PROMPTS = {
   SAMPLE_PROMPTS_DEFAULT:
     "(masterpiece, best quality:1.2), 1girl, solo, --n lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts,signature, watermark, username, blurry,  --w 512  --h 768  --l 7  --s 24  --d 1337",
   SAMPLE_PROMPTS_DESCRIPTION:
-    "预览图生成参数。可填写直接填写参数，或单独写入txt文件填写路径<br>`--n` 后方为反向提示词<br>`--w`宽，`--h`高<br>`--l`: CFG Scale<br>`--s`: 迭代步数<br>`--d`: 种子",
+    "Preview prompt and options. Enter them here, or write them to a txt file and enter its path<br>`--n` starts the negative prompt<br>`--w` width, `--h` height<br>`--l`: CFG scale<br>`--s`: steps<br>`--d`: seed",
 };
 
 /** Evaluate one schema file's source. Schema files are trusted: they ship with the backend. */

@@ -1,5 +1,6 @@
 import { markRaw, reactive } from "vue";
 import { api, loadGraphicCards } from "./api";
+import { setSchemaCatalogs, type Locale } from "./i18n";
 import { evaluateSchema, type SchemaNode } from "./schema/dsl";
 
 export interface Runtime {
@@ -28,7 +29,7 @@ export function getSchema(name: string) {
   return schemas.get(name);
 }
 
-async function loadRuntime() {
+export async function loadRuntime() {
   try {
     store.runtime = await api<Runtime>("/api/runtime");
   } catch (error) {
@@ -38,7 +39,8 @@ async function loadRuntime() {
 }
 
 async function loadSchemas() {
-  const data = await api<{ schemas: RawSchema[] }>("/api/schemas/all");
+  const data = await api<{ schemas: RawSchema[]; translations?: Partial<Record<Locale, Record<string, string>>> }>("/api/schemas/all");
+  setSchemaCatalogs(data.translations ?? {});
   const rawSchemas = data.schemas ?? [];
   const shared = rawSchemas.find((schema) => schema.name === "shared");
   const sharedSchemas = shared ? evaluateSchema(shared.schema, null) : {};

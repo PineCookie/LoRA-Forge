@@ -15,13 +15,14 @@ from pathlib import Path
 import subprocess
 from typing import Dict, Iterable, List, Mapping, Optional, Set
 
+from lora_forge.i18n import join_list, t
 from lora_forge.launcher import base_dir_path
 from lora_forge.log import log
 
 
 @dataclass(frozen=True)
 class Feature:
-    label: str
+    label: str  # i18n message key
     min_commit: str
     marker_path: str
     marker_text: Optional[str] = None
@@ -32,11 +33,11 @@ V0_11_1 = "6721028c79ee85a78b3a06dfd8954dae310a1cce"
 TIMESTEP_OFFSET = "5bf1dd510e49efc9304f140773a8465d5b0fd299"
 
 FEATURES: Dict[str, Feature] = {
-    "compile": Feature("逐 block torch.compile / CUDA 性能开关", V0_11_1, "library/compile_utils.py"),
-    "qwen_image_vae_2d": Feature("2D Qwen-Image VAE", V0_11_1, "library/qwen_image_autoencoder_kl_2d.py"),
-    "show_timesteps": Feature("时间步分布预览", V0_11_1, "library/args.py", '"--show_timesteps"'),
+    "compile": Feature("feature.compile", V0_11_1, "library/compile_utils.py"),
+    "qwen_image_vae_2d": Feature("feature.qwenImageVae2d", V0_11_1, "library/qwen_image_autoencoder_kl_2d.py"),
+    "show_timesteps": Feature("feature.showTimesteps", V0_11_1, "library/args.py", '"--show_timesteps"'),
     "timestep_offset": Feature(
-        "子文件夹时间步偏移 / 偏移预览", TIMESTEP_OFFSET, "library/flux_train_utils.py", "timestep_sampling_offset"
+        "feature.timestepOffset", TIMESTEP_OFFSET, "library/flux_train_utils.py", "timestep_sampling_offset"
     ),
 }
 
@@ -163,14 +164,13 @@ def missing_features(features: Iterable[str], root: Optional[Path] = None) -> Li
     return [key for key in sorted(set(features)) if not feature_supported(key, root, head)]
 
 
+def _feature_labels(keys: Iterable[str]) -> str:
+    return join_list(t(FEATURES[key].label) for key in keys)
+
+
 def missing_features_message(missing: List[str], root: Optional[Path] = None) -> str:
-    labels = "、".join(FEATURES[key].label for key in missing)
     ref = (head_commit(root) or "unknown")[:12]
-    return (
-        f"已安装的 sd-scripts（{ref}）不支持：{labels}。"
-        "这些选项会被 sd-scripts 静默忽略，请先更新到 main 分支后重试："
-        "run_gui.ps1 update-sd-scripts（Linux: bash run_gui.sh update-sd-scripts）"
-    )
+    return t("sdScripts.missing", ref=ref, features=_feature_labels(missing))
 
 
 def compatibility_status(root: Optional[Path] = None) -> str:
@@ -178,9 +178,9 @@ def compatibility_status(root: Optional[Path] = None) -> str:
     head = head_commit(root)
     missing = missing_features(FEATURES, root)
     if missing:
-        return "过旧：缺少 " + "、".join(FEATURES[key].label for key in missing)
+        return t("sdScripts.outdated", features=_feature_labels(missing))
     if head == SD_SCRIPTS_TESTED_REF:
-        return "兼容（已测试版本）"
+        return t("sdScripts.tested")
     if head is None:
-        return "兼容（未能读取 git 版本信息）"
-    return "兼容"
+        return t("sdScripts.noGit")
+    return t("sdScripts.compatible")

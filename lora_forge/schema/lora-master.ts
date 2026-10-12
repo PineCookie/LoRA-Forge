@@ -1,16 +1,16 @@
 Schema.intersect([
     Schema.intersect([
         Schema.object({
-            model_train_type: Schema.union(["sd-lora", "sdxl-lora"]).default("sd-lora").description("训练种类"),
-            pretrained_model_name_or_path: Schema.string().role('filepicker', { type: "model-file" }).description("底模文件路径"),
-            resume: Schema.string().role('filepicker', { type: "folder" }).description("从某个 `save_state` 保存的中断状态继续训练，填写文件路径"),
-            vae: Schema.string().role('filepicker', { type: "model-file" }).description("(可选) VAE 模型文件路径，使用外置 VAE 文件覆盖模型内本身的"),
-        }).description("训练用模型"),
+            model_train_type: Schema.union(["sd-lora", "sdxl-lora"]).default("sd-lora").description("Training type"),
+            pretrained_model_name_or_path: Schema.string().role('filepicker', { type: "model-file" }).description("Base model file"),
+            resume: Schema.string().role('filepicker', { type: "folder" }).description("Resume training from a state saved with `save_state`: enter its folder"),
+            vae: Schema.string().role('filepicker', { type: "model-file" }).description("(Optional) VAE model file; replaces the VAE inside the base model"),
+        }).description("Model"),
 
         Schema.union([
             Schema.object({
                 model_train_type: Schema.const("sd-lora"),
-                v2: Schema.boolean().default(false).description("底模为 sd2.0 以后的版本需要启用"),
+                v2: Schema.boolean().default(false).description("Enable for base models built on SD 2.0 or later"),
             }),
             Schema.object({}),
         ]),
@@ -18,89 +18,89 @@ Schema.intersect([
         Schema.union([
             Schema.object({
                 model_train_type: Schema.const("sd-lora").required(),
-                v_parameterization: Schema.boolean().default(false).description("V-Pred 模型需要启用 v-parameterization，例如 SD2 768-v、NoobXL V-Pred 或基于 V-Pred 模型微调的模型"),
-                scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("仅用于 V-Pred 模型：像 noise prediction loss 一样缩放 v-prediction loss"),
+                v_parameterization: Schema.boolean().default(false).description("V-pred models need v-parameterization, e.g. SD2 768-v, NoobXL V-Pred, or models fine-tuned from a V-pred model"),
+                scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("V-pred models only: scale the v-prediction loss like the noise prediction loss"),
             }),
             Schema.object({
                 model_train_type: Schema.const("sdxl-lora").required(),
-                v_parameterization: Schema.boolean().default(false).description("V-Pred 模型需要启用 v-parameterization，例如 SD2 768-v、NoobXL V-Pred 或基于 V-Pred 模型微调的模型"),
-                scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("仅用于 V-Pred 模型：像 noise prediction loss 一样缩放 v-prediction loss"),
+                v_parameterization: Schema.boolean().default(false).description("V-pred models need v-parameterization, e.g. SD2 768-v, NoobXL V-Pred, or models fine-tuned from a V-pred model"),
+                scale_v_pred_loss_like_noise_pred: Schema.boolean().default(false).description("V-pred models only: scale the v-prediction loss like the noise prediction loss"),
             }),
             Schema.object({}),
         ]),
     ]),
 
-    // 数据集设置
-    Schema.object(SHARED_SCHEMAS.RAW.DATASET_SETTINGS).description("数据集设置"),
+    // Dataset
+    Schema.object(SHARED_SCHEMAS.RAW.DATASET_SETTINGS).description("Dataset"),
 
-    // 保存设置
+    // Saving
     SHARED_SCHEMAS.SAVE_SETTINGS,
 
     Schema.object({
-        max_train_epochs: Schema.number().min(1).default(10).description("最大训练 epoch（轮数）"),
-        train_batch_size: Schema.number().min(1).default(1).description("批量大小, 越高显存占用越高"),
-        gradient_checkpointing: Schema.boolean().default(false).description("梯度检查点"),
-        gradient_accumulation_steps: Schema.number().min(1).description("梯度累加步数"),
-        network_train_unet_only: Schema.boolean().default(false).description("仅训练 U-Net 训练SDXL Lora时推荐开启"),
-        network_train_text_encoder_only: Schema.boolean().default(false).description("仅训练文本编码器"),
-    }).description("训练相关参数"),
+        max_train_epochs: Schema.number().min(1).default(10).description("Maximum training epochs"),
+        train_batch_size: Schema.number().min(1).default(1).description("Batch size; higher uses more VRAM"),
+        gradient_checkpointing: Schema.boolean().default(false).description("Gradient checkpointing"),
+        gradient_accumulation_steps: Schema.number().min(1).description("Gradient accumulation steps"),
+        network_train_unet_only: Schema.boolean().default(false).description("Train the U-Net only; recommended for SDXL LoRAs"),
+        network_train_text_encoder_only: Schema.boolean().default(false).description("Train the text encoder only"),
+    }).description("Training"),
 
-    // 学习率&优化器设置
+    // Learning rate & optimizer
     SHARED_SCHEMAS.LR_OPTIMIZER,
 
-    // 损失设置
+    // Loss
     SHARED_SCHEMAS.LOSS_SETTINGS,
 
     Schema.intersect([
         Schema.object({
-            network_module: Schema.union(["networks.lora", "networks.dylora", "networks.oft", "lycoris.kohya"]).default("networks.lora").description("训练网络模块"),
-            network_weights: Schema.string().role('filepicker').description("从已有的 LoRA 模型上继续训练，填写路径"),
-            network_dim: Schema.number().min(1).default(32).description("网络维度，常用 4~128，不是越大越好, 低dim可以降低显存占用"),
-            network_alpha: Schema.number().min(1).default(32).description("常用值：等于 network_dim 或 network_dim*1/2 或 1。使用较小的 alpha 需要提升学习率"),
-            network_dropout: Schema.number().step(0.01).default(0).description('dropout 概率 （与 lycoris 不兼容，需要用 lycoris 自带的）'),
-            scale_weight_norms: Schema.number().step(0.01).min(0).description("最大范数正则化。如果使用，推荐为 1"),
-            network_args_custom: Schema.array(String).role('table').description('自定义 network_args，一行一个'),
-            enable_block_weights: Schema.boolean().default(false).description('启用分层学习率训练（只支持网络模块 networks.lora）'),
-            enable_base_weight: Schema.boolean().default(false).description('启用基础权重（差异炼丹）'),
-        }).description("网络设置"),
+            network_module: Schema.union(["networks.lora", "networks.dylora", "networks.oft", "lycoris.kohya"]).default("networks.lora").description("Network module to train"),
+            network_weights: Schema.string().role('filepicker').description("Continue training from an existing LoRA: enter its path"),
+            network_dim: Schema.number().min(1).default(32).description("Network dimension, commonly 4-128. Bigger is not always better; a lower dim uses less VRAM"),
+            network_alpha: Schema.number().min(1).default(32).description("Common values: equal to network_dim, network_dim/2, or 1. A smaller alpha needs a higher learning rate"),
+            network_dropout: Schema.number().step(0.01).default(0).description('Dropout probability (not compatible with LyCORIS; use LyCORIS\' own dropout)'),
+            scale_weight_norms: Schema.number().step(0.01).min(0).description("Max-norm regularization. If used, 1 is recommended"),
+            network_args_custom: Schema.array(String).role('table').description('Custom network_args, one per line'),
+            enable_block_weights: Schema.boolean().default(false).description('Enable block-wise learning rates (network module networks.lora only)'),
+            enable_base_weight: Schema.boolean().default(false).description('Enable base weights (difference training)'),
+        }).description("Network"),
 
-        // lycoris 参数
+        // LyCORIS options
         SHARED_SCHEMAS.LYCORIS_MAIN,
         SHARED_SCHEMAS.LYCORIS_LOKR,
 
-        // dylora 参数
+        // DyLoRA options
         SHARED_SCHEMAS.NETWORK_OPTION_DYLORA,
 
-        // 分层学习率参数
+        // Block-wise learning rate options
         SHARED_SCHEMAS.NETWORK_OPTION_BLOCK_WEIGHTS,
 
         SHARED_SCHEMAS.NETWORK_OPTION_BASEWEIGHT,
     ]),
 
-    // 预览图设置
+    // Preview images
     SHARED_SCHEMAS.PREVIEW_IMAGE,
 
-    // 日志设置
+    // Logging
     SHARED_SCHEMAS.LOG_SETTINGS,
 
-    // caption 选项
-    Schema.object(SHARED_SCHEMAS.RAW.CAPTION_SETTINGS).description("caption（Tag）选项"),
+    // Captions
+    Schema.object(SHARED_SCHEMAS.RAW.CAPTION_SETTINGS).description("Captions"),
 
-    // 噪声设置
+    // Noise
     SHARED_SCHEMAS.NOISE_SETTINGS,
 
-    // 数据增强
+    // Data augmentation
     SHARED_SCHEMAS.DATA_ENCHANCEMENT,
 
-    // 其他选项
+    // Other options
     SHARED_SCHEMAS.OTHER,
 
-    // 完全精度设置
+    // Full precision
     SHARED_SCHEMAS.FULL_PRECISION_MODE,
 
-    // 速度优化选项
-    Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, {}, ["full_fp16", "full_bf16"])).description("速度优化选项"),
+    // Speed and memory
+    Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, {}, ["full_fp16", "full_bf16"])).description("Speed and memory"),
 
-    // 分布式训练
+    // Distributed training
     SHARED_SCHEMAS.DISTRIBUTED_TRAINING
 ]);

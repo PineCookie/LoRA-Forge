@@ -96,6 +96,18 @@ npm run typecheck
 
 发布由 GitHub Actions 完成：推送 `v*` 标签即会发布带完整压缩包的 Release。
 
+### 界面语言
+
+网页界面支持英文、中文和日文，默认跟随浏览器语言，也可以在侧边栏底部切换。源语言是英文，翻译分布在三处：
+
+| 文本 | 源文本（英文） | 翻译 |
+|---|---|---|
+| 按钮、页面、提示 | `frontend/src/locales/en.ts` | 同目录下的 `zh.ts`、`ja.ts`（缺少键时类型检查会失败） |
+| 训练参数说明与分组标题 | `lora_forge/schema/` 中的 schema 文件 | `lora_forge/schema/locales/{zh,ja}.json`，以英文原文为键 |
+| 后端返回的消息 | `lora_forge/i18n.py` | 同一文件 |
+
+新增或修改参数说明时，请把英文原文同时加入两个 JSON 文件；缺少或残留翻译时 `npm test` 会失败。终端输出和导出的 TOML 文件始终为英文。
+
 ### TensorBoard
 
 启动 GUI 时加上 `--enable-tensorboard`（例如 `run_gui.ps1 --enable-tensorboard`），即可在 TensorBoard 页面中查看。它读取 `logs` 文件夹，监听 http://127.0.0.1:6006/。

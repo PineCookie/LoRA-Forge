@@ -12,6 +12,7 @@ from lora_forge import launcher, sd_scripts
 from lora_forge.app.models import APIResponse, APIResponseFail, APIResponsePending, APIResponseSuccess
 from lora_forge.devices import printable_devices
 from lora_forge.file_dialogs import open_directory_selector, open_file_selector
+from lora_forge.i18n import t
 from lora_forge.log import log
 from lora_forge.training import runner
 from lora_forge.training.config import TrainingConfigError, prepare_training, redact_config
@@ -39,6 +40,17 @@ def load_schemas() -> list[dict]:
     return schemas
 
 
+def load_schema_translations() -> dict[str, dict[str, str]]:
+    """lora_forge/schema/locales/<locale>.json: the schema text (English) -> its translation."""
+    translations = {}
+    for path in sorted((SCHEMA_DIR / "locales").glob("*.json")):
+        try:
+            translations[path.stem] = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            log.warning(f"Failed to read schema translations {path.name}: {e}")
+    return translations
+
+
 @router.post("/run")
 async def run_training(request: Request):
     try:
@@ -50,8 +62,8 @@ async def run_training(request: Request):
         return APIResponseFail(message=str(e))
     except Exception as e:
         log.error(f"Error in /run endpoint: {e}", exc_info=True)
-        return APIResponseFail(message=f"Server error: {e}")
-    return APIResponseSuccess(message=f"Training started / 训练开始 ID: {task_id}")
+        return APIResponseFail(message=t("run.serverError", error=e))
+    return APIResponseSuccess(message=t("run.started", id=task_id))
 
 
 @router.get("/pick_file")
@@ -62,10 +74,10 @@ async def pick_file(picker_type: str):
         file_types = [("checkpoints", "*.safetensors;*.ckpt;*.pt"), ("all files", "*.*")]
         result = await asyncio.to_thread(open_file_selector, "", "Select file", file_types)
     else:
-        return APIResponseFail(message=f"不支持的 picker_type: {picker_type}")
+        return APIResponseFail(message=t("picker.unsupported", type=picker_type))
 
     if result == "":
-        return APIResponseFail(message="用户取消选择")
+        return APIResponseFail(message=t("picker.cancelled"))
     return APIResponseSuccess(data={"path": result})
 
 
@@ -73,7 +85,7 @@ async def pick_file(picker_type: str):
 async def get_dataset_info(train_data_dir: str = "") -> APIResponse:
     """Image counts per `repeats_name` subfolder of a dataset, with and without repeats."""
     if not train_data_dir or not os.path.isdir(train_data_dir):
-        return APIResponseFail(message="训练数据集路径不存在或无效")
+        return APIResponseFail(message=t("dataset.invalid"))
 
     def scan():
         subdirs = []
@@ -86,7 +98,7 @@ async def get_dataset_info(train_data_dir: str = "") -> APIResponse:
         # walking a large dataset can take a while; keep it off the event loop
         subdirs = await asyncio.to_thread(scan)
     except OSError:
-        return APIResponseFail(message="无法读取训练数据集目录")
+        return APIResponseFail(message=t("dataset.unreadable"))
 
     return APIResponseSuccess(data={
         "subdirs": subdirs,
@@ -151,4 +163,7 @@ async def get_runtime() -> APIResponse:
 
 @router.get("/schemas/all")
 async def get_all_schemas() -> APIResponse:
-    return APIResponseSuccess(data={"schemas": await asyncio.to_thread(load_schemas)})
+    return APIResponseSuccess(data={
+        "schemas": await asyncio.to_thread(load_schemas),
+        "translations": await asyncio.to_thread(load_schema_translations),
+    })

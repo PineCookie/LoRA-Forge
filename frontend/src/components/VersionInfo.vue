@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { t } from "../i18n";
 import { store } from "../store";
 
 const rows = computed(() => {
@@ -7,7 +8,7 @@ const rows = computed(() => {
   if (!Object.keys(versions).length) return [];
   return [
     ["sd-scripts", versions.sd_scripts || "unknown"],
-    ...(versions.sd_scripts_status ? [["sd-scripts 兼容性", versions.sd_scripts_status]] : []),
+    ...(versions.sd_scripts_status ? [[t("system.sdScriptsStatus"), versions.sd_scripts_status]] : []),
     ["PyTorch", versions.pytorch || "unknown"],
     ["Triton", versions.triton || "unknown"],
     ["CUDA", versions.cuda || "unknown"],
@@ -17,13 +18,13 @@ const rows = computed(() => {
 
 <template>
   <section class="system-info">
-    <h2>系统信息</h2>
+    <h2>{{ t("system.title") }}</h2>
     <div class="version-info">
       <div v-for="[label, value] in rows" :key="label" class="version-row">
         <span class="version-label">{{ label }}</span>
         <span class="version-value" :title="value">{{ value }}</span>
       </div>
-      <span v-if="!rows.length" class="version-label">加载中...</span>
+      <span v-if="!rows.length" class="version-label">{{ t("system.loading") }}</span>
     </div>
   </section>
 </template>

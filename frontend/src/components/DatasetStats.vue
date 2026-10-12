@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { api } from "../api";
 import type { SubsetOffsets } from "../config/offsets";
+import { t } from "../i18n";
 
 interface Subdir {
   name: string;
@@ -118,20 +119,20 @@ function setOffset(name: string, event: Event) {
 
 <template>
   <div class="dataset-stats">
-    <span v-if="loading" class="dataset-stats-loading">正在计算数据集信息...</span>
-    <span v-else-if="error" class="dataset-stats-error">无法读取数据集: {{ error }}</span>
+    <span v-if="loading" class="dataset-stats-loading">{{ t("dataset.loading") }}</span>
+    <span v-else-if="error" class="dataset-stats-error">{{ t("dataset.error", { error }) }}</span>
     <div v-else-if="info" class="dataset-stats-panel">
-      <div class="dataset-stats-title">📊 步数预测</div>
+      <div class="dataset-stats-title">{{ t("dataset.title") }}</div>
 
       <template v-if="info.subdirs.length">
         <table class="dataset-stats-table">
           <thead>
             <tr>
-              <th>子文件夹</th>
-              <th>重复次数</th>
-              <th>图片数</th>
-              <th>有效图片数</th>
-              <th v-if="supportsOffsets">时间步偏移</th>
+              <th>{{ t("dataset.subfolder") }}</th>
+              <th>{{ t("dataset.repeats") }}</th>
+              <th>{{ t("dataset.images") }}</th>
+              <th>{{ t("dataset.effectiveImages") }}</th>
+              <th v-if="supportsOffsets">{{ t("dataset.offset") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -146,7 +147,7 @@ function setOffset(name: string, event: Event) {
                   type="number"
                   step="0.01"
                   :value="offsets.values[subdir.name] ?? 0"
-                  title="负值：低噪声/细节；正值：高噪声/结构。为 0 时不改变原有行为。"
+                  :title="t('dataset.offsetTitle')"
                   @input="setOffset(subdir.name, $event)"
                 />
               </td>
@@ -154,47 +155,29 @@ function setOffset(name: string, event: Event) {
           </tbody>
         </table>
         <template v-if="supportsOffsets">
-          <p class="dataset-stats-note">
-            Timestep offset：负值偏向低噪声（细节），正值偏向高噪声（结构）。记录仅适用于 FLUX / Anima 训练；0 保持旧行为。⚠ 需 sd-scripts main（&gt; v0.11.1，旧版本会静默忽略）。
-          </p>
-          <div class="timestep-offset-recommendation">
-            <template v-if="recommendation === 'sigma-uniform'">
-              <b>建议：</b>偏移在 <code>sigma</code> / <code>uniform</code> 模式下无效。如需使用该功能，请选择 <code>sigmoid</code> 作为起点。
-            </template>
-            <template v-else-if="recommendation === 'shift'">
-              <b>建议：</b><code>shift</code> / <code>flux_shift</code> 已经偏向高 timestep。从 <b>±0.25</b> 开始，谨慎使用正偏移；用
-              <code>show_timesteps=console</code> 先预览分布。
-            </template>
-            <template v-else>
-              <b>推荐起点：</b><code>timestep_sampling=sigmoid</code>、<code>sigmoid_scale=1.0</code>。先保持全部为 0；细节/近景子集可试 <b>-0.25</b>，全身/架构子集可试
-              <b>+0.25</b>。只在对比预览后再扩大到 <b>±0.5</b>。
-            </template>
-          </div>
+          <p class="dataset-stats-note" v-html="t('dataset.offsetNote')" />
+          <div v-if="recommendation === 'sigma-uniform'" class="timestep-offset-recommendation" v-html="t('dataset.adviceSigmaUniform')" />
+          <div v-else-if="recommendation === 'shift'" class="timestep-offset-recommendation" v-html="t('dataset.adviceShift')" />
+          <div v-else class="timestep-offset-recommendation" v-html="t('dataset.adviceDefault')" />
         </template>
       </template>
-      <p v-else class="dataset-stats-note">未检测到符合 <code>数字_概念名</code> 格式的子文件夹</p>
+      <p v-else class="dataset-stats-note" v-html="t('dataset.noSubsets')" />
 
       <div class="dataset-stats-summary">
-        <div class="stat-row"><span>原始图片总数</span><span>{{ info.total_images }}</span></div>
-        <div class="stat-row"><span>乘以重复后的有效图片数</span><span>{{ info.total_images_with_repeats }}</span></div>
-        <div class="stat-row"><span>有效 batch size (batch × grad_accum)</span><span>{{ effectiveBatch }}</span></div>
-        <div class="stat-row"><span>每 epoch 最少步数</span><span>{{ stepsPerEpoch.toLocaleString() }}</span></div>
+        <div class="stat-row"><span>{{ t("dataset.totalImages") }}</span><span>{{ info.total_images }}</span></div>
+        <div class="stat-row"><span>{{ t("dataset.totalWithRepeats") }}</span><span>{{ info.total_images_with_repeats }}</span></div>
+        <div class="stat-row"><span>{{ t("dataset.effectiveBatch") }}</span><span>{{ effectiveBatch }}</span></div>
+        <div class="stat-row"><span>{{ t("dataset.stepsPerEpoch") }}</span><span>{{ stepsPerEpoch.toLocaleString() }}</span></div>
         <div class="stat-row stat-row-highlight">
-          <span>{{ epochs }} epoch → 最少总步数</span><span>{{ totalSteps.toLocaleString() }}</span>
+          <span>{{ t("dataset.totalSteps", { epochs }) }}</span><span>{{ totalSteps.toLocaleString() }}</span>
         </div>
       </div>
 
       <template v-if="info.total_images_with_repeats > 0 && stepsPerEpoch > 0">
-        <div class="dataset-stats-note-bucket">
-          ⚠ 以上为<b>下限估算</b>（假设所有图片落入同一分辨率桶）。ARB 分桶按宽高比将图片分入不同桶，每桶独立组 batch，碎片化会导致实际步数略高（通常 +1%~10%）。
-        </div>
+        <div class="dataset-stats-note-bucket" v-html="t('dataset.bucketNote')" />
         <div class="dataset-stats-suggestions">
-          <div class="dataset-stats-suggest-title">💡 参考 epoch 数（基于下限估算）</div>
-          <span>
-            <template v-for="(item, index) in suggestions" :key="item.steps">
-              {{ index ? "； " : "" }}达到 ~{{ item.steps.toLocaleString() }} 步需要 {{ item.epochs }} epoch
-            </template>
-          </span>
+          <div class="dataset-stats-suggest-title">{{ t("dataset.suggestTitle") }}</div>
+          <span>{{ suggestions.map((item) => t("dataset.suggestion", { steps: item.steps.toLocaleString(), epochs: item.epochs })).join(" · ") }}</span>
         </div>
       </template>
     </div>

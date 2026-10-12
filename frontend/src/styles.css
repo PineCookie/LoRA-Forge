@@ -995,10 +995,21 @@ button.danger:hover {
 
 .sidebar-footer {
   display: grid;
-  gap: 2px;
+  gap: 12px;
   margin: auto 8px 0;
   padding-top: 18px;
   color: var(--muted);
+  font-size: 12px;
+}
+
+.sidebar-footer p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.locale-select {
+  padding: 5px 8px;
   font-size: 12px;
 }
 

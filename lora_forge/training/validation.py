@@ -5,6 +5,7 @@ import os
 import json
 from typing import Dict
 
+from lora_forge.i18n import t
 from lora_forge.log import log
 from lora_forge.training.dataset import count_images, subset_folders
 
@@ -184,16 +185,16 @@ def validate_model(model_name: str, training_type: str = "sd-lora"):
             ModelType.ANIMA,
         ]
         if model_type not in valid_base_model_types:
-            return False, "Pretrained model is not a Stable Diffusion, Flux, Lumina or Anima checkpoint / 校验失败：底模不是 Stable Diffusion、Flux、Lumina 或 Anima 模型"
+            return False, t("model.notBaseModel")
 
         if model_type == ModelType.ANIMA and training_type != "anima-lora":
-            return False, "Pretrained model is Anima, but you are not training with Anima LoRA / 校验失败：预训练模型是 Anima，但当前训练种类不是 Anima LoRA。"
+            return False, t("model.animaWrongMode")
 
         if training_type == "anima-lora" and model_type != ModelType.ANIMA:
-            return False, "Pretrained model is not Anima, but you are training with Anima LoRA / 校验失败：你选择的是 Anima LoRA 训练，但预训练模型不是 Anima。"
+            return False, t("model.notAnima")
 
         if model_type == ModelType.SDXL and training_type == "sd-lora":
-            return False, "Pretrained model is SDXL, but you are training with SD1.5 LoRA / 校验失败：你选择的是 SD1.5 LoRA 训练，但预训练模型是 SDXL。请前往 Stable Diffusion 模式选择正确的模型种类。"
+            return False, t("model.sdxlOnSd15")
 
         return True, "ok"
 
@@ -201,7 +202,7 @@ def validate_model(model_name: str, training_type: str = "sd-lora"):
     if is_huggingface_repo_id(model_name):
         return True, "ok"
 
-    return False, "model not found"
+    return False, t("model.notFound", path=model_name)
 
 
 def is_huggingface_repo_id(name) -> bool:
@@ -227,15 +228,15 @@ def validate_anima_model_paths(qwen3, vae):
     as a traceback in the training log. Returns (ok, message).
     """
     problems = []
-    for value, label in ((qwen3, "Qwen3-0.6B 文本编码器（qwen3）"), (vae, "Qwen-Image VAE（vae）")):
+    for value, label in ((qwen3, t("model.qwen3")), (vae, t("model.vae"))):
         value = value.strip() if isinstance(value, str) else value
         if not value:
-            problems.append(f"{label} 未填写")
+            problems.append(t("model.animaPathMissing", label=label))
         elif not os.path.exists(value) and not is_huggingface_repo_id(value):
-            problems.append(f"{label} 路径不存在：{value}")
+            problems.append(t("model.animaPathNotFound", label=label, path=value))
 
     if problems:
-        return False, "；".join(problems)
+        return False, "; ".join(problems)
     return True, "ok"
 
 
@@ -243,20 +244,17 @@ def validate_data_dir(path) -> tuple[bool, str]:
     """The dataset must be a folder of `repeats_name` subfolders (e.g. `10_mychar`), the layout
     sd-scripts' DreamBooth-style datasets use. The user's files are never moved or changed."""
     if not path or not os.path.isdir(path):
-        return False, f"训练数据集路径不存在，请检查目录：{path}"
+        return False, t("dataset.missing", path=path)
 
     subsets = subset_folders(path)
     if not subsets:
         loose = count_images(path, recursive=False)
-        found = f"目录下直接放了 {loose} 张图片。" if loose else ""
-        return False, (
-            f"训练数据集路径下没有 `重复次数_名称` 格式的子文件夹（例如 `10_mychar`）。{found}"
-            "请新建这样的子文件夹，把图片和标注文件放进去；数字为每个 epoch 的重复次数。"
-        )
+        found = t("dataset.looseImages", count=loose) if loose else ""
+        return False, t("dataset.noSubsets", found=found)
 
     images = sum(count_images(os.path.join(path, name)) for name, _repeats, _tokens in subsets)
     if images == 0:
-        return False, "训练数据集的子文件夹中没有图片（支持 jpg / jpeg / png / webp / bmp）。"
+        return False, t("dataset.noImages")
 
     log.info(f"Found {len(subsets)} dataset subfolders with {images} images")
     return True, "ok"

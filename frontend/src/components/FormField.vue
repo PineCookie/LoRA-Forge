@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { controlKind, type FormValue } from "../config/form";
+import { t, tr } from "../i18n";
 import { schemaOptions, type Field } from "../schema/groups";
 
 const props = defineProps<{
@@ -23,7 +24,7 @@ const step = computed(() => meta.value.step ?? "any");
 
 // Descriptions come from the bundled schema files and use `code` and **bold** inline markup.
 const description = computed(() =>
-  (meta.value.description ?? "").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"),
+  tr(meta.value.description ?? "").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"),
 );
 
 const text = computed(() => (typeof props.modelValue === "string" ? props.modelValue : ""));
@@ -65,7 +66,7 @@ function onChecked(event: Event) {
         :disabled="meta.disabled"
         @input="onValue"
       />
-      <button v-if="pickerType" type="button" class="icon-button" @click="emit('pick', pickerType)">选择</button>
+      <button v-if="pickerType" type="button" class="icon-button" @click="emit('pick', pickerType)">{{ t("field.browse") }}</button>
     </div>
     <p v-if="description" class="hint" v-html="description" />
   </label>

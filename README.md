@@ -97,6 +97,18 @@ npm run typecheck
 
 Releases are built by GitHub Actions: pushing a `v*` tag publishes a release with the ready-to-run zip.
 
+### Languages
+
+The web UI is in English, Chinese and Japanese. It follows the browser language and can be switched at the bottom of the sidebar. English is the source language; translations live in three places:
+
+| Text | Source (English) | Translations |
+|---|---|---|
+| Buttons, pages, notices | `frontend/src/locales/en.ts` | `zh.ts`, `ja.ts` next to it (the type check fails on a missing key) |
+| Training options and section titles | the schema files in `lora_forge/schema/` | `lora_forge/schema/locales/{zh,ja}.json`, keyed by the English text |
+| Messages from the backend | `lora_forge/i18n.py` | the same file |
+
+When you add or reword an option, add its English text to both JSON files; `npm test` fails while a translation is missing or left over. Terminal output and exported TOML files stay in English.
+
 ### TensorBoard
 
 Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-tensorboard`) to open TensorBoard from the TensorBoard page. It reads the `logs` folder and listens on http://127.0.0.1:6006/.
@@ -142,7 +154,7 @@ Branches are updated with `git pull --ff-only`, so the update stops instead of o
 
 Which Anima options actually take effect, the sd-scripts version each one needs, the speed/memory
 recipes and the known silent-failure traps are documented in [docs/anima.md](docs/anima.md)
-(Chinese). The About page shows an `sd-scripts 兼容性` line for the installed checkout.
+(Chinese). The About page shows the sd-scripts compatibility of the installed checkout.
 
 ## Project layout
 

@@ -1,3 +1,5 @@
+import { locale, t } from "./i18n";
+
 interface ApiEnvelope {
   status?: "success" | "fail" | "pending";
   message?: string;
@@ -7,19 +9,20 @@ interface ApiEnvelope {
 export type ApiResult<T> = T & { message?: string };
 
 /** Call a backend endpoint; throws with the backend's message when it answers `status: fail`. */
-export async function api<T = Record<string, unknown>>(path: string, options?: RequestInit): Promise<ApiResult<T>> {
-  const response = await fetch(path, options);
+export async function api<T = Record<string, unknown>>(path: string, options: RequestInit = {}): Promise<ApiResult<T>> {
+  // the backend words its messages in the UI language
+  const headers = new Headers(options.headers);
+  headers.set("Accept-Language", locale.value);
+  const response = await fetch(path, { ...options, headers });
   const text = await response.text();
   let json: ApiEnvelope;
   try {
     json = JSON.parse(text);
   } catch {
-    const hint = text.trim().startsWith("<")
-      ? "API 返回了 HTML。请通过 Python GUI 后端访问页面，而不是只用静态文件服务器。"
-      : "API 返回了无法解析的内容。";
+    const hint = text.trim().startsWith("<") ? t("api.html") : t("api.unparsable");
     throw new Error(`${hint} (${path})`);
   }
-  if (json.status === "fail") throw new Error(json.message || "请求失败");
+  if (json.status === "fail") throw new Error(json.message || t("api.failed"));
   return { message: json.message, ...json.data } as ApiResult<T>;
 }
 

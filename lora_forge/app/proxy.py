@@ -7,6 +7,7 @@ from httpx import HTTPError
 from starlette.background import BackgroundTask
 from starlette.responses import PlainTextResponse, StreamingResponse
 
+from lora_forge.i18n import t
 from lora_forge.log import log
 
 router = APIRouter()
@@ -101,7 +102,7 @@ def reverse_proxy_maker(url_type: str, full_path: bool = False):
         except HTTPError as e:
             log.warning(f"Reverse proxy failed for {url_type}: {e}")
             return PlainTextResponse(
-                content="The requested service not started yet or service started fail. This may cost a while when you first time startup\n请求的服务尚未启动或启动失败。若是第一次启动，可能需要等待一段时间后再刷新网页。",
+                content=t("proxy.unavailable"),
                 status_code=502
             )
         return StreamingResponse(

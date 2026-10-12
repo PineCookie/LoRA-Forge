@@ -13,11 +13,13 @@ import type { SubsetOffsets } from "../config/offsets";
 import { applyDependentValues, applyExclusiveRules } from "../config/rules";
 import { fromToml, toToml } from "../config/toml";
 import { isFieldVisible } from "../config/visibility";
+import { t, tr } from "../i18n";
 import { buildGroups, schemaOptions, type Field, type Group } from "../schema/groups";
 import { getSchema, store } from "../store";
 import { notify } from "../toast";
 
 const props = defineProps<{ schemaName: string }>();
+const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const route = useRoute();
 
 const schema = getSchema(props.schemaName);
@@ -57,7 +59,8 @@ const query = computed(() => search.value.trim().toLowerCase());
 
 function matchesSearch(field: Field) {
   if (!query.value) return true;
-  return field.name.toLowerCase().includes(query.value) || (field.schema.meta.description ?? "").toLowerCase().includes(query.value);
+  const description = field.schema.meta.description ?? "";
+  return [field.name, description, tr(description)].some((text) => text.toLowerCase().includes(query.value));
 }
 
 const shownFields = (group: Group) => group.fields.filter((field) => isFieldVisible(field.name, values.value) && matchesSearch(field));
@@ -78,13 +81,11 @@ function setAllCollapsed(collapsed: boolean) {
 }
 
 function sectionNote(group: Group) {
-  if (group.title === "学习率与优化器设置") return "切换优化器时，部分学习率、调度器和 optimizer_args 会按优化器推荐值自动重置。";
-  if (group.title !== "损失设置") return undefined;
-  if (props.schemaName === "anima-lora") {
-    return "Anima 使用 FlowMatch 调度器：Huber schedule 的 snr 当前不支持；exponential 在网络训练路径可能可运行，但时间步缩放会让效果接近常数，通常建议使用 constant。";
-  }
+  if (group.title === "Learning rate and optimizer") return t("trainer.note.optimizer");
+  if (group.title !== "Loss") return undefined;
+  if (props.schemaName === "anima-lora") return t("trainer.note.lossAnima");
   const names = new Set(group.fields.map((field) => field.name));
-  if (names.has("min_snr_gamma") && names.has("debiased_estimation_loss")) return "Min-SNR 和 Debiased Estimation loss 作用相近，通常不建议同时启用。";
+  if (names.has("min_snr_gamma") && names.has("debiased_estimation_loss")) return t("trainer.note.lossMinSnr");
   return undefined;
 }
 
@@ -128,12 +129,12 @@ async function startRun(previewTimesteps: boolean) {
   console.log(previewTimesteps ? "Previewing timesteps with config:" : "Form submitted with config:", redactConfigForLog(runConfig));
   busy.value = true;
   try {
-    notify(previewTimesteps ? "正在生成时间步分布预览..." : "正在启动训练...");
+    notify(t(previewTimesteps ? "trainer.previewing" : "trainer.starting"));
     const result = await postJson("/api/run", runConfig);
-    notify(result.message || (previewTimesteps ? "时间步预览已提交" : "训练任务已提交"), "success");
+    notify(result.message || t(previewTimesteps ? "trainer.previewSubmitted" : "trainer.submitted"), "success");
   } catch (error) {
     console.error("Error:", error);
-    notify(error instanceof Error ? error.message : String(error), "error");
+    notify(errorText(error), "error");
   } finally {
     busy.value = false;
   }
@@ -144,14 +145,14 @@ async function stopTraining() {
     const data = await api<{ tasks: { id: string; status: string }[] }>("/api/tasks");
     const task = (data.tasks ?? []).find((item) => item.status === "RUNNING");
     if (!task) {
-      notify("当前没有正在运行的训练任务", "warning");
+      notify(t("trainer.noRunningTask"), "warning");
       return;
     }
-    if (!confirm(`确定要停止任务 ${task.id} 吗？`)) return;
+    if (!confirm(t("trainer.confirmStop", { id: task.id }))) return;
     await api(`/api/tasks/terminate/${encodeURIComponent(task.id)}`);
-    notify(`已停止任务 ${task.id}`, "success");
+    notify(t("trainer.stopped", { id: task.id }), "success");
   } catch (error) {
-    notify(`停止训练失败：${error instanceof Error ? error.message : error}`, "error");
+    notify(t("trainer.stopFailed", { error: errorText(error) }), "error");
   }
 }
 
@@ -160,7 +161,7 @@ async function pickPath(name: string, pickerType: string) {
     const data = await api<{ path: string }>(`/api/pick_file?picker_type=${encodeURIComponent(pickerType)}`);
     onInput(name, data.path);
   } catch (error) {
-    notify(error instanceof Error ? error.message : String(error), "error");
+    notify(errorText(error), "error");
   }
 }
 
@@ -181,9 +182,9 @@ const exportToml = () => download(tomlPreview.value, "application/toml;charset=u
 async function copyToml() {
   try {
     await navigator.clipboard.writeText(tomlPreview.value);
-    notify("TOML 已复制到剪贴板", "success");
+    notify(t("trainer.copied"), "success");
   } catch {
-    notify("复制失败：浏览器拒绝访问剪贴板", "error");
+    notify(t("trainer.copyFailed"), "error");
   }
 }
 
@@ -199,7 +200,7 @@ function applyImported(imported: TrainingConfig) {
   const importedType = imported.model_train_type;
   const allowed = allowedTrainTypes();
   if (importedType && allowed.length && !allowed.includes(importedType)) {
-    throw new Error(`当前页面只支持 ${allowed.join(" / ")}，导入文件是 ${importedType}`);
+    throw new Error(t("trainer.wrongTrainType", { allowed: allowed.join(" / "), type: importedType }));
   }
 
   for (const [name, value] of Object.entries(expandImportedArgs(imported))) {
@@ -218,9 +219,9 @@ async function importFile(event: Event, format: "json" | "toml") {
   try {
     const text = await file.text();
     applyImported(format === "json" ? JSON.parse(text) : fromToml(text));
-    notify(`${format.toUpperCase()} 导入成功`, "success");
+    notify(t("trainer.imported", { format: format.toUpperCase() }), "success");
   } catch (error) {
-    notify(`${format.toUpperCase()} 导入失败：${error instanceof Error ? error.message : error}`, "error");
+    notify(t("trainer.importFailed", { format: format.toUpperCase(), error: errorText(error) }), "error");
   } finally {
     input.value = ""; // allow importing the same file again
   }
@@ -228,16 +229,16 @@ async function importFile(event: Event, format: "json" | "toml") {
 </script>
 
 <template>
-  <section v-if="!schema" class="panel error">未找到 schema: {{ schemaName }}</section>
+  <section v-if="!schema" class="panel error">{{ t("trainer.schemaMissing", { name: schemaName }) }}</section>
 
   <form v-else class="trainer" @submit.prevent="startRun(false)">
     <div class="form-grid">
       <div class="form-toolbar">
-        <input v-model="search" class="form-search" type="search" placeholder="搜索参数名或说明…" aria-label="搜索参数" />
-        <span v-if="query" class="form-toolbar-count">{{ visibleCount }} 项</span>
+        <input v-model="search" class="form-search" type="search" :placeholder="t('trainer.search')" :aria-label="t('trainer.searchLabel')" />
+        <span v-if="query" class="form-toolbar-count">{{ t("trainer.matchCount", { count: visibleCount }) }}</span>
         <template v-else>
-          <button type="button" class="ghost-button" @click="setAllCollapsed(false)">全部展开</button>
-          <button type="button" class="ghost-button" @click="setAllCollapsed(true)">全部折叠</button>
+          <button type="button" class="ghost-button" @click="setAllCollapsed(false)">{{ t("trainer.expandAll") }}</button>
+          <button type="button" class="ghost-button" @click="setAllCollapsed(true)">{{ t("trainer.collapseAll") }}</button>
         </template>
       </div>
 
@@ -259,7 +260,7 @@ async function importFile(event: Event, format: "json" | "toml") {
             @pick="pickPath(field.name, $event)"
           />
           <DatasetStats
-            v-if="group.title === '数据集设置'"
+            v-if="group.title === 'Dataset'"
             :dir="datasetDir"
             :batch-size="numberValue('train_batch_size')"
             :grad-acc="numberValue('gradient_accumulation_steps')"
@@ -272,49 +273,49 @@ async function importFile(event: Event, format: "json" | "toml") {
         </FormSection>
       </template>
 
-      <p v-if="query && !visibleCount" class="panel empty-search">没有匹配 “{{ search }}” 的参数。</p>
+      <p v-if="query && !visibleCount" class="panel empty-search">{{ t("trainer.noMatch", { query: search }) }}</p>
     </div>
 
     <aside class="actions">
       <section class="action-group action-train">
-        <h2>训练</h2>
-        <button type="submit" class="primary" :disabled="busy">{{ busy ? "正在提交…" : "开始训练" }}</button>
-        <button v-if="supportsTimestepPreview" type="button" :disabled="busy" @click="startRun(true)">预览时间步分布</button>
-        <button type="button" class="danger" @click="stopTraining">终止训练</button>
+        <h2>{{ t("trainer.training") }}</h2>
+        <button type="submit" class="primary" :disabled="busy">{{ t(busy ? "trainer.submitting" : "trainer.start") }}</button>
+        <button v-if="supportsTimestepPreview" type="button" :disabled="busy" @click="startRun(true)">{{ t("trainer.previewTimesteps") }}</button>
+        <button type="button" class="danger" @click="stopTraining">{{ t("trainer.stop") }}</button>
       </section>
 
       <section class="action-group action-config">
-        <h2>配置</h2>
-        <button type="button" id="reset-form" @click="resetForm">全部重置</button>
+        <h2>{{ t("trainer.config") }}</h2>
+        <button type="button" id="reset-form" @click="resetForm">{{ t("trainer.reset") }}</button>
         <div class="config-action-row">
-          <button type="button" class="download-button" @click="exportJson">下载配置 JSON</button>
+          <button type="button" class="download-button" @click="exportJson">{{ t("trainer.downloadJson") }}</button>
           <label class="import-button import-config-button">
-            导入配置 JSON<input type="file" accept="application/json,.json" @change="importFile($event, 'json')" />
+            {{ t("trainer.importJson") }}<input type="file" accept="application/json,.json" @change="importFile($event, 'json')" />
           </label>
         </div>
         <div class="config-action-row">
-          <button type="button" class="download-button" @click="exportToml">下载配置 TOML</button>
+          <button type="button" class="download-button" @click="exportToml">{{ t("trainer.downloadToml") }}</button>
           <label class="import-button import-config-button">
-            导入配置 TOML<input type="file" accept=".toml,text/plain" @change="importFile($event, 'toml')" />
+            {{ t("trainer.importToml") }}<input type="file" accept=".toml,text/plain" @change="importFile($event, 'toml')" />
           </label>
         </div>
       </section>
 
       <section class="generated-args">
-        <h2>优化器参数预览</h2>
+        <h2>{{ t("trainer.generatedArgs") }}</h2>
         <div class="args-preview">
           <div v-for="section in generatedArgs" :key="section.name" class="args-section">
             <div class="args-name">{{ section.name }}:</div>
             <div v-for="arg in section.args" :key="arg" class="args-value">{{ arg }}</div>
           </div>
-          <span v-if="!generatedArgs.length" class="args-empty">当前配置不生成额外参数</span>
+          <span v-if="!generatedArgs.length" class="args-empty">{{ t("trainer.noGeneratedArgs") }}</span>
         </div>
       </section>
 
       <section class="config-preview">
         <h2>
-          TOML 配置预览
-          <button type="button" class="icon-button copy-button" title="复制到剪贴板" @click="copyToml">复制</button>
+          {{ t("trainer.tomlPreview") }}
+          <button type="button" class="icon-button copy-button" :title="t('trainer.copyTitle')" @click="copyToml">{{ t("trainer.copy") }}</button>
         </h2>
         <pre id="preview">{{ tomlPreview }}</pre>
       </section>
