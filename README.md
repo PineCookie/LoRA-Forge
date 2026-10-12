@@ -61,7 +61,7 @@ git clone --recurse-submodules https://github.com/PineCookie/lora-forge
 
 #### Installation
 
-Run `install-cn.ps1` to install dependencies from `pyproject.toml` into a uv-managed `.venv`.
+Run `install.ps1` to install dependencies from `pyproject.toml` into a uv-managed `.venv`.
 
 `flash-attn` is optional and is not installed by default. If you have a compatible local wheel, keep it outside Git (for example in an ignored `wheelhouse/` folder), then include the optional extra during sync:
 
@@ -95,37 +95,9 @@ The `-U` flag lets uv update your local lockfile to use the wheel, and `--no-bui
 Run `bash run_gui.sh`, then open [http://127.0.0.1:28000](http://127.0.0.1:28000) in your browser.
 To open the browser automatically, run `python gui.py --open-browser`.
 
-## Legacy manual training scripts
+### TensorBoard
 
-### Windows
-
-#### Installation
-
-Run `install.ps1` to install dependencies from `pyproject.toml` into a uv-managed `.venv`.
-
-#### Train
-
-Edit `train.ps1`, then run it.
-
-### Linux
-
-#### Installation
-
-Run `install.bash` to install dependencies from `pyproject.toml` into a uv-managed `.venv`.
-
-#### Train
-
-The training script `train.sh` **will not** activate the environment for you. Activate it first.
-
-```sh
-source .venv/bin/activate
-```
-
-Edit `train.sh`, then run it.
-
-#### TensorBoard
-
-Run `tensorboard.ps1` to start TensorBoard at http://localhost:6006/
+Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-tensorboard`) to open TensorBoard from the TensorBoard page. It reads the `logs` folder and listens on http://127.0.0.1:6006/.
 
 ## Program arguments
 

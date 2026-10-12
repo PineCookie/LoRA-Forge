@@ -26,7 +26,6 @@ git
 train/*
 logs/*
 sd-models/*
-toml/autosave/*
 config/autosave/*
 config/presets/test*.toml
 

@@ -94,37 +94,9 @@ uv sync -U --extra flash-attn --find-links ./wheelhouse --no-build-package flash
 运行 `bash run_gui.sh`，然后在浏览器中打开 [http://127.0.0.1:28000](http://127.0.0.1:28000)。
 如需自动打开浏览器，请运行 `python gui.py --open-browser`。
 
-## 传统手动训练脚本
+### TensorBoard
 
-### Windows
-
-#### 安装
-
-运行 `install.ps1` 将根据 `pyproject.toml` 安装依赖到 uv 管理的 `.venv`。
-
-#### 训练
-
-编辑 `train.ps1`，然后运行。
-
-### Linux
-
-#### 安装
-
-运行 `install.bash` 将根据 `pyproject.toml` 安装依赖到 uv 管理的 `.venv`。
-
-#### 训练
-
-脚本 `train.sh` **不会** 自动激活环境。请先激活环境。
-
-```sh
-source .venv/bin/activate
-```
-
-编辑 `train.sh`，然后运行。
-
-#### TensorBoard
-
-运行 `tensorboard.ps1` 将在 http://localhost:6006/ 启动 TensorBoard
+启动 GUI 时加上 `--enable-tensorboard`（例如 `run_gui.ps1 --enable-tensorboard`），即可在 TensorBoard 页面中查看。它读取 `logs` 文件夹，监听 http://127.0.0.1:6006/。
 
 ## 程序参数
 
