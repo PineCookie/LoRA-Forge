@@ -59,43 +59,29 @@ git clone https://github.com/PineCookie/lora-forge
 
 ## ✨ LoRA Forge GUI
 
-### Windows
-
-#### Installation
-
-Run `install.ps1` to install dependencies from `pyproject.toml` into a uv-managed `.venv`.
-
-`flash-attn` is optional and is not installed by default. If you have a compatible local wheel, keep it outside Git (for example in an ignored `wheelhouse/` folder), then include the optional extra during sync:
+Start the GUI with the launcher for your system, then open [http://127.0.0.1:28000](http://127.0.0.1:28000) (add `--open-browser` to open it automatically):
 
 ```powershell
-uv sync -U --extra flash-attn --find-links .\wheelhouse --no-build-package flash-attn
+.\run_gui.ps1          # Windows (or right-click → Run with PowerShell)
 ```
 
-The `-U` flag lets uv update your local lockfile to use the wheel, and `--no-build-package flash-attn` prevents uv from falling back to building `flash-attn` from source.
+```sh
+bash run_gui.sh        # Linux
+```
 
-#### Train
+There is no separate install step: the launcher installs [uv](https://docs.astral.sh/uv/) if it is missing, and `uv run` installs the dependencies from `pyproject.toml` into `.venv` on the first start (this downloads PyTorch and takes a while) and keeps them in sync after updates. In mainland China add `--cn` to use the TUNA PyPI mirror and hf-mirror.
 
-Run `run_gui.ps1`, then open [http://127.0.0.1:28000](http://127.0.0.1:28000) in your browser.
-To open the browser automatically, run `python gui.py --open-browser`.
+`run_gui.ps1 update-sd-scripts` (`bash run_gui.sh update-sd-scripts` on Linux) updates `scripts/sd-scripts`; see [Updating sd-scripts](#updating-sd-scripts).
 
-### Linux
+### Optional: flash-attn
 
-#### Installation
-
-Run `install.bash` to install dependencies from `pyproject.toml` into a uv-managed `.venv`.
-
-`flash-attn` is optional and is not installed by default. If you have a compatible local wheel, keep it outside Git (for example in an ignored `wheelhouse/` folder), then include the optional extra during sync:
+`flash-attn` is not installed by default. If you have a compatible local wheel, keep it outside Git (for example in the ignored `wheelhouse/` folder), then include the optional extra:
 
 ```sh
 uv sync -U --extra flash-attn --find-links ./wheelhouse --no-build-package flash-attn
 ```
 
 The `-U` flag lets uv update your local lockfile to use the wheel, and `--no-build-package flash-attn` prevents uv from falling back to building `flash-attn` from source.
-
-#### Train
-
-Run `bash run_gui.sh`, then open [http://127.0.0.1:28000](http://127.0.0.1:28000) in your browser.
-To open the browser automatically, run `python gui.py --open-browser`.
 
 ### Web UI development
 
@@ -124,7 +110,7 @@ Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-ten
 | `--listen`                    | bool  | false         | Enable listening mode for the server             |
 | `--skip-prepare-sd-scripts`   | bool  | false         | Skip cloning kohya-ss/sd-scripts                |
 | `--skip-frontend-build`       | bool  | false         | Do not (re)build the web UI on launch            |
-| `--sd-scripts-branch`         | str   | "main"        | Branch or tag to clone from kohya-ss/sd-scripts        |
+| `--sd-scripts-branch`         | str   | "main"        | Branch or tag to clone when sd-scripts is missing |
 | `--enable-tensorboard`        | bool  | false         | Enable TensorBoard                               |
 | `--tensorboard-host`          | str   | "127.0.0.1"   | Host to run TensorBoard                          |
 | `--tensorboard-port`          | int   | 6006          | Port to run TensorBoard                          |
@@ -133,33 +119,24 @@ Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-ten
 
 ## Updating sd-scripts
 
-`scripts/sd-scripts` is cloned as its own Git checkout from `kohya-ss/sd-scripts`, not as a parent-repo submodule. The launcher clones it when missing, but it does not auto-update an existing checkout. It is ignored by this repository (see `.gitignore`), so do not remove it with `git clean`; if it is missing, start the launcher again to re-clone it.
+`scripts/sd-scripts` is cloned as its own Git checkout from `kohya-ss/sd-scripts`, not as a parent-repo submodule. The launcher clones it when missing, but never updates an existing checkout, so starting the GUI does not move sd-scripts away from the version you trained with. It is ignored by this repository (see `.gitignore`), so do not remove it with `git clean`; if it is missing, start the launcher again to re-clone it.
 
-To update it to the latest commit on the configured branch:
+To update it to the latest commit of `main`:
 
 ```powershell
-.\update_sd_scripts.ps1
+.\run_gui.ps1 update-sd-scripts
 ```
 
 ```sh
-bash update_sd_scripts.sh
+bash run_gui.sh update-sd-scripts
 ```
 
-The default branch is `main`, matching the branch the launcher clones. Anima training and the
-acceleration options the UI exposes (`--compile`, `--qwen_image_vae_2d`, per-subset timestep
-offsets, `--show_timesteps`) require a recent `main`; older branches such as `sd3` do not have
-them and silently ignore those settings.
+Anima training and the acceleration options the UI exposes (`--compile`, `--qwen_image_vae_2d`,
+per-subset timestep offsets, `--show_timesteps`) require a recent `main`; older branches such as
+`sd3` do not have them and silently ignore those settings.
 
-To update from another branch, pass `--branch`, for example:
-
-```powershell
-.\update_sd_scripts.ps1 --branch dev
-```
-
-The updater follows branches only (tags are supported by `--sd-scripts-branch` when the launcher
-clones sd-scripts, but not by this update script).
-
-The updater uses `git pull --ff-only`, so it will stop instead of overwriting local changes.
+`--branch` follows another branch or switches to a tag, for example `update-sd-scripts --branch v0.12.0`.
+Branches are updated with `git pull --ff-only`, so the update stops instead of overwriting local changes.
 
 ## Anima training notes
 

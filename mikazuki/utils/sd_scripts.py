@@ -169,7 +169,7 @@ def missing_features_message(missing: List[str], root: Optional[Path] = None) ->
     return (
         f"已安装的 sd-scripts（{ref}）不支持：{labels}。"
         "这些选项会被 sd-scripts 静默忽略，请先更新到 main 分支后重试："
-        "update_sd_scripts.ps1 --branch main"
+        "run_gui.ps1 update-sd-scripts（Linux: bash run_gui.sh update-sd-scripts）"
     )
 
 

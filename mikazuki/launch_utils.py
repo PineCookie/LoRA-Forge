@@ -44,125 +44,81 @@ def prepare_git():
         return False
 
 
-def prepare_sd_scripts(ref: str = "main"):
-    """Clone or update kohya-ss/sd-scripts at the given branch or tag.
+SD_SCRIPTS_REMOTE = "https://github.com/kohya-ss/sd-scripts.git"
 
-    Args:
-        ref: A branch name (e.g. "sd3", "main") or tag (e.g. "v0.11.1").
+
+def sd_scripts_path() -> Path:
+    return base_dir_path() / "scripts" / "sd-scripts"
+
+
+def ensure_sd_scripts(ref: str = "main"):
+    """Clone kohya-ss/sd-scripts at `ref` (branch or tag) if it is missing.
+
+    An existing checkout is left exactly as it is: updating is explicit (`main.py
+    update-sd-scripts`), so starting the GUI never moves sd-scripts away from a tested version.
     """
-    sd_scripts_path = base_dir_path() / "scripts" / "sd-scripts"
+    path = sd_scripts_path()
 
-    if (sd_scripts_path / ".git").exists():
-        # Already cloned — fetch latest and switch to the target ref
-        if not prepare_git():
-            log.error("git not found, please install git first")
-            sys.exit(1)
-
-        # Fetch all to get latest branches and tags
-        log.info("Fetching latest sd-scripts...")
-        subprocess.run(
-            ["git", "-C", str(sd_scripts_path), "fetch", "--all", "--tags", "--prune"],
-            capture_output=True
-        )
-
-        # Check if ref is a tag
-        tag_check = subprocess.run(
-            ["git", "-C", str(sd_scripts_path), "rev-parse", "--verify", f"refs/tags/{ref}"],
-            capture_output=True
-        )
-        is_tag = tag_check.returncode == 0
-
-        # Determine current HEAD
-        try:
-            current = subprocess.run(
-                ["git", "-C", str(sd_scripts_path), "rev-parse", "HEAD"],
-                capture_output=True, text=True, check=True
-            ).stdout.strip()
-        except subprocess.CalledProcessError:
-            current = "unknown"
-
-        target = subprocess.run(
-            ["git", "-C", str(sd_scripts_path), "rev-parse", "--verify", ref],
-            capture_output=True
-        )
-
-        if target.returncode != 0:
-            # Ref not found locally yet — try fetching it explicitly
-            log.info(f"Ref '{ref}' not found locally, fetching from origin...")
-            subprocess.run(
-                ["git", "-C", str(sd_scripts_path), "fetch", "origin", f"{ref}:refs/remotes/origin/{ref}"],
-                capture_output=True
-            )
-            target = subprocess.run(
-                ["git", "-C", str(sd_scripts_path), "rev-parse", "--verify", f"origin/{ref}"],
-                capture_output=True, text=True
-            )
-            if target.returncode != 0:
-                log.error(f"Ref '{ref}' does not exist on remote either")
-                return
-            target_commit = target.stdout.strip()
-        else:
-            target_commit = target.stdout.strip()
-
-        if current == target_commit:
-            # Already on the right ref — pull if it's a branch
-            if not is_tag:
-                log.info(f"Already on '{ref}', pulling latest...")
-                subprocess.run(
-                    ["git", "-C", str(sd_scripts_path), "pull", "--ff-only", "origin", ref],
-                    capture_output=True
-                )
-            else:
-                log.info(f"Already at tag '{ref}', nothing to do")
-            return
-
-        log.info(f"Switching sd-scripts to '{ref}'...")
-        if is_tag:
-            # Tags: checkout directly (detached HEAD is fine)
-            subprocess.run(
-                ["git", "-C", str(sd_scripts_path), "checkout", f"refs/tags/{ref}"],
-                check=True
-            )
-        else:
-            # Branches: create/update local branch from remote
-            subprocess.run(
-                ["git", "-C", str(sd_scripts_path), "checkout", "-B", ref, f"origin/{ref}"],
-                check=True
-            )
+    if (path / ".git").exists():
         return
 
-    if sd_scripts_path.exists() and any(sd_scripts_path.iterdir()):
-        log.warning(f"sd-scripts path already exists and is not empty: {sd_scripts_path}")
+    if path.exists() and any(path.iterdir()):
+        log.warning(f"sd-scripts path already exists and is not empty: {path}")
         return
 
     if not prepare_git():
         log.error("git not found, please install git first")
         sys.exit(1)
 
-    sd_scripts_path.parent.mkdir(parents=True, exist_ok=True)
-    log.info(f"Cloning kohya-ss/sd-scripts ({ref}) to {sd_scripts_path}...")
-    result = subprocess.run([
-        "git",
-        "clone",
-        "--branch",
-        ref,
-        "https://github.com/kohya-ss/sd-scripts.git",
-        str(sd_scripts_path),
-    ])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    log.info(f"Cloning kohya-ss/sd-scripts ({ref}) to {path}...")
+    result = subprocess.run(["git", "clone", "--branch", ref, SD_SCRIPTS_REMOTE, str(path)])
     if result.returncode != 0:
         # Fallback: clone then checkout the ref (handles tags that aren't branches)
         log.info("Branch clone failed, trying full clone + checkout...")
-        result = subprocess.run([
-            "git", "clone",
-            "https://github.com/kohya-ss/sd-scripts.git",
-            str(sd_scripts_path),
-        ])
+        result = subprocess.run(["git", "clone", SD_SCRIPTS_REMOTE, str(path)])
         if result.returncode != 0:
             raise RuntimeError(f"Failed to clone kohya-ss/sd-scripts")
         subprocess.run(
-            ["git", "-C", str(sd_scripts_path), "checkout", ref],
+            ["git", "-C", str(path), "checkout", ref],
             check=True
         )
+
+
+def update_sd_scripts(ref: str = "main", remote: str = SD_SCRIPTS_REMOTE):
+    """Update scripts/sd-scripts: fast-forward to the latest commit of branch `ref`, or switch to
+    tag `ref`. Clones it when missing. Stops (non-zero exit) instead of overwriting local changes."""
+    path = sd_scripts_path()
+    if not (path / ".git").exists():
+        if path.exists() and any(path.iterdir()):
+            raise SystemExit(f"{path} exists but is not a Git checkout.")
+        ensure_sd_scripts(ref)
+        return
+    if not prepare_git():
+        raise SystemExit("git was not found on PATH. Install Git before updating sd-scripts.")
+
+    def git(*args: str, quiet: bool = False) -> subprocess.CompletedProcess:
+        result = subprocess.run(["git", "-C", str(path), *args], capture_output=quiet, text=True)
+        if result.returncode != 0 and not quiet:
+            raise SystemExit(result.returncode)
+        return result
+
+    if git("remote", "get-url", "origin", quiet=True).stdout.strip() != remote:
+        git("remote", "set-url", "origin", remote)
+
+    git("fetch", "origin", "--tags")
+    if git("rev-parse", "--verify", "--quiet", f"refs/tags/{ref}", quiet=True).returncode == 0:
+        git("checkout", f"refs/tags/{ref}")
+    else:
+        git("fetch", "origin", f"refs/heads/{ref}:refs/remotes/origin/{ref}")
+        if git("show-ref", "--verify", "--quiet", f"refs/heads/{ref}", quiet=True).returncode == 0:
+            git("checkout", ref)
+        else:
+            git("checkout", "--track", f"origin/{ref}")
+        git("pull", "--ff-only", "origin", ref)
+
+    head = git("rev-parse", "--short", "HEAD", quiet=True).stdout.strip()
+    log.info(f"sd-scripts is now at {git_tag(str(path))} ({head})")
 
 
 def git_tag(path: str) -> str:

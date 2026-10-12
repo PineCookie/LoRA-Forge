@@ -1,9 +1,43 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# LoRA-Forge launcher for Linux. Installs uv when it is missing; `uv run` then installs and syncs
+# the Python dependencies before starting, so there is no separate install step.
+#
+#   bash run_gui.sh                                  start the GUI (the first start installs PyTorch etc.)
+#   bash run_gui.sh --cn                             use mirrors for mainland China (PyPI: TUNA, Hugging Face: hf-mirror)
+#   bash run_gui.sh update-sd-scripts [--branch X]   update scripts/sd-scripts
+#
+# Any other arguments go to main.py (see README "Program arguments").
 
-script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-export HF_HOME=huggingface
+export HF_HOME="$script_dir/huggingface"
 export PYTHONUTF8=1
 
-cd "$script_dir" || exit
-uv run python gui.py "$@"
+forwarded=()
+for arg in "$@"; do
+    if [[ "$arg" == "--cn" ]]; then
+        export UV_DEFAULT_INDEX="https://pypi.tuna.tsinghua.edu.cn/simple"
+        export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+        export HF_ENDPOINT="https://hf-mirror.com"
+        echo "使用国内镜像 (PyPI: TUNA, Hugging Face: hf-mirror)。PyTorch 仍从 pyproject.toml 配置的 PyTorch 源下载。"
+    else
+        forwarded+=("$arg")
+    fi
+done
+
+uv=(uv)
+if ! command -v uv >/dev/null 2>&1; then
+    echo "uv not found, installing it with pip... / 未找到 uv，正在用 pip 安装..."
+    if python3 -m pip install --user --upgrade uv; then
+        uv=(python3 -m uv)
+    else
+        echo "Installing uv with pip failed. Install it with: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+        exit 1
+    fi
+fi
+
+if [[ ! -d "$script_dir/.venv" ]]; then
+    echo "First start: installing dependencies (PyTorch etc.), this can take a while... / 首次启动：正在安装依赖，可能需要较长时间..."
+fi
+
+exec "${uv[@]}" run --project "$script_dir" python "$script_dir/main.py" "${forwarded[@]}"

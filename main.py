@@ -1,21 +1,35 @@
+"""LoRA-Forge entry point.
+
+    main.py [options]                         start the GUI (see README "Program arguments")
+    main.py update-sd-scripts [--branch REF]  update scripts/sd-scripts to the latest REF (branch or tag)
+
+run_gui.ps1 / run_gui.sh forward their arguments here through `uv run`.
+"""
+
 import argparse
 import os
 import platform
 import subprocess
 import sys
 
+from mikazuki.frontend import ensure_frontend
 from mikazuki.launch_utils import (
+    SD_SCRIPTS_REMOTE,
     base_dir_path,
     catch_exception,
     git_tag,
     check_port_avaliable,
+    ensure_sd_scripts,
     find_avaliable_ports,
-    prepare_sd_scripts,
+    sd_scripts_path,
+    update_sd_scripts,
 )
-from mikazuki.frontend import ensure_frontend
 from mikazuki.log import log
 
-parser = argparse.ArgumentParser(description="GUI for stable diffusion training")
+parser = argparse.ArgumentParser(
+    description="GUI for stable diffusion training",
+    epilog="commands: update-sd-scripts (run `main.py update-sd-scripts -h` for details)",
+)
 parser.add_argument("--host", type=str, default="127.0.0.1")
 parser.add_argument("--port", type=int, default=28000, help="Port to run the server on")
 parser.add_argument("--listen", action="store_true")
@@ -23,7 +37,7 @@ parser.add_argument("--enable-tensorboard", action="store_true")
 parser.add_argument("--disable-auto-mirror", action="store_true")
 parser.add_argument("--skip-prepare-sd-scripts", action="store_true")
 parser.add_argument("--skip-frontend-build", action="store_true", help="Do not (re)build the web UI in frontend/ on launch")
-parser.add_argument("--sd-scripts-branch", type=str, default="main", help="Branch or tag to use from kohya-ss/sd-scripts (e.g. 'sd3', 'main', 'v0.11.1')")
+parser.add_argument("--sd-scripts-branch", type=str, default="main", help="Branch or tag to clone from kohya-ss/sd-scripts when it is missing (e.g. 'main', 'v0.12.0')")
 parser.add_argument("--tensorboard-host", type=str, default="127.0.0.1", help="Port to run the tensorboard")
 parser.add_argument("--tensorboard-port", type=int, default=6006, help="Port to run the tensorboard")
 parser.add_argument("--dev", action="store_true")
@@ -38,12 +52,16 @@ def run_tensorboard():
 
 
 def launch():
+    # the app resolves its folders (config, output, scripts, ...) relative to the repository
+    os.chdir(base_dir_path())
+
     log.info("Starting LoRA-Forge GUI...")
     log.info(f"Base directory: {base_dir_path()}, Working directory: {os.getcwd()}")
     log.info(f"{platform.system()} Python {platform.python_version()} {sys.executable}")
 
     if not args.skip_prepare_sd_scripts:
-        prepare_sd_scripts(args.sd_scripts_branch)
+        ensure_sd_scripts(args.sd_scripts_branch)
+    log.info(f"sd-scripts: {git_tag(str(sd_scripts_path()))} (not updated automatically; run `update-sd-scripts` to update)")
 
     if not args.skip_frontend_build:
         ensure_frontend()
@@ -77,6 +95,22 @@ def launch():
     uvicorn.run("mikazuki.app:app", host=args.host, port=args.port, log_level="error", reload=args.dev)
 
 
+def command_update_sd_scripts(argv):
+    command = argparse.ArgumentParser(prog="main.py update-sd-scripts", description="Update scripts/sd-scripts: fast-forward a branch or switch to a tag. Stops instead of overwriting local changes.")
+    command.add_argument("--branch", default="main", help="Branch or tag to follow (default: main; Anima needs a recent main)")
+    command.add_argument("--remote", default=SD_SCRIPTS_REMOTE, help=f"Git remote URL (default: {SD_SCRIPTS_REMOTE})")
+    options = command.parse_args(argv)
+    update_sd_scripts(options.branch, options.remote)
+
+
+COMMANDS = {
+    "update-sd-scripts": command_update_sd_scripts,
+}
+
+
 if __name__ == "__main__":
-    args, _ = parser.parse_known_args()
-    launch()
+    if len(sys.argv) > 1 and sys.argv[1] in COMMANDS:
+        COMMANDS[sys.argv[1]](sys.argv[2:])
+    else:
+        args, _ = parser.parse_known_args()
+        launch()

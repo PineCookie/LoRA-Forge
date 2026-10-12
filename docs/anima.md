@@ -16,7 +16,7 @@ GUI 把选项写成配置键交给 sd-scripts，而 sd-scripts **对未知配置
 | 子文件夹时间步偏移、`--show_timesteps_offset` | main（> v0.11.1） | 不在任何 tag 里 |
 
 - 当前 GUI 已对照验证的版本：**v0.12.0**（`690ea7f`）。v0.12.0 起上游把 `transformers` 升到 5.17、`diffusers` 0.40、`huggingface-hub` 1.32，本仓库的 `pyproject.toml` 已同步；升级 sd-scripts 时请一并 `uv sync`，不要只更新其中一边。
-- 更新 sd-scripts：`.\update_sd_scripts.ps1`（默认跟 `main`；只支持分支，不支持 tag）。
+- 更新 sd-scripts：`.\run_gui.ps1 update-sd-scripts`（默认跟 `main`；`--branch` 可指定其他分支或 tag）。启动 GUI 不会自动更新 sd-scripts。
 - GUI 的「关于」页会显示 **sd-scripts 兼容性**：`兼容（已测试版本）` / `兼容` / `过旧：缺少 …`。
 - 提交训练时，如果所选功能超出已安装版本，GUI 会**直接报错**而不是静默跑一个无效配置。
 - 已知的上游陷阱：`sd3` 分支没有上述任何新功能，且它的 `anima_train_network.py` 不处理 `--show_timesteps`——在该分支上点"预览时间步分布"会**真的开始一轮训练**。
@@ -92,11 +92,7 @@ GUI 会在提交时校验 `qwen3` / `vae`（缺失或路径不存在会直接提
 ## 7. 元数据与出图
 
 - LoRA 文件里会写入 `ss_timestep_sampling`、`ss_sigmoid_scale`、`ss_discrete_flow_shift`、`ss_weighting_scheme` 等，方便复现训练设置。
-- ComfyUI 不直接支持 sd-scripts 格式的 Qwen3 LoRA（DiT 部分通常可直接用）。转换：
-  ```powershell
-  .\convert_anima_lora_to_comfy.ps1 源.safetensors 目标.safetensors
-  ```
-  反向转换加 `--reverse`（只对本脚本转出的文件有效）。
+- 默认只训练 DiT（`network_train_unet_only`），这样的 LoRA 可以直接在 ComfyUI 中使用。只有同时训练了 Qwen3 文本编码器时，ComfyUI 才可能无法加载文本编码器部分；这时可用 sd-scripts 自带的 `networks/convert_anima_lora_to_comfy.py` 转换（在 `scripts/sd-scripts` 目录运行 `uv run python -m networks.convert_anima_lora_to_comfy 源 目标`）。
 - 预览图 CFG 建议 4~5、步数 30~50。
 
 ## 8. 给维护者的备注

@@ -58,43 +58,29 @@ git clone https://github.com/PineCookie/lora-forge
 
 ## ✨ LoRA Forge GUI
 
-### Windows
-
-#### 安装
-
-运行 `install-cn.ps1` 将根据 `pyproject.toml` 安装依赖到 uv 管理的 `.venv`。
-
-`flash-attn` 是可选依赖，默认不会安装。如果你有兼容的本地 wheel，请将它放在 Git 忽略的目录中，例如 `wheelhouse/`，并在同步环境时启用可选依赖：
+用对应系统的启动脚本启动 GUI，然后在浏览器中打开 [http://127.0.0.1:28000](http://127.0.0.1:28000)（加上 `--open-browser` 可自动打开）。国内用户建议加上 `--cn`，使用清华 PyPI 镜像和 hf-mirror：
 
 ```powershell
-uv sync -U --extra flash-attn --find-links .\wheelhouse --no-build-package flash-attn
+.\run_gui.ps1 --cn     # Windows（或右键 → 使用 PowerShell 运行）
 ```
 
-`-U` 会让 uv 更新本地 lockfile 以使用该 wheel，`--no-build-package flash-attn` 可以避免 uv 回退到从源码构建 `flash-attn`。
+```sh
+bash run_gui.sh --cn   # Linux
+```
 
-#### 训练
+不需要单独的安装步骤：启动脚本会在缺少 [uv](https://docs.astral.sh/uv/) 时自动安装，`uv run` 会在首次启动时根据 `pyproject.toml` 把依赖安装到 `.venv`（需要下载 PyTorch，耗时较长），并在更新后自动同步。
 
-运行 `run_gui.ps1`，然后在浏览器中打开 [http://127.0.0.1:28000](http://127.0.0.1:28000)。
-如需自动打开浏览器，请运行 `python gui.py --open-browser`。
+更新 `scripts/sd-scripts` 请运行 `run_gui.ps1 update-sd-scripts`（Linux：`bash run_gui.sh update-sd-scripts`，`--branch` 可指定分支或 tag）。启动 GUI 时不会自动更新 sd-scripts。
 
-### Linux
+### 可选：flash-attn
 
-#### 安装
-
-运行 `install.bash` 将根据 `pyproject.toml` 安装依赖到 uv 管理的 `.venv`。
-
-`flash-attn` 是可选依赖，默认不会安装。如果你有兼容的本地 wheel，请将它放在 Git 忽略的目录中，例如 `wheelhouse/`，并在同步环境时启用可选依赖：
+`flash-attn` 默认不会安装。如果你有兼容的本地 wheel，请将它放在 Git 忽略的目录中，例如 `wheelhouse/`，然后启用可选依赖：
 
 ```sh
 uv sync -U --extra flash-attn --find-links ./wheelhouse --no-build-package flash-attn
 ```
 
 `-U` 会让 uv 更新本地 lockfile 以使用该 wheel，`--no-build-package flash-attn` 可以避免 uv 回退到从源码构建 `flash-attn`。
-
-#### 训练
-
-运行 `bash run_gui.sh`，然后在浏览器中打开 [http://127.0.0.1:28000](http://127.0.0.1:28000)。
-如需自动打开浏览器，请运行 `python gui.py --open-browser`。
 
 ### 网页界面开发
 
@@ -123,7 +109,7 @@ npm run typecheck
 | `--listen`                   | bool  | false        | 启用服务器的监听模式                            |
 | `--skip-prepare-sd-scripts`  | bool  | false        | 跳过克隆 kohya-ss/sd-scripts                    |
 | `--skip-frontend-build`      | bool  | false        | 启动时不（重新）构建网页界面                     |
-| `--sd-scripts-branch`        | str   | "main"        | 克隆 kohya-ss/sd-scripts 时使用的分支或标签           |
+| `--sd-scripts-branch`        | str   | "main"        | sd-scripts 不存在时克隆所用的分支或标签           |
 | `--enable-tensorboard`       | bool  | false        | 启用 TensorBoard                                |
 | `--tensorboard-host`         | str   | "127.0.0.1"  | 运行 TensorBoard 的主机                         |
 | `--tensorboard-port`         | int   | 6006         | 运行 TensorBoard 的端口                          |

@@ -1,9 +1,51 @@
-$Env:HF_HOME = "huggingface"
-$Env:PYTHONUTF8 = "1"
+﻿# LoRA-Forge launcher for Windows. Installs uv when it is missing; `uv run` then installs and syncs
+# the Python dependencies before starting, so there is no separate install step.
+#
+#   .\run_gui.ps1                                  start the GUI (the first start installs PyTorch etc.)
+#   .\run_gui.ps1 --cn                             use mirrors for mainland China (PyPI: TUNA, Hugging Face: hf-mirror)
+#   .\run_gui.ps1 update-sd-scripts [--branch X]   update scripts/sd-scripts
+#
+# Any other arguments go to main.py (see README "Program arguments").
+
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Env:HF_HOME = Join-Path $ScriptDir "huggingface"
+$Env:PYTHONUTF8 = "1"
 
-Push-Location $ScriptDir
+$forwarded = @($args | Where-Object { $_ -ne "--cn" })
+if ($args -contains "--cn") {
+    $Env:UV_DEFAULT_INDEX = "https://pypi.tuna.tsinghua.edu.cn/simple"
+    $Env:PIP_INDEX_URL = "https://pypi.tuna.tsinghua.edu.cn/simple"
+    $Env:HF_ENDPOINT = "https://hf-mirror.com"
+    Write-Host -ForegroundColor Cyan "使用国内镜像 (PyPI: TUNA, Hugging Face: hf-mirror)。PyTorch 仍从 pyproject.toml 配置的 PyTorch 源下载。"
+}
+$isGui = -not ($forwarded.Count -gt 0 -and $forwarded[0] -eq "update-sd-scripts")
 
+function Exit-WithError([string]$Message) {
+    Write-Host -ForegroundColor Red $Message
+    # keeps a window opened with "Run with PowerShell" open long enough to read the error
+    Read-Host "Press Enter to exit / 按回车退出" | Out-Null
+    exit 1
+}
+
+# A portable Python in .\python takes precedence over the system one.
+$PortablePython = Join-Path $ScriptDir "python"
+if (Test-Path (Join-Path $PortablePython "python.exe")) {
+    $Env:PATH = "$PortablePython;$Env:PATH"
+}
+
+$UseUvModule = $false
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    Write-Host "uv not found, installing it with pip... / 未找到 uv，正在用 pip 安装..."
+    python -m pip install --upgrade uv
+    if ($LASTEXITCODE -ne 0) {
+        Exit-WithError "Installing uv failed. Install Python 3.12 or uv (https://docs.astral.sh/uv/) and try again. / uv 安装失败，请安装 Python 3.12 或 uv 后重试。"
+    }
+    $UseUvModule = $true
+}
+
+function Invoke-Uv {
+    if ($UseUvModule) { python -m uv @args } else { uv @args }
+}
 # --- Auto-detect any installed Visual Studio (2022/2026/...) for torch.compile support ---
 function Enable-MSVCEnvironment {
     # Prefer vswhere so the year-based install path does not matter; fall back to the
@@ -69,26 +111,15 @@ function Enable-MSVCEnvironment {
     return $true
 }
 
-$vsLoaded = Enable-MSVCEnvironment
-# --- End VS detection ---
-
-if (Get-Command uv -ErrorAction SilentlyContinue) {
-    uv run python gui.py @args
-    Pop-Location
-    Exit
-}
-elseif (Test-Path -Path ".venv\Scripts\activate") {
-    Write-Host -ForegroundColor green "Activating virtual environment..."
-    .\.venv\Scripts\activate
-}
-elseif (Test-Path -Path "python\python.exe") {
-    Write-Host -ForegroundColor green "Using python from python folder..."
-    $py_path = (Get-Item "python").FullName
-    $env:PATH = "$py_path;$env:PATH"
-}
-else {
-    Write-Host -ForegroundColor Blue "No virtual environment found, using system python..."
+if ($isGui) {
+    $vsLoaded = Enable-MSVCEnvironment
+    if (-not (Test-Path (Join-Path $ScriptDir ".venv"))) {
+        Write-Host -ForegroundColor Cyan "First start: installing dependencies (PyTorch etc.), this can take a while... / 首次启动：正在安装依赖（PyTorch 等），可能需要较长时间..."
+    }
 }
 
-python gui.py @args
-Pop-Location
+Invoke-Uv run --project $ScriptDir python (Join-Path $ScriptDir "main.py") @forwarded
+if ($isGui -and $LASTEXITCODE -ne 0) {
+    Exit-WithError "LoRA-Forge exited with an error (code $LASTEXITCODE). / LoRA-Forge 异常退出。"
+}
+exit $LASTEXITCODE
