@@ -25,6 +25,7 @@ from lora_forge.launcher import (
     update_sd_scripts,
 )
 from lora_forge.log import log
+from lora_forge.sd_scripts import SD_SCRIPTS_TESTED_TAG
 
 parser = argparse.ArgumentParser(
     description="GUI for stable diffusion training",
@@ -36,7 +37,7 @@ parser.add_argument("--listen", action="store_true")
 parser.add_argument("--enable-tensorboard", action="store_true")
 parser.add_argument("--skip-prepare-sd-scripts", action="store_true")
 parser.add_argument("--skip-frontend-build", action="store_true", help="Do not (re)build the web UI in frontend/ on launch")
-parser.add_argument("--sd-scripts-branch", type=str, default="main", help="Branch or tag to clone from kohya-ss/sd-scripts when it is missing (e.g. 'main', 'v0.12.0')")
+parser.add_argument("--sd-scripts-branch", type=str, default=SD_SCRIPTS_TESTED_TAG, help=f"Branch or tag to clone from kohya-ss/sd-scripts when it is missing (default: {SD_SCRIPTS_TESTED_TAG}, the tested version)")
 parser.add_argument("--tensorboard-host", type=str, default="127.0.0.1", help="Port to run the tensorboard")
 parser.add_argument("--tensorboard-port", type=int, default=6006, help="Port to run the tensorboard")
 parser.add_argument("--dev", action="store_true")

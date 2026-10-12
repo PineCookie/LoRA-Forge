@@ -10,7 +10,7 @@
 ## sd-scripts 版本
 
 sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选项可能看起来设好了、实际却不起作用。GUI 会替你检查：
-「关于」页会显示已安装版本的兼容性；如果某次训练需要更新的版本，提交时会直接报错说明。
+首页的 **系统信息** 面板会显示已安装版本的兼容性；如果某次训练需要更新的版本，提交时会直接报错说明。
 
 | 功能 | 需要 |
 |---|---|
@@ -33,7 +33,7 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 
 | 选项 | |
 |---|---|
-| `attn_mode` | `torch`（PyTorch SDPA）、`xformers` 或 `flash`（需要 flash-attn）。取代其他模型的 `xformers` / `sdpa` 开关 |
+| `attn_mode` | `torch`（PyTorch SDPA）、`xformers` 或 `flash`（需要 flash-attn，[安装方法](../README-zh.md#flash-attn可选)）。取代其他模型的 `xformers` / `sdpa` 开关 |
 | `split_attn` | 只省显存；不能与 `compile_fullgraph` 同时使用 |
 | `timestep_sampling` | `sigma`、`uniform`、`sigmoid`（默认）、`shift`、`flux_shift` |
 | `discrete_flow_shift` | 只在 `timestep_sampling = sigma` 或 `shift` 时使用 |
@@ -76,7 +76,7 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 
 | 现象 | 原因 / 处理 |
 |---|---|
-| 开了加速选项但速度没变 | sd-scripts 版本过旧，选项被忽略；查看「关于」页 |
+| 开了加速选项但速度没变 | sd-scripts 版本过旧，选项被忽略；查看首页的 **系统信息** |
 | loss 变成 NaN | 更新 PyTorch；Anima 需要较新的 2.x |
 | 第一步报 `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` | `compile_dynamic` 为 `true` 或 `auto`；见下文 |
 | 大量 `remark: <file>:<line>:0: N instructions in function` | 旧版 triton-windows（3.8.0.post28，[#54](https://github.com/triton-lang/triton-windows/issues/54)）；锁文件安装的是 post29，执行 `uv sync` 即可 |

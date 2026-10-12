@@ -1,6 +1,6 @@
 [project]
 name = "lora-forge"
-version = "0.9.1"
+version = "1.0.0"
 description = "Web UI for training LoRA models (Anima, FLUX, SD3.5, SDXL, SD1.5) with kohya-ss/sd-scripts"
 readme = "README.md"
 license-files = ["LICENSE"]
@@ -53,16 +53,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# `uv sync --extra flash-attn`; the launcher keeps it in sync once it is installed. Prebuilt wheels
+# from mjun0812/flash-attention-prebuild-wheels (sources below), so nothing is built locally.
 flash-attn = [
-    "flash-attn",
-    # only needed when flash-attn has to be built from source
-    "ninja>=1.13.0",
+    "flash-attn; sys_platform == 'win32' or (sys_platform == 'linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64'))",
 ]
 
 [tool.uv.sources]
 torch = [{ index = "pytorch" }]
 torchvision = [{ index = "pytorch" }]
 xformers = [{ index = "pytorch" }]
+# must match torch / CUDA / Python above (cu130, torch 2.14, cp312): update these with every torch bump
+flash-attn = [
+    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.2/flash_attn-2.8.3+cu130torch2.14-cp312-cp312-win_amd64.whl", marker = "sys_platform == 'win32'" },
+    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.0/flash_attn-2.8.3+cu130torch2.14-cp312-cp312-linux_x86_64.whl", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.1/flash_attn-2.8.3+cu130torch2.14-cp312-cp312-linux_aarch64.whl", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
+]
 
 [[tool.uv.index]]
 name = "pytorch"

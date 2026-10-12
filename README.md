@@ -26,66 +26,146 @@ _✨ Enjoy LoRA training! ✨_
 <p align="center">
   <a href="https://github.com/PineCookie/lora-forge/releases">Download</a>
   ·
-  <a href="https://github.com/PineCookie/lora-forge/blob/main/README.md">Documents</a>
+  <a href="docs/anima.md">Anima guide</a>
   ·
-  <a href="https://github.com/PineCookie/lora-forge/blob/main/README-zh.md">中文README</a>
+  <a href="README-zh.md">中文</a>
 </p>
 
-LoRA & Dreambooth training GUI and one-click training environment for [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts.git)
+LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts). You fill in a form in the browser, press Start, and follow the training on a live page; LoRA Forge sets up Python, PyTorch and sd-scripts for you. It continues [lora-scripts](https://github.com/Akegarasu/lora-scripts).
 
-**WARNING: This project is mainly maintained for personal use. It aims to continue the easy-to-use UI and workflow from [lora-scripts](https://github.com/Akegarasu/lora-scripts), and may currently contain many bugs. Suggestions and PRs are welcome!**
+- **Models**: Anima, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
+- **Easy forms**: an *Essentials* view with the options most people change, all options one click away, search, and import / export of configs as JSON or TOML.
+- **Runs page**: progress and time left, loss and learning rate charts, sample images, the saved LoRA files and the console output, also for past runs. No TensorBoard needed.
+- **Fast Anima training**: `torch.compile` set up so that it compiles once instead of once per image size ([details](docs/anima.md)).
+- English, 中文 and 日本語, light and dark mode.
 
-## ✨ New: Anima LoRA Training
+> [!NOTE]
+> LoRA Forge is maintained mainly for personal use, so expect rough edges. Bug reports, suggestions and PRs are welcome.
 
-- [x] Refactor the UI to support model-specific training parameters, including Anima (Vue 3 + TypeScript)
-- [x] Use uv to install and manage the environment instead of relying on requirements.txt or legacy install scripts
-- [ ] Support Torch installation for different GPUs
-- [ ] Add missing features from the original frontend
+## Quick start
 
+### What you need
 
-# Usage
+- Windows or Linux with an **NVIDIA GPU** and a driver that supports **CUDA 13** (LoRA Forge uses PyTorch 2.14 for CUDA 13.0). Other GPUs are not supported yet.
+- [Git](https://git-scm.com/downloads).
+- [uv](https://docs.astral.sh/uv/), which installs Python and everything else. Install it with the official installer, then **open a new terminal**:
 
-### Required Dependencies
+  ```powershell
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"   # Windows
+  ```
 
-Python 3.12 and Git. When running from a git clone, also [Node.js](https://nodejs.org/) 20 or newer: the launcher uses it to build the web UI on first start and after updates.
+  ```sh
+  curl -LsSf https://astral.sh/uv/install.sh | sh   # Linux
+  ```
 
-### Get the code
+### Install and start
 
-Either download the ready-to-run zip from [Releases](https://github.com/PineCookie/lora-forge/releases) (the web UI is prebuilt, no Node.js needed), or clone the repository:
+1. Download the latest `lora-forge-<version>.zip` from [Releases](https://github.com/PineCookie/lora-forge/releases) and extract it to a folder with enough free space (the environment and models take several GB).
+2. Start it:
+   - **Windows**: right-click `run_gui.ps1` → *Run with PowerShell*, or run `.\run_gui.ps1` in a terminal.
+   - **Linux**: `bash run_gui.sh`.
+
+   In mainland China, add `--cn` (`.\run_gui.ps1 --cn`) to download through the TUNA PyPI mirror and hf-mirror.
+3. Open [http://127.0.0.1:28000](http://127.0.0.1:28000) (or start with `--open-browser`).
+
+The first start downloads Python, PyTorch and sd-scripts and takes a while; later starts are quick. There is no separate install step.
+
+## Training your first LoRA
+
+**1. Prepare the dataset.** Put your images in subfolders named `<repeats>_<name>` inside one dataset folder. The number is how often each image is used per epoch. Each image can have a caption in a `.txt` file with the same name:
+
+```
+train/my_character/          ← choose this folder in the GUI
+├── 10_my_character/
+│   ├── 001.png
+│   ├── 001.txt              ← "my_character, 1girl, smile, ..."
+│   └── ...
+└── 5_my_character_outfit/
+    └── ...
+```
+
+Images directly in the dataset folder are not used; the GUI tells you when no `<repeats>_<name>` subfolder is found.
+
+**2. Get the base model.** Download the model you want to train on (for Anima also its text encoder and VAE). The model page shows which files it needs.
+
+**3. Fill in the form.** Open the page for your model in the sidebar. In the *Essentials* view, set at least the base model file, the dataset folder and the output name; the other values are reasonable defaults. The step estimate next to the dataset folder shows how many steps the settings give.
+
+**4. Start and watch.** Press **Start training**. The status in the header shows the progress; click it to open the run on the **Runs** page, where you see the loss, samples and console output. The LoRA files are saved to the output folder (`output/` by default) and listed on the run.
+
+The form is not saved automatically: use **Export JSON** or **Export TOML** to keep a config and **Import…** to load it again. Every training you start also saves its config in `config/autosave/`, which you can import as well.
+
+## Updating
+
+- **LoRA Forge**: download the new release and extract it over the old folder (or into a new one and copy your `train/`, `output/` and `config/` folders), or `git pull` if you cloned the repository.
+- **sd-scripts** is never updated automatically, so a working setup stays as it is. A fresh install gets the version LoRA Forge was tested with. To move to the latest sd-scripts:
+
+  ```powershell
+  .\run_gui.ps1 update-sd-scripts           # Windows
+  ```
+
+  ```sh
+  bash run_gui.sh update-sd-scripts         # Linux
+  ```
+
+  `--branch <name or tag>` picks another branch or a tag (`update-sd-scripts --branch v0.12.0`). The update stops instead of overwriting changes you made in `scripts/sd-scripts`. The **System info** panel on the home page shows whether the installed sd-scripts supports every option of the GUI.
+
+## Options
+
+### flash-attn (optional)
+
+[flash-attn](https://github.com/Dao-AILab/flash-attention) is a faster attention implementation; on the Anima page you choose it with `attn_mode = flash` (the default, `torch`, needs nothing extra). It is not installed by default. To install it, run this once in the LoRA Forge folder (Windows, or Linux on x86_64 or ARM):
 
 ```sh
-git clone https://github.com/PineCookie/lora-forge
+uv sync --extra flash-attn
 ```
 
-## ✨ LoRA Forge GUI
+This downloads a prebuilt wheel (about 230 MB) from [mjun0812/flash-attention-prebuild-wheels](https://github.com/mjun0812/flash-attention-prebuild-wheels) that matches LoRA Forge's PyTorch, so nothing is compiled. From then on the launcher keeps it installed and updates it together with PyTorch. If you run `uv sync` yourself later, add `--extra flash-attn`, or `uv sync` removes it again.
 
-Start the GUI with the launcher for your system, then open [http://127.0.0.1:28000](http://127.0.0.1:28000) (add `--open-browser` to open it automatically):
+### TensorBoard (optional)
 
-```powershell
-.\run_gui.ps1          # Windows (or right-click → Run with PowerShell)
-```
+The Runs page covers what most people need. To use TensorBoard as well, start with `--enable-tensorboard` and open the TensorBoard page; it reads the `logs` folder and listens on http://127.0.0.1:6006/.
 
-```sh
-bash run_gui.sh        # Linux
-```
+### Program arguments
 
-There is no separate install step: the launcher installs [uv](https://docs.astral.sh/uv/) if it is missing, and `uv run` installs the dependencies from `pyproject.toml` into `.venv` on the first start (this downloads PyTorch and takes a while) and keeps them in sync after updates. In mainland China add `--cn` to use the TUNA PyPI mirror and hf-mirror.
+<details>
+<summary>All launcher arguments</summary>
 
-`run_gui.ps1 update-sd-scripts` (`bash run_gui.sh update-sd-scripts` on Linux) updates `scripts/sd-scripts`; see [Updating sd-scripts](#updating-sd-scripts).
+| Argument | Default | Description |
+|---|---|---|
+| `--cn` | off | Use mirrors for mainland China (launcher only) |
+| `--host` | `127.0.0.1` | Address the server listens on |
+| `--port` | `28000` | Port of the web UI (if it is taken, a free port from 30000 is used) |
+| `--listen` | off | Listen on all network interfaces, so other devices can open the UI |
+| `--open-browser` | off | Open the browser after starting |
+| `--enable-tensorboard` | off | Start TensorBoard as well |
+| `--tensorboard-host` | `127.0.0.1` | Address TensorBoard listens on |
+| `--tensorboard-port` | `6006` | Port of TensorBoard |
+| `--sd-scripts-branch` | `v0.12.0` | Branch or tag to clone when sd-scripts is missing (the tested version) |
+| `--skip-prepare-sd-scripts` | off | Do not clone sd-scripts |
+| `--skip-frontend-build` | off | Do not (re)build the web UI on start |
+| `--dev` | off | Developer mode |
 
-### Optional: flash-attn
+</details>
 
-`flash-attn` is not installed by default. If you have a compatible local wheel, keep it outside Git (for example in the ignored `wheelhouse/` folder), then include the optional extra:
+## Troubleshooting
 
-```sh
-uv sync -U --extra flash-attn --find-links ./wheelhouse --no-build-package flash-attn
-```
+| Problem | What to do |
+|---|---|
+| `uv was not found` | Install uv as shown in [What you need](#what-you-need), then open a **new** terminal |
+| Windows: *running scripts is disabled on this system* | Start it with right-click → *Run with PowerShell*, or run `powershell -ExecutionPolicy Bypass -File .\run_gui.ps1` |
+| The first start takes very long | It downloads PyTorch (several GB); in mainland China use `--cn` |
+| A training fails | Open it on the Runs page: the console output shows the error |
+| An option seems to have no effect | Check *sd-scripts compatibility* in the **System info** panel on the home page |
+| Anima: compile errors or slow first steps | See the [Anima guide](docs/anima.md) |
 
-The `-U` flag lets uv update your local lockfile to use the wheel, and `--no-build-package flash-attn` prevents uv from falling back to building `flash-attn` from source.
+## For developers
+
+<details>
+<summary>Web UI development, translations, releases and the project layout</summary>
 
 ### Web UI development
 
-The web UI is a Vue 3 + TypeScript app in `frontend/`. To work on it with hot reload, start the GUI with `--skip-frontend-build`, then:
+The web UI is a Vue 3 + TypeScript app in `frontend/`. When you run from a git clone, the launcher builds it with [Node.js](https://nodejs.org/) 20 or newer on the first start and after updates. To work on it with hot reload, start the GUI with `--skip-frontend-build`, then:
 
 ```sh
 cd frontend
@@ -95,11 +175,9 @@ npm test           # unit tests (they evaluate the schemas in lora_forge/schema)
 npm run typecheck
 ```
 
-Releases are built by GitHub Actions: pushing a `v*` tag publishes a release with the ready-to-run zip.
+### Translations
 
-### Languages
-
-The web UI is in English, Chinese and Japanese. It follows the browser language and can be switched at the bottom of the sidebar. English is the source language; translations live in three places:
+English is the source language; translations live in three places:
 
 | Text | Source (English) | Translations |
 |---|---|---|
@@ -109,69 +187,25 @@ The web UI is in English, Chinese and Japanese. It follows the browser language 
 
 When you add or reword an option, add its English text to both JSON files; `npm test` fails while a translation is missing or left over. Terminal output and exported TOML files stay in English.
 
-### Runs
+### Releases
 
-The Runs page follows every training: progress, speed and time left, loss and learning rate charts, sample images, saved LoRA files and the console output. A failed run opens on the error. Records are kept in `logs/runs` after the GUI exits, so past runs can be compared; deleting a record leaves the trained files alone. It needs no TensorBoard.
+GitHub Actions builds the releases: pushing a `v*` tag publishes a release with the ready-to-run zip (tags with a `-`, like `v1.0.0-rc1`, as pre-releases). An annotated tag's message becomes the release notes: `git tag -a v1.0.0 --cleanup=verbatim -F notes.md` (`--cleanup=verbatim` keeps Markdown headings).
 
-### TensorBoard
-
-TensorBoard is optional. Start the GUI with `--enable-tensorboard` (for example `run_gui.ps1 --enable-tensorboard`) to open TensorBoard from the TensorBoard page. It reads the `logs` folder and listens on http://127.0.0.1:6006/.
-
-## Program arguments
-
-| Parameter Name                | Type  | Default Value | Description                                      |
-|-------------------------------|-------|---------------|--------------------------------------------------|
-| `--host`                      | str   | "127.0.0.1"   | Hostname for the server                          |
-| `--port`                      | int   | 28000         | Port to run the server                           |
-| `--listen`                    | bool  | false         | Enable listening mode for the server             |
-| `--skip-prepare-sd-scripts`   | bool  | false         | Skip cloning kohya-ss/sd-scripts                |
-| `--skip-frontend-build`       | bool  | false         | Do not (re)build the web UI on launch            |
-| `--sd-scripts-branch`         | str   | "main"        | Branch or tag to clone when sd-scripts is missing |
-| `--enable-tensorboard`        | bool  | false         | Enable TensorBoard                               |
-| `--tensorboard-host`          | str   | "127.0.0.1"   | Host to run TensorBoard                          |
-| `--tensorboard-port`          | int   | 6006          | Port to run TensorBoard                          |
-| `--dev`                       | bool  | false         | Developer mode to disable some checks            |
-| `--open-browser`              | bool  | false         | Open the browser after the server starts         |
-
-## Updating sd-scripts
-
-`scripts/sd-scripts` is cloned as its own Git checkout from `kohya-ss/sd-scripts`, not as a parent-repo submodule. The launcher clones it when missing, but never updates an existing checkout, so starting the GUI does not move sd-scripts away from the version you trained with. It is ignored by this repository (see `.gitignore`), so do not remove it with `git clean`; if it is missing, start the launcher again to re-clone it.
-
-To update it to the latest commit of `main`:
-
-```powershell
-.\run_gui.ps1 update-sd-scripts
-```
-
-```sh
-bash run_gui.sh update-sd-scripts
-```
-
-Anima training and the acceleration options the UI exposes (`--compile`, `--qwen_image_vae_2d`,
-per-subset timestep offsets, `--show_timesteps`) require a recent `main`; older branches such as
-`sd3` do not have them and silently ignore those settings.
-
-`--branch` follows another branch or switches to a tag, for example `update-sd-scripts --branch v0.12.0`.
-Branches are updated with `git pull --ff-only`, so the update stops instead of overwriting local changes.
-
-## Anima training notes
-
-Which Anima options actually take effect, the sd-scripts version each one needs, the speed/memory
-recipes and the known silent-failure traps are documented in [docs/anima.md](docs/anima.md)
-([中文](docs/anima-zh.md)). The About page shows the sd-scripts compatibility of the installed checkout.
-
-## Project layout
+### Project layout
 
 | Path | What it is |
 |---|---|
 | `main.py` | Entry point (GUI and the `update-sd-scripts` command) |
-| `run_gui.ps1`, `run_gui.sh` | Launchers: set up uv and the dependencies, then run `main.py` |
+| `run_gui.ps1`, `run_gui.sh` | Launchers: check for uv, then run `main.py` through `uv run` |
 | `lora_forge/` | Python backend: web server and API (`app/`), training config, validation and runs (`training/`), sd-scripts compatibility checks |
 | `lora_forge/schema/` | Training form definitions, read by the web UI |
 | `frontend/` | Vue 3 + TypeScript web UI |
-| `scripts/sd-scripts` | kohya-ss/sd-scripts checkout, cloned on first start (not part of this repository) |
+| `docs/` | User guides (Anima) |
+| `scripts/sd-scripts` | kohya-ss/sd-scripts checkout, cloned on first start (not part of this repository; do not remove it with `git clean`) |
 
 The backend package was named `mikazuki` in upstream lora-scripts. It was renamed to `lora_forge` in October 2026, together with its environment variables (`MIKAZUKI_*` → `LORA_FORGE_*`).
+
+</details>
 
 ## License and credits
 

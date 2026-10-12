@@ -10,8 +10,8 @@ and [`anima_torch_compile.md`](https://github.com/kohya-ss/sd-scripts/blob/main/
 ## sd-scripts version
 
 sd-scripts ignores config keys it does not know, so on an old checkout an option can look set and do
-nothing. The GUI checks this for you: the About page shows the compatibility of the installed
-checkout, and a run that needs a newer one is refused with a message.
+nothing. The GUI checks this for you: the **System info** panel on the home page shows the compatibility of
+the installed checkout, and a run that needs a newer one is refused with a message.
 
 | Feature | Needs |
 |---|---|
@@ -34,7 +34,7 @@ for another branch or tag) and run `uv sync` afterwards; starting the GUI never 
 
 | Option | |
 |---|---|
-| `attn_mode` | `torch` (PyTorch SDPA), `xformers` or `flash` (needs flash-attn). Replaces the `xformers` / `sdpa` switches of other models |
+| `attn_mode` | `torch` (PyTorch SDPA), `xformers` or `flash` (needs flash-attn, see [installing it](../README.md#flash-attn-optional)). Replaces the `xformers` / `sdpa` switches of other models |
 | `split_attn` | saves VRAM only; cannot be combined with `compile_fullgraph` |
 | `timestep_sampling` | `sigma`, `uniform`, `sigmoid` (default), `shift`, `flux_shift` |
 | `discrete_flow_shift` | only used with `timestep_sampling = sigma` or `shift` |
@@ -87,7 +87,7 @@ positive values high noise (structure)**.
 
 | Symptom | Cause / fix |
 |---|---|
-| A speed option changes nothing | sd-scripts is too old and ignores it; check the About page |
+| A speed option changes nothing | sd-scripts is too old and ignores it; check **System info** on the home page |
 | Loss becomes NaN | update PyTorch; Anima needs a recent 2.x |
 | `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` on the first step | `compile_dynamic` is `true` or `auto`; see below |
 | Lots of `remark: <file>:<line>:0: N instructions in function` | an older triton-windows (3.8.0.post28, [#54](https://github.com/triton-lang/triton-windows/issues/54)); the lock file installs post29, so run `uv sync` |

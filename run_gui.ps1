@@ -1,5 +1,5 @@
-﻿# LoRA-Forge launcher for Windows. Installs uv when it is missing; `uv run` then installs and syncs
-# the Python dependencies before starting, so there is no separate install step.
+# LoRA-Forge launcher for Windows. Needs uv (https://docs.astral.sh/uv/): `uv run` installs Python 3.12
+# and the dependencies on the first start and keeps them in sync, so there is no separate install step.
 #
 #   .\run_gui.ps1                                  start the GUI (the first start installs PyTorch etc.)
 #   .\run_gui.ps1 --cn                             use mirrors for mainland China (PyPI: TUNA, Hugging Face: hf-mirror)
@@ -14,7 +14,6 @@ $Env:PYTHONUTF8 = "1"
 $forwarded = @($args | Where-Object { $_ -ne "--cn" })
 if ($args -contains "--cn") {
     $Env:UV_DEFAULT_INDEX = "https://pypi.tuna.tsinghua.edu.cn/simple"
-    $Env:PIP_INDEX_URL = "https://pypi.tuna.tsinghua.edu.cn/simple"
     $Env:HF_ENDPOINT = "https://hf-mirror.com"
     Write-Host -ForegroundColor Cyan "Using mirrors in China (PyPI: TUNA, Hugging Face: hf-mirror). PyTorch still comes from the index set in pyproject.toml."
 }
@@ -27,25 +26,12 @@ function Exit-WithError([string]$Message) {
     exit 1
 }
 
-# A portable Python in .\python takes precedence over the system one.
-$PortablePython = Join-Path $ScriptDir "python"
-if (Test-Path (Join-Path $PortablePython "python.exe")) {
-    $Env:PATH = "$PortablePython;$Env:PATH"
-}
-
-$UseUvModule = $false
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    Write-Host "uv not found, installing it with pip..."
-    python -m pip install --upgrade uv
-    if ($LASTEXITCODE -ne 0) {
-        Exit-WithError "Installing uv failed. Install Python 3.12 or uv (https://docs.astral.sh/uv/) and try again."
-    }
-    $UseUvModule = $true
+    Exit-WithError ("uv was not found. Install it with the official installer, then open a new terminal and run this again:`n" +
+        "  powershell -ExecutionPolicy ByPass -c `"irm https://astral.sh/uv/install.ps1 | iex`"`n" +
+        "(other ways: https://docs.astral.sh/uv/getting-started/installation/)")
 }
 
-function Invoke-Uv {
-    if ($UseUvModule) { python -m uv @args } else { uv @args }
-}
 # --- Auto-detect any installed Visual Studio (2022/2026/...) for torch.compile support ---
 function Enable-MSVCEnvironment {
     # Prefer vswhere so the year-based install path does not matter; fall back to the
@@ -118,7 +104,12 @@ if ($isGui) {
     }
 }
 
-Invoke-Uv run --project $ScriptDir python (Join-Path $ScriptDir "main.py") @forwarded
+# Once flash-attn is installed (uv sync --extra flash-attn), keep it in sync with the lock file, so
+# it follows PyTorch when an update changes it.
+$extras = @()
+if (Test-Path (Join-Path $ScriptDir ".venv\Lib\site-packages\flash_attn")) { $extras = @("--extra", "flash-attn") }
+
+uv run --project $ScriptDir @extras python (Join-Path $ScriptDir "main.py") @forwarded
 if ($isGui -and $LASTEXITCODE -ne 0) {
     Exit-WithError "LoRA-Forge exited with an error (code $LASTEXITCODE)."
 }
