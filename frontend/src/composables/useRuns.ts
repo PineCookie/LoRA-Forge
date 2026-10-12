@@ -29,9 +29,15 @@ export interface RunProgress {
 
 export interface RunNotice {
   code: string;
+  /** recompile_limit */
   limit?: number;
   graphs?: number;
   text?: string;
+  /** dynamic_seq_outside: the first shape outside compile_dynamic_seq's range */
+  tokens?: number;
+  batch?: number;
+  min?: number;
+  max?: number;
 }
 
 export interface Run {

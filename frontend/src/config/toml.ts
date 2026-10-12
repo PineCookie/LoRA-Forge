@@ -47,7 +47,7 @@ const TOML_KEY_ORDER: { section: string; keys: string[] }[] = [
   },
   {
     section: "torch.compile",
-    keys: ["compile", "compile_backend", "compile_mode", "compile_dynamic", "compile_fullgraph", "compile_cache_size_limit", "cuda_allow_tf32", "cuda_cudnn_benchmark"],
+    keys: ["compile", "compile_backend", "compile_mode", "compile_dynamic", "compile_dynamic_seq", "compile_fullgraph", "compile_cache_size_limit", "cuda_allow_tf32", "cuda_cudnn_benchmark"],
   },
   {
     section: "Saving",

@@ -57,6 +57,7 @@ def start_training(prepared: PreparedRun) -> tuple[str, str]:
     environ["PYTHONIOENCODING"] = "utf-8"
     environ.setdefault("COLUMNS", str(max(120, shutil.get_terminal_size((160, 40)).columns)))
     environ["PYTHONWARNINGS"] = "ignore::FutureWarning,ignore::UserWarning"
+    environ.update(prepared.environment)
 
     if gpu_ids:
         # "GPU 0: <name>" from the picker, or just "GPU 0" from an imported config

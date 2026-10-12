@@ -2,7 +2,7 @@
 
 import os
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from glob import glob
 from typing import Optional, Tuple
@@ -60,6 +60,8 @@ class PreparedRun:
     model_train_type: str
     config: dict
     preview: bool
+    # environment for run_entry.py: LoRA-Forge options that are not sd-scripts arguments
+    environment: dict = field(default_factory=dict)
 
 
 def redact_config(config: dict) -> dict:
@@ -202,6 +204,14 @@ def prepare_training(config: dict) -> PreparedRun:
     if trainer_file is None:
         raise TrainingConfigError(t("run.unknownType", type=model_train_type))
 
+    # LoRA-Forge's own options, applied by run_entry.py; sd-scripts never sees them
+    dynamic_seq = bool(config.pop("compile_dynamic_seq", False)) and model_train_type == "anima-lora" and bool(config.get("compile"))
+    environment = {
+        "LORA_FORGE_COMPILE_DYNAMIC_SEQ": "1" if dynamic_seq else "0",
+        # the upper bound of the dynamic batch dimension
+        "LORA_FORGE_BATCH_SIZE": str(config.get("train_batch_size") or 1),
+    }
+
     train_data_dir = config.get("train_data_dir", "")
     if model_train_type != "sdxl-finetune":
         validated, message = validation.validate_data_dir(train_data_dir)
@@ -267,4 +277,5 @@ def prepare_training(config: dict) -> PreparedRun:
         config=config,
         # sd-scripts only prints the timestep distribution and exits
         preview=bool(config.get("show_timesteps")),
+        environment=environment,
     )

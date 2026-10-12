@@ -42,6 +42,7 @@ const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = 
   compile_backend: ["compile", true],
   compile_mode: ["compile", true],
   compile_dynamic: ["compile", true],
+  compile_dynamic_seq: ["compile", true],
   compile_fullgraph: ["compile", true],
   compile_cache_size_limit: ["compile", true],
   wandb_api_key: ["log_with", "wandb"],

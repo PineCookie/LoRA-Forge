@@ -77,6 +77,7 @@
   "Full precision mode. full_fp16 and full_bf16 cannot both be enabled": "完全精度模式。full_fp16 与 full_bf16 不能同时启用",
   "Full precision mode; sets mixed precision to the matching fp16/bf16 (sd-scripts requires both to agree)": "完全精度模式，会自动把混合精度设为 fp16/bf16（sd-scripts 要求一致）",
   "Full-graph compile mode. Checking it turns off split_attn": "全图编译模式。勾选后会自动取消 split_attn",
+  "LoRA-Forge: compile one graph for all bucket sizes and batch sizes (only the token count and batch are dynamic) instead of one per shape. Covers buckets up to 2048x2048 px (somewhat less at batch sizes above 16) and batches from 2 to train_batch_size; batch 1 and larger buckets get a graph of their own, and the Runs page says so. Avoids the PyTorch #193194 assertion and replaces compile_dynamic; not used with blocks_to_swap": "LoRA-Forge：所有分桶尺寸和批大小共用一个编译图（只有 token 数量和批大小是动态的），而不是每种形状各编译一次。覆盖最大 2048x2048 px 的分桶（批大小超过 16 时略小）以及 2 到 train_batch_size 的批大小；批大小 1 和更大的分桶会单独编译，「运行记录」页面会提示。可避开 PyTorch #193194 的断言，并取代 compile_dynamic；与 blocks_to_swap 同时使用时不生效",
   "Generate preview images during training": "启用训练预览图",
   "Generate preview images every N epochs": "每 N 个 epoch 生成一次预览图",
   "GPU": "显卡设置",

@@ -9,7 +9,7 @@ import RunStatusBadge from "../components/RunStatusBadge.vue";
 import SampleGallery from "../components/SampleGallery.vue";
 import VersionInfo from "../components/VersionInfo.vue";
 import { confirmAction } from "../composables/useConfirm";
-import { isActive, useRun, useRunList } from "../composables/useRuns";
+import { isActive, useRun, useRunList, type RunNotice } from "../composables/useRuns";
 import { useTasks } from "../composables/useTasks";
 import { locale, t } from "../i18n";
 import { modelLabel, phaseLabel } from "../monitor/labels";
@@ -51,6 +51,16 @@ const title = computed(() => {
 const startedText = computed(() =>
   run.value ? new Intl.DateTimeFormat(locale.value, { dateStyle: "medium", timeStyle: "medium" }).format(new Date(run.value.started * 1000)) : "",
 );
+
+function noticeText(notice: RunNotice) {
+  if (notice.code === "recompile_limit") return t("runs.notice.recompileLimit", { limit: notice.limit ?? "?" });
+  if (notice.code === "dynamic_seq_outside") {
+    // a token is a 16x16 px patch; the side of a square image with that many tokens
+    const side = Math.round(Math.sqrt(notice.tokens ?? 0) * 16);
+    return t("runs.notice.dynamicSeqOutside", { tokens: notice.tokens ?? "?", side, batch: notice.batch ?? "?", max: notice.max ?? "?" });
+  }
+  return notice.text ?? notice.code;
+}
 
 const step = computed(() => progress.value?.step ?? null);
 const stepPercent = computed(() => (step.value?.total ? Math.min(100, (step.value.n / step.value.total) * 100) : 0));
@@ -148,7 +158,7 @@ watch(consoleOpen, () => (stickToBottom = true));
           </p>
           <p v-else-if="run.status === 'interrupted'" class="alert warning">{{ t("runs.interruptedNote") }}</p>
           <p v-for="notice in progress?.notices ?? []" :key="notice.code" class="alert warning" :title="notice.text">
-            {{ notice.code === "recompile_limit" ? t("runs.notice.recompileLimit", { limit: notice.limit ?? "?" }) : notice.text }}
+            {{ noticeText(notice) }}
           </p>
 
           <template v-if="!run.preview">
