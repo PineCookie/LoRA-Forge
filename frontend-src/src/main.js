@@ -294,7 +294,7 @@ function withGpuSelector(groups) {
       fields: [
         {
           name: "gpu_ids",
-          schema: Schema.array(Schema.union(state.cards)).description("选择显卡").role("select"),
+          schema: Schema.array(Schema.union(state.cards)).default([state.cards[0]]).description("选择显卡。不选则默认使用第一张显卡").role("select"),
         },
       ],
     },

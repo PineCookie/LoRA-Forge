@@ -10,6 +10,15 @@ from mikazuki.log import log
 from mikazuki.tasks import tm
 
 
+def _physical_devices(indices: list[int]) -> list[str]:
+    # The GUI lists GPUs as torch sees them under its own CUDA_VISIBLE_DEVICES, so "GPU n" is the n-th
+    # visible device. Map it back through that list, otherwise the child process would get physical GPU n.
+    visible = [d.strip() for d in os.environ.get("CUDA_VISIBLE_DEVICES", "").split(",") if d.strip()]
+    if not visible:
+        return [str(i) for i in indices]
+    return [visible[i] if i < len(visible) else str(i) for i in indices]
+
+
 def run_train(toml_path: str,
               trainer_file: str = "./scripts/train_network.py",
               gpu_ids: Optional[list] = None,
@@ -31,15 +40,23 @@ def run_train(toml_path: str,
     customize_env["PYTHONWARNINGS"] = "ignore::FutureWarning,ignore::UserWarning"
 
     if gpu_ids:
+        gpu_indices = [int(re.search(r"GPU\s+(\d+):", gpu).group(1)) for gpu in gpu_ids]
         log.info(f"Using GPU(s) / 使用 GPU: {gpu_ids}")
-        gpu_devices = [re.search(r"GPU\s+(\d+):", gpu).group(1) for gpu in gpu_ids]
-        customize_env["CUDA_VISIBLE_DEVICES"] = ",".join(gpu_devices)
+    else:
+        # With several GPUs visible, sd-scripts adds InitProcessGroupKwargs and accelerate then treats a
+        # single-process run as distributed, failing with "Default process group has not been initialized".
+        # Pin to the first GPU unless the user picked some.
+        gpu_indices = [0]
+        log.info("No GPU selected, using the first GPU / 未选择显卡，默认使用第一张显卡")
 
-        if len(gpu_ids) > 1:
-            args[3:3] = ["--multi_gpu", "--num_processes", str(len(gpu_ids))]
-            if sys.platform == "win32":
-                customize_env["USE_LIBUV"] = "0"
-                args[3:3] = ["--rdzv_backend", "c10d"]
+    customize_env["CUDA_VISIBLE_DEVICES"] = ",".join(_physical_devices(gpu_indices))
+    log.info(f"CUDA_VISIBLE_DEVICES={customize_env['CUDA_VISIBLE_DEVICES']}")
+
+    if len(gpu_indices) > 1:
+        args[3:3] = ["--multi_gpu", "--num_processes", str(len(gpu_indices))]
+        if sys.platform == "win32":
+            customize_env["USE_LIBUV"] = "0"
+            args[3:3] = ["--rdzv_backend", "c10d"]
 
     if not (task := tm.create_task(args, customize_env)):
         return APIResponse(status="fail", message="Failed to create task / 无法创建训练任务", data=None)
