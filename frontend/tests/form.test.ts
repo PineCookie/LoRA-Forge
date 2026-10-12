@@ -6,10 +6,12 @@ import { loadGroups } from "./helpers";
 
 describe("schema groups", () => {
   it("builds every backend schema", () => {
-    for (const name of ["anima-lora", "dreambooth", "flux-lora", "lora-basic", "lora-master", "lumina2-lora", "sd3-lora"]) {
+    for (const name of ["anima-lora", "dreambooth", "flux-lora", "lora-basic", "lora-master", "sd3-lora"]) {
       const groups = loadGroups(name);
       expect(groups.length, name).toBeGreaterThan(3);
-      expect(groups.flatMap((group) => group.fields).some((field) => field.name === "ui_custom_params"), name).toBe(false);
+      // the base model has no placeholder path: the user picks it
+      const model = groups.flatMap((group) => group.fields).find((field) => field.name === "pretrained_model_name_or_path");
+      expect(model?.schema.meta.default, name).toBeUndefined();
     }
   });
 

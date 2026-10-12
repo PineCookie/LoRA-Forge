@@ -179,7 +179,7 @@
                     optimizer_type: Schema.const('prodigyplus.ProdigyPlusScheduleFree').required(),
                     prodigyplus_d_coef: Schema.string().default("1.0").description("Prodigy Plus d_coef。官方默认 1.0，可尝试 2 或更高帮助 LR 增长"),
                     prodigyplus_betas: Schema.string().default("(0.95, 0.99)").description("Prodigy Plus betas，需为 Python tuple 格式，例如 (0.95, 0.99)"),
-                    prodigyplus_schedulefree_c: Schema.string().default("20").description("Prodigy Plus schedulefree_c。官方默认 0"),
+                    prodigyplus_schedulefree_c: Schema.string().default("20").description("Prodigy Plus schedulefree_c。本界面默认 20（官方默认 0）"),
                     prodigyplus_prodigy_steps: Schema.string().default("0").description("Prodigy Plus prodigy_steps。官方默认 0；旧版本可设为总步数的 5-25%"),
                 }),
                 Schema.object({}),
@@ -292,7 +292,6 @@
         OTHER: Schema.object({
             seed: Schema.number().default(1337).description("随机种子"),
             clip_skip: Schema.number().role("slider").min(0).max(12).step(1).default(2).description("CLIP 跳过层数 *玄学*"),
-            ui_custom_params: Schema.string().role('textarea').description("**危险** 自定义参数，请输入 TOML 格式，将会直接覆盖当前界面内任何参数。实时更新，推荐写完后再粘贴过来"),
         }).description("其他设置"),
 
         DISTRIBUTED_TRAINING: Schema.object({

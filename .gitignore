@@ -3,19 +3,12 @@
 .kilo
 CLAUDE.md
 
-venv
 .venv
 __pycache__
 *.whl
 wheelhouse/
-uv.lock
 
-output/*
-!output/.keep
-
-assets/config.json
-
-py310
+# portable Python / Git folders some Windows setups put next to the launcher
 python
 git
 
@@ -23,19 +16,19 @@ git
 # The leading slash keeps nested scripts directories unaffected.
 /scripts/
 
-train/*
+# local data: datasets, models, training output, logs, saved configs, Hugging Face downloads
+/train/
+/sd-models/
+/huggingface/
+output/*
+!output/.keep
 logs/*
-sd-models/*
-config/autosave/*
-config/presets/test*.toml
-
-!sd-models/put stable diffusion model here.txt
 !logs/.keep
+config/autosave/
+# settings file written by older versions
+assets/config.json
 
 /tests/
 # built web UI (CI builds it for releases; the launcher builds it for git checkouts)
 frontend/dist/
 frontend/node_modules/
-
-huggingface/hub/models*
-huggingface/hub/version_diffusers_cache.txt

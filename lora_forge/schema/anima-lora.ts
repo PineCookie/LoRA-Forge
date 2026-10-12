@@ -1,7 +1,7 @@
 Schema.intersect([
     Schema.object({
         model_train_type: Schema.string().default("anima-lora").disabled().description("训练种类"),
-        pretrained_model_name_or_path: Schema.string().role('filepicker', { type: "model-file" }).default("./sd-models/anima.safetensors").description("Anima DiT 模型路径"),
+        pretrained_model_name_or_path: Schema.string().role('filepicker', { type: "model-file" }).description("Anima DiT 模型路径"),
         qwen3: Schema.string().role('filepicker', { type: "model-file" }).description("必填。Qwen3-0.6B 模型路径，可填写 safetensors 文件或模型目录"),
         vae: Schema.string().role('filepicker', { type: "model-file" }).description("必填。Qwen-Image VAE 模型路径"),
         llm_adapter_path: Schema.string().role('filepicker', { type: "model-file" }).description("可选：单独的 LLM adapter 权重路径。不填写时从 DiT 中读取"),
@@ -135,7 +135,6 @@ Schema.intersect([
     // 其他选项。Anima 不使用 clip_skip/v2/v_parameterization，因此这里不复用 SHARED_SCHEMAS.OTHER。
     Schema.object({
         seed: Schema.number().default(1337).description("随机种子"),
-        ui_custom_params: Schema.string().role('textarea').description("**危险** 自定义参数，请输入 TOML 格式，将会直接覆盖当前界面内任何参数。实时更新，推荐写完后再粘贴过来"),
     }).description("其他设置"),
 
     // 速度优化选项

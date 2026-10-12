@@ -23,7 +23,6 @@ TRAINERS = {
 
     "sd3-lora": "./scripts/sd-scripts/sd3_train_network.py",
     "flux-lora": "./scripts/sd-scripts/flux_train_network.py",
-    "flux-finetune": "./scripts/sd-scripts/flux_train.py",
 
     "anima-lora": "./scripts/sd-scripts/anima_train_network.py",
 }
@@ -206,7 +205,9 @@ def prepare_training(config: dict) -> PreparedRun:
     # the image count only picks a dataloader thread suggestion
     cpu_threads = 8 if train_data_dir and os.path.isdir(train_data_dir) and count_images(train_data_dir) > 200 else 2
 
-    validated, message = validation.validate_model(config.get("pretrained_model_name_or_path", ""), model_train_type)
+    if not str(config.get("pretrained_model_name_or_path", "")).strip():
+        raise TrainingConfigError("请选择底模：pretrained_model_name_or_path 未填写。")
+    validated, message = validation.validate_model(config["pretrained_model_name_or_path"], model_train_type)
     if not validated:
         raise TrainingConfigError(message)
 

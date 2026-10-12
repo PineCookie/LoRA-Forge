@@ -65,7 +65,7 @@ const TOML_KEY_ORDER: { section: string; keys: string[] }[] = [
     section: "数据增强",
     keys: ["color_aug", "flip_aug", "random_crop", "noise_offset", "min_snr_gamma", "ip_noise_gamma", "multires_noise_iterations", "multires_noise_discount"],
   },
-  { section: "其他", keys: ["seed", "network_args", "ui_custom_params"] },
+  { section: "其他", keys: ["seed", "network_args"] },
 ];
 
 const KEY_ORDER = new Map(

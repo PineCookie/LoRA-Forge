@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import HomeView from "./views/HomeView.vue";
 import ProxyView from "./views/ProxyView.vue";
-import SettingsView from "./views/SettingsView.vue";
 import TasksView from "./views/TasksView.vue";
 import TrainerView from "./views/TrainerView.vue";
 
@@ -33,7 +32,6 @@ const routes: RouteRecordRaw[] = [
     props: { proxy: "/proxy/tensorboard/", service: "tensorboard" },
     meta: { title: "Tensorboard" },
   },
-  { path: "/other/settings.html", alias: "/other/settings.md", component: SettingsView, meta: { title: "UI 设置" } },
   { path: "/other/about.html", alias: "/other/about.md", component: HomeView, meta: { title: "关于" } },
   { path: "/:unknown(.*)*", component: HomeView, meta: { title: "LoRA-Forge" } },
 ];
@@ -48,7 +46,6 @@ export const navigation = [
   { path: "/dreambooth/index.html", label: "Dreambooth" },
   { path: "/task.html", label: "任务" },
   { path: "/tensorboard.html", label: "Tensorboard" },
-  { path: "/other/settings.html", label: "设置" },
 ];
 
 export const router = createRouter({

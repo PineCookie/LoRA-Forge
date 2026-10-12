@@ -47,11 +47,7 @@ export function flattenSchema(schema: SchemaNode): Group[] {
 
 function normalizeGroups(groups: Group[]): Group[] {
   const normalized = groups
-    .map((group) => ({
-      ...group,
-      title: group.title === "caption（Tag）选项" ? "Caption 设置" : group.title,
-      fields: group.fields.filter((field) => field.name !== "ui_custom_params"),
-    }))
+    .map((group) => ({ ...group, title: group.title === "caption（Tag）选项" ? "Caption 设置" : group.title }))
     .filter((group) => group.fields.length);
 
   moveFieldToGroup(normalized, "seed", "训练相关参数");

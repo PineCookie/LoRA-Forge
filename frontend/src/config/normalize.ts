@@ -129,7 +129,6 @@ const FORM_ONLY_KEYS = [
   "prodigyplus_betas",
   "prodigyplus_schedulefree_c",
   "prodigyplus_prodigy_steps",
-  "ui_custom_params",
 ];
 
 const PREVIEW_KEYS = [

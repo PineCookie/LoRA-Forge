@@ -1,6 +1,6 @@
 Schema.intersect([
     Schema.object({
-        pretrained_model_name_or_path: Schema.string().role('filepicker', {type: "model-file"}).default("./sd-models/model.safetensors").description("底模文件路径"),
+        pretrained_model_name_or_path: Schema.string().role('filepicker', {type: "model-file"}).description("底模文件路径"),
     }).description("训练用模型"),
 
     Schema.object({

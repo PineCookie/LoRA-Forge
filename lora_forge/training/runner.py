@@ -6,8 +6,12 @@ import sys
 import threading
 from typing import Optional
 
+from lora_forge.launcher import base_dir_path
 from lora_forge.log import log
 from lora_forge.training.tasks import TaskStatus, tm
+
+# accelerate's launch settings (single machine, no distributed setup unless several GPUs are picked)
+ACCELERATE_CONFIG = base_dir_path() / "config" / "accelerate.yaml"
 
 
 class TaskNotStartedError(RuntimeError):
@@ -31,6 +35,7 @@ def start_training(toml_path: str,
     log.info(f"Training started with config file / 训练开始，使用配置文件: {toml_path}")
     args = [
         sys.executable, "-m", "accelerate.commands.launch",  # use -m to avoid python script executable error
+        "--config_file", str(ACCELERATE_CONFIG),
         "--num_cpu_threads_per_process", str(cpu_threads),
         "--quiet",  # silence accelerate error message
         trainer_file,

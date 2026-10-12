@@ -1,7 +1,7 @@
 Schema.intersect([
     Schema.object({
         model_train_type: Schema.string().default("sd3-lora").disabled().description("训练种类"),
-        pretrained_model_name_or_path: Schema.string().role('filepicker', { type: "model-file" }).default("./sd-models/model.safetensors").description("SD3 模型路径"),
+        pretrained_model_name_or_path: Schema.string().role('filepicker', { type: "model-file" }).description("SD3 模型路径"),
         clip_l: Schema.string().role('filepicker', { type: "model-file" }).description("clip_l 模型文件路径"),
         clip_g: Schema.string().role('filepicker', { type: "model-file" }).description("clip_g 模型文件路径"),
         t5xxl: Schema.string().role('filepicker', { type: "model-file" }).description("t5xxl 模型文件路径"),
