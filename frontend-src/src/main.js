@@ -1167,6 +1167,9 @@ function runConfigFromForm(groups, previewTimesteps) {
 async function runTrainerConfig(groups, previewTimesteps) {
   const config = runConfigFromForm(groups, previewTimesteps);
   console.log(previewTimesteps ? "Previewing timesteps with config:" : "Form submitted with config:", redactConfigForLog(config));
+  // no second /api/run (double click) while this one is in flight
+  const buttons = [...document.querySelectorAll('#trainer-form button[type="submit"], #preview-timesteps')];
+  for (const button of buttons) button.disabled = true;
   try {
     setStatus(previewTimesteps ? "正在生成时间步分布预览..." : "正在启动训练...");
     const result = await api("/api/run", {
@@ -1178,6 +1181,8 @@ async function runTrainerConfig(groups, previewTimesteps) {
   } catch (error) {
     console.error("Error:", error);
     setStatus(error.message, "error");
+  } finally {
+    for (const button of buttons) button.disabled = false;
   }
 }
 
@@ -1482,62 +1487,76 @@ function applyImportedConfig(config) {
   updateDatasetStats();
 }
 
+// Inverse of normalizeTrainingConfig() for import. Anything it generated must go back into its
+// form field: *_args_custom is appended after the generated args and sd-scripts keeps the last
+// duplicate key, so a leftover imported copy would silently override later edits in the form.
 const OPTIMIZER_ARG_TO_FIELD = {
   d_coef: { prodigy: "prodigy_d_coef", prodigyplus: "prodigyplus_d_coef" },
+  d0: { prodigy: "prodigy_d0" },
   betas: { prodigyplus: "prodigyplus_betas" },
   schedulefree_c: { prodigyplus: "prodigyplus_schedulefree_c" },
   prodigy_steps: { prodigyplus: "prodigyplus_prodigy_steps" },
 };
 
+const NETWORK_ARG_TO_FIELD = {
+  "lycoris.kohya": { conv_dim: "conv_dim", conv_alpha: "conv_alpha", dropout: "dropout", algo: "lycoris_algo", factor: "lokr_factor", train_norm: "train_norm" },
+  "networks.dylora": { unit: "dylora_unit" },
+};
+
+const BLOCK_WEIGHT_ARGS = ["down_lr_weight", "mid_lr_weight", "up_lr_weight", "block_lr_zero_threshold"];
+
+function splitArg(arg) {
+  const text = String(arg);
+  const separator = text.indexOf("=");
+  return separator >= 0 ? [text, text.slice(0, separator), text.slice(separator + 1)] : [text, text, ""];
+}
+
 function expandImportedArgs(config) {
   const result = { ...config };
 
-  // Parse network_args
   if (Array.isArray(config.network_args)) {
+    const moduleFields = NETWORK_ARG_TO_FIELD[config.network_module] ?? {};
     const customArgs = [];
-    for (const arg of config.network_args) {
-      const text = String(arg);
-      const separator = text.indexOf("=");
-      const name = separator >= 0 ? text.slice(0, separator) : text;
+    for (const [text, name, value] of config.network_args.map(splitArg)) {
       if (["network_reg_dims", "network_reg_lrs"].includes(name)) {
-        result[name] = separator >= 0 ? text.slice(separator + 1) : "";
+        result[name] = value;
+      } else if (moduleFields[name] === "train_norm") {
+        result.train_norm = value.toLowerCase() === "true";
+      } else if (moduleFields[name]) {
+        result[moduleFields[name]] = value;
+      } else if (BLOCK_WEIGHT_ARGS.includes(name)) {
+        result[name] = value;
+        result.enable_block_weights = true;
       } else {
         customArgs.push(text);
       }
     }
-    if (customArgs.length) result.network_args_custom = customArgs;
+    result.network_args_custom = customArgs;
   }
 
-  // Parse optimizer_args back into individual form fields
   if (Array.isArray(config.optimizer_args)) {
     const optimType = String(config.optimizer_type ?? "");
-    const isProdigy = optimType === "Prodigy";
-    const isProdigyPlus = optimType.includes("ProdigyPlusScheduleFree");
-    const customArgs = [];
-
-    for (const arg of config.optimizer_args) {
-      const text = String(arg);
-      const separator = text.indexOf("=");
-      const name = separator >= 0 ? text.slice(0, separator) : text;
-      const value = separator >= 0 ? text.slice(separator + 1) : "";
-
-      const mapping = OPTIMIZER_ARG_TO_FIELD[name];
-      let fieldName = null;
-      if (mapping) {
-        if (isProdigy && mapping.prodigy) fieldName = mapping.prodigy;
-        else if (isProdigyPlus && mapping.prodigyplus) fieldName = mapping.prodigyplus;
-        else if (mapping.prodigy) fieldName = mapping.prodigy;
-        else if (mapping.prodigyplus) fieldName = mapping.prodigyplus;
-      }
-
-      if (fieldName) {
-        result[fieldName] = value;
-      } else {
-        customArgs.push(text);
-      }
+    // only map an arg to a field the current optimizer actually uses; e.g. d_coef is also a
+    // DAdaptation arg and must stay a custom arg there
+    const family = optimType === "Prodigy" ? "prodigy" : optimType.includes("ProdigyPlusScheduleFree") ? "prodigyplus" : null;
+    let customArgs = [];
+    for (const [text, name, value] of config.optimizer_args.map(splitArg)) {
+      const fieldName = family ? OPTIMIZER_ARG_TO_FIELD[name]?.[family] : null;
+      if (fieldName) result[fieldName] = value;
+      else customArgs.push(text);
     }
-    if (customArgs.length) result.optimizer_args_custom = customArgs;
-    else delete result.optimizer_args_custom;
+    // fixed args the optimizer rule adds again on submit (decouple=True, weight_decay=0.01, ...)
+    const rule = optimizerRuleFor(optimType);
+    if (rule) {
+      const regenerated = new Set((rule.args?.(result, optimType) ?? []).filter(Boolean));
+      customArgs = customArgs.filter((arg) => !regenerated.has(arg));
+    }
+    result.optimizer_args_custom = customArgs;
+  }
+
+  // full_precision is a form-only field that normalizeTrainingConfig() turns into these flags
+  if ("full_fp16" in config || "full_bf16" in config) {
+    result.full_precision = config.full_fp16 ? "full_fp16" : config.full_bf16 ? "full_bf16" : "none";
   }
 
   return result;

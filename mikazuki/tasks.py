@@ -38,6 +38,13 @@ class Task:
         self.command = command
         self.status = TaskStatus.CREATED
         self.environ = environ or os.environ
+        self.process = None
+
+    def _mark_finished(self):
+        # A terminated task stays TERMINATED once its process exits.
+        with self.lock:
+            if self.status != TaskStatus.TERMINATED:
+                self.status = TaskStatus.FINISHED
 
     def communicate(self, input=None, timeout=None):
         try:
@@ -53,25 +60,39 @@ class Task:
             self.process.kill()
             raise
         retcode = self.process.poll()
-        self.status = TaskStatus.FINISHED
+        self._mark_finished()
         return CompletedProcess(self.process.args, retcode, stdout, stderr)
 
     def wait(self):
         self.process.wait()
-        self.status = TaskStatus.FINISHED
+        self._mark_finished()
 
-    def execute(self):
-        self.status = TaskStatus.RUNNING
-        self.process = subprocess.Popen(self.command, env=self.environ)
+    def execute(self) -> bool:
+        """Start the process. Returns False if the task was terminated before it started."""
+        with self.lock:
+            if self.status == TaskStatus.TERMINATED:
+                return False
+            try:
+                self.process = subprocess.Popen(self.command, env=self.environ)
+            except Exception:
+                # never leave a task RUNNING without a process: it would block every later task
+                self.status = TaskStatus.FINISHED
+                raise
+            self.status = TaskStatus.RUNNING
+            return True
 
     def terminate(self):
+        with self.lock:
+            if self.status not in (TaskStatus.CREATED, TaskStatus.RUNNING):
+                return
+            self.status = TaskStatus.TERMINATED
+            process = self.process
+        if process is None:
+            return  # not started yet; execute() sees TERMINATED and does not start it
         try:
-            kill_proc_tree(self.process.pid, False)
+            kill_proc_tree(process.pid, False)
         except Exception as e:
             log.error(f"Error when killing process: {e}")
-            return
-        finally:
-            self.status = TaskStatus.TERMINATED
 
 
 class TaskManager:
@@ -92,7 +113,9 @@ class TaskManager:
 
     def create_task(self, command: List[str], environ):
         self._prune()
-        running_tasks = [t for _, t in self.tasks.items() if t.status == TaskStatus.RUNNING]
+        # CREATED counts too: a task is CREATED until its worker thread starts the process, and a
+        # second /run arriving in that window must not start another training.
+        running_tasks = [t for _, t in self.tasks.items() if t.status in (TaskStatus.CREATED, TaskStatus.RUNNING)]
         if len(running_tasks) >= self.max_concurrent:
             log.error(
                 f"Unable to create a task because there are already {len(running_tasks)} tasks running, reaching the maximum concurrent limit. / 无法创建任务，因为已经有 {len(running_tasks)} 个任务正在运行，已达到最大并发限制。")

@@ -273,7 +273,10 @@ def get_sample_prompts(config: dict) -> Tuple[Optional[str], str]:
 async def create_toml_file(request: Request):
     try:
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        toml_file = os.path.join(os.getcwd(), f"config", "autosave", f"{timestamp}.toml")
+        # git-ignored and not shipped, so a fresh clone does not have it yet
+        autosave_dir = os.path.join(os.getcwd(), "config", "autosave")
+        os.makedirs(autosave_dir, exist_ok=True)
+        toml_file = os.path.join(autosave_dir, f"{timestamp}.toml")
         json_data = await request.body()
 
         config: dict = json.loads(json_data.decode("utf-8"))
@@ -336,7 +339,7 @@ async def create_toml_file(request: Request):
                 positive_prompt, sample_prompts_arg = get_sample_prompts(config=config)
 
                 if positive_prompt is not None and train_utils.is_promopt_like(sample_prompts_arg):
-                    sample_prompts_file = os.path.join(os.getcwd(), f"config", "autosave", f"{timestamp}-promopt.txt")
+                    sample_prompts_file = os.path.join(autosave_dir, f"{timestamp}-promopt.txt")
                     with open(sample_prompts_file, "w", encoding="utf-8") as f:
                         f.write(sample_prompts_arg)
                     config["sample_prompts"] = sample_prompts_file
@@ -347,7 +350,7 @@ async def create_toml_file(request: Request):
                 return APIResponseFail(message=str(e))
 
         if model_train_type in {"flux-lora", "anima-lora"}:
-            dataset_toml_file = os.path.join(os.getcwd(), f"config", "autosave", f"{timestamp}-dataset.toml")
+            dataset_toml_file = os.path.join(autosave_dir, f"{timestamp}-dataset.toml")
             try:
                 if create_offset_dataset_config(config, subset_timestep_sampling_offsets, dataset_toml_file):
                     log.info(f"Wrote per-subset timestep offset dataset config to {dataset_toml_file}")
@@ -373,22 +376,18 @@ async def run_script(request: Request, background_tasks: BackgroundTasks):
     if script_name not in avaliable_scripts:
         return APIResponseFail(message="Script not found")
     del j["script_name"]
-    result = []
+    script_path = Path(os.getcwd()) / "scripts" / script_name
+    # An argv list run without a shell: values are passed verbatim, so paths with spaces or
+    # quotes work and shell metacharacters in a value are never interpreted.
+    cmd = [launch_utils.python_bin, str(script_path)]
     for k, v in j.items():
         if isinstance(v, bool):
             # A false flag means "not set"; only emit the switch when it is true.
             if v:
-                result.append(f"--{k}")
+                cmd.append(f"--{k}")
             continue
-        result.append(f"--{k}")
-        value = str(v)
-        if " " in value:
-            value = f'"{value}"'
-        result.append(value)
-    script_args = " ".join(result)
-    script_path = Path(os.getcwd()) / "scripts" / script_name
-    cmd = f"{launch_utils.python_bin} {script_path} {script_args}"
-    background_tasks.add_task(launch_utils.run, cmd)
+        cmd.extend([f"--{k}", str(v)])
+    background_tasks.add_task(launch_utils.run, cmd, shell=False)
     return APIResponseSuccess()
 
 

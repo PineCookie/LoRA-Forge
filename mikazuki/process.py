@@ -7,7 +7,7 @@ from typing import Optional
 
 from mikazuki.app.models import APIResponse
 from mikazuki.log import log
-from mikazuki.tasks import tm
+from mikazuki.tasks import TaskStatus, tm
 
 
 def _physical_devices(indices: list[int]) -> list[str]:
@@ -63,9 +63,13 @@ def run_train(toml_path: str,
 
     def _run():
         try:
-            task.execute()
+            if not task.execute():
+                log.info("Training cancelled before it started / 训练在启动前已取消")
+                return
             result = task.communicate()
-            if result.returncode != 0:
+            if task.status == TaskStatus.TERMINATED:
+                log.info("Training terminated / 训练已终止")
+            elif result.returncode != 0:
                 log.error(f"Training failed / 训练失败")
             else:
                 log.info(f"Training finished / 训练完成")
