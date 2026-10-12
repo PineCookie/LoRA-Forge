@@ -202,7 +202,9 @@ class Summary:
     phase: Optional[dict] = None
     epoch: Optional[dict] = None
     loss: Optional[float] = None
-    bars: dict = field(default_factory=dict)
+    # torch.compile: graphs built so far; notices (e.g. the recompile limit was hit), one per code
+    graphs: Optional[int] = None
+    notices: dict = field(default_factory=dict)
 
 
 _summaries: dict[str, Summary] = {}
@@ -230,13 +232,25 @@ def summary(run_id: str) -> dict:
                         loss = event.get("values", {}).get("loss/average")
                         if loss is not None:
                             state.loss = loss
+                    elif kind == "compile":
+                        state.graphs = event.get("graphs")
+                    elif kind == "notice" and event.get("code"):
+                        notice = {key: value for key, value in event.items() if key not in ("t", "type")}
+                        state.notices.setdefault(event["code"], notice)
                 moved = offset != state.offset
                 state.offset = offset
                 if not moved or not events:
                     break
         except (RunNotFoundError, OSError):
             pass
-        return {"step": state.step, "phase": state.phase, "epoch": state.epoch, "loss": state.loss}
+        return {
+            "step": state.step,
+            "phase": state.phase,
+            "epoch": state.epoch,
+            "loss": state.loss,
+            "graphs": state.graphs,
+            "notices": list(state.notices.values()),
+        }
 
 
 # --- console output ------------------------------------------------------------------------------

@@ -21,6 +21,17 @@ export interface RunProgress {
   epoch: { n: number; total: number } | null;
   /** sd-scripts' moving average of the loss */
   loss: number | null;
+  /** graphs torch.compile has built (null without compile) */
+  graphs?: number | null;
+  /** problems the training process reported, e.g. code "recompile_limit" */
+  notices?: RunNotice[];
+}
+
+export interface RunNotice {
+  code: string;
+  limit?: number;
+  graphs?: number;
+  text?: string;
 }
 
 export interface Run {

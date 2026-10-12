@@ -59,7 +59,10 @@ def start_training(prepared: PreparedRun) -> tuple[str, str]:
     environ["PYTHONWARNINGS"] = "ignore::FutureWarning,ignore::UserWarning"
 
     if gpu_ids:
-        gpu_indices = [int(re.search(r"GPU\s+(\d+):", gpu).group(1)) for gpu in gpu_ids]
+        # "GPU 0: <name>" from the picker, or just "GPU 0" from an imported config
+        gpu_indices = [int(match.group(1)) for gpu in gpu_ids if (match := re.search(r"GPU\s+(\d+)", str(gpu)))]
+        if not gpu_indices:
+            gpu_indices = [0]
         log.info(f"Using GPU(s): {gpu_ids}")
     else:
         # With several GPUs visible, sd-scripts adds InitProcessGroupKwargs and accelerate then treats a

@@ -57,7 +57,7 @@ GUI 会在提交时校验 `qwen3` / `vae`（缺失或路径不存在会直接提
    - 启用文本编码器缓存后**无法**同时训练文本编码器，因此 `network_train_unet_only` 会被自动打开。
    - 改了 `caption_dropout_rate`（或其它 caption 设置）**必须删除并重建缓存**。
 2. **2D VAE**（`qwen_image_vae_2d`）：官方 VAE 权重在加载时把 Conv3d 转成等价的 Conv2d，单图 latent 与 3D VAE 数值一致；约 2 倍速、峰值显存约 1/3。**latent 缓存场景强烈推荐**（缓存是同一份，切换 2D/3D 不需要重算）。
-3. **`torch.compile`**（`compile`）：逐 block 编译，首次迭代慢、之后明显加速；多分辨率数据集会按桶重新编译，建议 `compile_cache_size_limit=32`。与旧版 `--torch_compile` 互斥；`compile_fullgraph` 与 `split_attn` 互斥。Windows 上 `compile_dynamic=true` 需要 VS2022 C++ 编译器。⚠ **`compile_dynamic` 默认 `false`**，原因见第 9 节。
+3. **`torch.compile`**（`compile`）：逐 block 编译，首次迭代慢、之后明显加速；多分辨率数据集会按桶各自编译（每个 bucket 一个图，最后一批较小的 bucket 再多一个，生成样图还会更多），`compile_cache_size_limit` 默认 64；「运行记录」页面会显示已编译的图数，达到上限时会提示。与旧版 `--torch_compile` 互斥；`compile_fullgraph` 与 `split_attn` 互斥。Windows 上 `compile_dynamic=true` 需要 VS2022 C++ 编译器。⚠ **`compile_dynamic` 默认 `false`**，原因见第 9 节。
 4. **`cuda_allow_tf32` / `cuda_cudnn_benchmark`**：与 `compile` 无关，可单独开启（Ampere+）。
 5. **省显存**：`blocks_to_swap`（交换到 CPU 的 block 数）、`gradient_checkpointing`、`unsloth_offload_checkpointing`、`cpu_offload_checkpointing`。
    - `blocks_to_swap` 与两种 offload **互斥**；两种 offload 之间也互斥。GUI 在勾选时会自动清掉冲突项。
@@ -110,7 +110,7 @@ GUI 会在提交时校验 `qwen3` / `vae`（缺失或路径不存在会直接提
   - 修复 PR（2026-08-22 合并到 main）：https://github.com/pytorch/pytorch/pull/193254
   - **torch 2.14.0 与 2.14.1 均不含该修复**（2.14.1 是 MPS/CUDA 二进制补丁，未 cherry-pick；已核对两版的 `builder.py`/`output_graph.py` 仍为旧代码）。修复预计进入 2.15。
 - **处理**：
-  - **当前（默认）**：保持 `compile_dynamic=false`（GUI 已默认）。代价是多分辨率数据集会按 bucket 各自编译一次；把 `compile_cache_size_limit` 提到 `32` 可减少缓存抖动。这是 issue 给出的 `automatic_dynamic_shapes=False` 等价 workaround。
+  - **当前（默认）**：保持 `compile_dynamic=false`（GUI 已默认）。代价是多分辨率数据集会按输入形状各自编译：一个 20 个 bucket、批大小 2 的数据集实测需要 28 个图（8 个 bucket 的最后一批只有 1 张），再加上生成样图所需的图，因此 `compile_cache_size_limit` 默认 64。这是 issue 给出的 `automatic_dynamic_shapes=False` 等价 workaround。
   - **恢复动态形状**：等 torch 2.15（含 PR #193254）后改回 `auto`/`true`。
   - **应急**：设环境变量 `TORCHDYNAMO_AUTOMATIC_DYNAMIC_SHAPES=0`，等价于 `dynamic=false`。
 - **版本背景**：该 bug 在 torch 2.9.1 / 2.13.0 / 2.14.x 上均可复现，并非 2.14 独有；是否触发还取决于模型结构（双次遍历 + 非重入 checkpoint + 动态形状）。

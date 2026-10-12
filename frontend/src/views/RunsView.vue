@@ -147,6 +147,9 @@ watch(consoleOpen, () => (stickToBottom = true));
             {{ t("runs.failedNote", { code: run.returncode ?? "?" }) }}
           </p>
           <p v-else-if="run.status === 'interrupted'" class="alert warning">{{ t("runs.interruptedNote") }}</p>
+          <p v-for="notice in progress?.notices ?? []" :key="notice.code" class="alert warning" :title="notice.text">
+            {{ notice.code === "recompile_limit" ? t("runs.notice.recompileLimit", { limit: notice.limit ?? "?" }) : notice.text }}
+          </p>
 
           <template v-if="!run.preview">
             <div class="progress">
@@ -183,6 +186,10 @@ watch(consoleOpen, () => (stickToBottom = true));
               <div>
                 <dt>{{ t("runs.stat.loss") }}</dt>
                 <dd>{{ progress?.loss == null ? "–" : formatValue(progress.loss) }}</dd>
+              </div>
+              <div v-if="progress?.graphs != null" :title="t('runs.stat.graphsTitle')">
+                <dt>{{ t("runs.stat.graphs") }}</dt>
+                <dd>{{ progress.graphs }}</dd>
               </div>
             </dl>
           </template>

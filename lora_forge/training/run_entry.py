@@ -8,6 +8,15 @@ named by LORA_FORGE_EVENTS:
   loss to every tracker it has, and logs nothing without one, so this works without TensorBoard.
 - progress: tqdm bars (training steps, caching, validation), at most one event per second each.
 - epoch: the "epoch N/M" line sd-scripts prints at each epoch start.
+- compile: how many graphs torch.compile has built, and a notice when it hits its recompile
+  limit (from then on new shapes run uncompiled, silently except for one warning).
+
+For Anima it also patches two torch.compile problems of sd-scripts' per-block compile (set
+LORA_FORGE_PATCHES=0 to run sd-scripts exactly as it is, e.g. to compare):
+- block 0 gets an input without requires_grad (the embedders are frozen), blocks 1+ one with it,
+  so every bucket shape compiled two graphs and hit the recompile limit twice as fast;
+- with unsloth_offload_checkpointing the compiled block only calls the dynamo-disabled
+  checkpoint function, so nothing was compiled; the block's inner _forward is compiled instead.
 
 Kept free of lora_forge imports: it runs in the training process, with sd-scripts' directory
 first on sys.path.
@@ -22,6 +31,7 @@ import threading
 import time
 
 EVENTS_ENV = "LORA_FORGE_EVENTS"
+PATCHES_ENV = "LORA_FORGE_PATCHES"
 PROGRESS_INTERVAL = 1.0
 
 
@@ -97,7 +107,90 @@ def install_tracker(events: EventWriter):
     accelerate.Accelerator.print = print_
 
 
-def install_progress(events: EventWriter):
+class CompileMonitor:
+    """Reports torch.compile's graph count when it changes and when it hits the recompile limit."""
+
+    def __init__(self, events: EventWriter):
+        self.events = events
+        self.graphs = 0
+        self.limit_reported = False
+
+    def install(self):
+        import logging
+
+        monitor = self
+
+        class LimitHandler(logging.Handler):
+            def emit(self, record):
+                try:
+                    message = record.getMessage()
+                except Exception:
+                    return
+                if "recompile_limit" in message or "cache_size_limit" in message:
+                    monitor.limit_hit(message)
+
+        logging.getLogger("torch._dynamo").addHandler(LimitHandler(level=logging.WARNING))
+
+    def limit_hit(self, message: str):
+        if self.limit_reported:
+            return
+        self.limit_reported = True
+        self.check()
+        import torch._dynamo.config as dynamo_config
+
+        limit = getattr(dynamo_config, "recompile_limit", None) or getattr(dynamo_config, "cache_size_limit", None)
+        self.events.write("notice", code="recompile_limit", limit=limit, graphs=self.graphs, text=message.splitlines()[0])
+
+    def check(self):
+        # only once torch._dynamo is in use; reading the counter is a dict lookup
+        utils = sys.modules.get("torch._dynamo.utils")
+        if utils is None:
+            return
+        graphs = utils.counters["stats"]["unique_graphs"]
+        if graphs != self.graphs:
+            self.graphs = graphs
+            self.events.write("compile", graphs=graphs)
+
+
+def install_anima_patches():
+    import torch
+    from library import anima_models, compile_utils
+
+    # one graph per shape: the block-stack input requires grad like every later block's input
+    prepare = anima_models.Anima.prepare_embedded_sequence
+
+    def prepare_embedded_sequence(self, *args, **kwargs):
+        x, *rest = prepare(self, *args, **kwargs)
+        if self.training and torch.is_grad_enabled() and not x.requires_grad:
+            x = x.requires_grad_()
+        return (x, *rest)
+
+    anima_models.Anima.prepare_embedded_sequence = prepare_embedded_sequence
+
+    # unsloth offload checkpointing: compile what runs inside the checkpoint, not the wrapper
+    compile_transformer = compile_utils.compile_transformer
+
+    def compile_inner(args, transformer, target_blocks, disable_linear):
+        blocks = [block for group in target_blocks for block in group]
+        if not any(getattr(block, "unsloth_offload_checkpointing", False) and getattr(block, "gradient_checkpointing", False) for block in blocks):
+            return compile_transformer(args, transformer, target_blocks, disable_linear)
+        # sd-scripts' settings (cache size limit, static nn.Module properties) without compiling blocks
+        compile_transformer(args, transformer, [], False)
+        if disable_linear:
+            for block in blocks:
+                compile_utils.disable_linear_from_compile(block)
+        dynamic = None if args.compile_dynamic is None else {"true": True, "false": False, "auto": None}[args.compile_dynamic.lower()]
+        print("LoRA-Forge: unsloth offload checkpointing is on, so each block's inner _forward is compiled", flush=True)
+        for block in blocks:
+            block._forward = torch.compile(
+                block._forward, backend=args.compile_backend, mode=args.compile_mode, dynamic=dynamic, fullgraph=args.compile_fullgraph
+            )
+        return transformer
+
+    compile_utils.compile_transformer = compile_inner
+
+
+def install_progress(events: EventWriter, compile_monitor: "CompileMonitor"):
     import tqdm as tqdm_module
 
     base = tqdm_module.tqdm
@@ -131,6 +224,7 @@ def install_progress(events: EventWriter):
             result = super().update(n)
             if not self.disable and self.total and time.monotonic() - self._lf_reported >= PROGRESS_INTERVAL:
                 self._lf_report()
+                compile_monitor.check()
             return result
 
         def close(self):
@@ -156,8 +250,13 @@ def main():
     if events_path and os.environ.get("RANK", "0") == "0":
         events = EventWriter(events_path)
         events.write("start", pid=os.getpid())
+        compile_monitor = CompileMonitor(events)
+        compile_monitor.install()
         install_tracker(events)
-        install_progress(events)
+        install_progress(events, compile_monitor)
+
+    if os.path.basename(trainer) == "anima_train_network.py" and os.environ.get(PATCHES_ENV, "1") != "0":
+        install_anima_patches()
 
     runpy.run_path(trainer, run_name="__main__")
 
