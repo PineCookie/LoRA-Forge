@@ -16,8 +16,6 @@ await copyFile(resolve(root, "index.html"), resolve(outDir, "index.html"));
 
 const routes = [
   "404.html",
-  "tageditor.html",
-  "tagger.html",
   "task.html",
   "tensorboard.html",
   "dreambooth/index.html",

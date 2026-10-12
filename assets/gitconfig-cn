@@ -9,6 +9,3 @@
 
 [url "https://jihulab.com/affair3547/lora-gui-dist"]
     insteadOf = https://github.com/hanamizuki-ai/lora-gui-dist
-
-[url "https://jihulab.com/Akegarasu/dataset-tag-editor"]
-    insteadOf = https://github.com/Akegarasu/dataset-tag-editor

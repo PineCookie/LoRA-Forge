@@ -18,7 +18,6 @@ assets/config.json
 py310
 python
 git
-wd14_tagger_model
 
 # kohya-ss/sd-scripts clone created by the launcher (see README); not part of this repo.
 # The leading slash keeps nested scripts directories unaffected.

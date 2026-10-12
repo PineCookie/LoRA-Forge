@@ -133,14 +133,11 @@ source .venv/bin/activate
 | `--host`                     | str   | "127.0.0.1"  | 服务器的主机名                                  |
 | `--port`                     | int   | 28000        | 运行服务器的端口                                |
 | `--listen`                   | bool  | false        | 启用服务器的监听模式                            |
-| `--skip-prepare-onnxruntime` | bool  | false        | 跳过 ONNX Runtime 准备                          |
 | `--skip-prepare-sd-scripts`  | bool  | false        | 跳过克隆 kohya-ss/sd-scripts                    |
 | `--sd-scripts-branch`        | str   | "main"        | 克隆 kohya-ss/sd-scripts 时使用的分支或标签           |
 | `--enable-tensorboard`       | bool  | false        | 启用 TensorBoard                                |
-| `--enable-tageditor`         | bool  | false        | 启用标签编辑器                                  |
 | `--tensorboard-host`         | str   | "127.0.0.1"  | 运行 TensorBoard 的主机                         |
 | `--tensorboard-port`         | int   | 6006         | 运行 TensorBoard 的端口                          |
-| `--localization`             | str   |              | 界面的本地化设置                                |
 | `--dev`                      | bool  | false        | 开发者模式，用于禁用某些检查                     |
 | `--open-browser`             | bool  | false        | 服务器启动后自动打开浏览器                      |
 

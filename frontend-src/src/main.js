@@ -18,8 +18,6 @@ const routes = [
   { path: "/dreambooth/index.html", alias: "/dreambooth/index.md", title: "Dreambooth", view: "trainer", schema: "dreambooth" },
   { path: "/task.html", alias: "/task.md", title: "任务", view: "tasks" },
   { path: "/tensorboard.html", alias: "/tensorboard.md", title: "Tensorboard", view: "proxy", proxy: "/proxy/tensorboard/", service: "tensorboard" },
-  { path: "/tagger.html", alias: "/tagger.md", title: "Tagger", view: "tagger" },
-  { path: "/tageditor.html", alias: "/tageditor.md", title: "标签编辑器", view: "proxy", proxy: "/proxy/tageditor/", service: "tageditor" },
   { path: "/other/settings.html", alias: "/other/settings.md", title: "UI 设置", view: "settings" },
   { path: "/other/about.html", alias: "/other/about.md", title: "关于", view: "home" },
 ];
@@ -630,7 +628,6 @@ function renderShell(route) {
         <a href="/lora/basic.html">SD1.5</a>
         <a href="/dreambooth/index.html">Dreambooth</a>
         <a href="/task.html">任务</a>
-        <a href="/tagger.html">Tagger</a>
         <a href="/tensorboard.html">Tensorboard</a>
         <a href="/other/settings.html">设置</a>
       </nav>
@@ -1783,22 +1780,12 @@ function renderProxy(route) {
 }
 
 function renderServiceUnavailable(route) {
-  const command = route.service === "tensorboard" ? "--enable-tensorboard" : "--enable-tageditor";
+  const command = `--enable-${route.service}`;
   content().innerHTML = `
     <section class="panel service-unavailable">
       <h2>${escapeHtml(route.title)} 未启动</h2>
       <p>当前 UI 启动时没有启用这个服务，因此不会连接 ${escapeHtml(route.proxy)}。</p>
       <p>需要使用时，请用 <code>${escapeHtml(command)}</code> 重新启动 GUI。</p>
-    </section>
-  `;
-}
-
-function renderTagger() {
-  content().innerHTML = `
-    <section class="panel service-unavailable">
-      <h2>Tagger 尚未接入源码前端</h2>
-      <p>Tagger 后端接口已经存在，但这个轻量源码前端还没有迁移对应页面。</p>
-      <p>需要批量标注时，请先使用 Tag Editor，启动 GUI 时加上 <code>--enable-tageditor</code>。</p>
     </section>
   `;
 }
@@ -1822,7 +1809,6 @@ async function render() {
   else if (route.view === "trainer") renderTrainer(route);
   else if (route.view === "tasks") await renderTasks();
   else if (route.view === "proxy") renderProxy(route);
-  else if (route.view === "tagger") renderTagger();
   else if (route.view === "settings") renderSettings();
   else renderInfo(route);
 }
