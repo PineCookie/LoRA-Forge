@@ -18,6 +18,7 @@ const COLORS = [
   "var(--tone-general)",
 ];
 const SMOOTHING_KEY = "lora-forge.chartSmoothing";
+const HIDDEN_KEY = "lora-forge.chartHidden";
 
 function savedSmoothing() {
   try {
@@ -38,22 +39,65 @@ watch(smoothing, (value) => {
   }
 });
 
+// lines the viewer hid by clicking the legend ("<chart>/<metric>", "/raw" for the values under a
+// smoothed line); the y axis fits the lines still shown
+function savedHidden() {
+  try {
+    const value = JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? "[]");
+    if (Array.isArray(value)) return new Set(value.map(String));
+  } catch {
+    // storage blocked or unreadable: show everything
+  }
+  return new Set<string>();
+}
+
+const hidden = ref(savedHidden());
+
+function toggle(id: string) {
+  const next = new Set(hidden.value);
+  if (!next.delete(id)) next.add(id);
+  hidden.value = next;
+  try {
+    localStorage.setItem(HIDDEN_KEY, JSON.stringify([...next]));
+  } catch {
+    // only kept for this page load
+  }
+}
+
+interface LegendEntry {
+  id: string;
+  label: string;
+  color: string;
+  faint: boolean;
+  hidden: boolean;
+}
+
 const charts = computed(() => {
   void props.version; // the series map is updated in place
   return chartSpecs(props.series.keys(), props.lrGroups).map((spec) => {
+    // drawn in this order: raw values under their smoothed line
     const lines: ChartSeries[] = [];
+    const legend: LegendEntry[] = [];
+    const add = (id: string, line: ChartSeries) => {
+      const off = hidden.value.has(id);
+      legend.push({ id, label: line.faint ? `${line.label} (${t("runs.legend.raw")})` : line.label, color: line.color, faint: !!line.faint, hidden: off });
+      if (!off) lines.push(line);
+    };
     spec.lines.forEach((line, index) => {
       const data = props.series.get(line.key);
       if (!data) return;
       const color = COLORS[index % COLORS.length];
+      const id = `${spec.id}/${line.key}`;
       if (line.smoothed && smoothing.value > 0) {
-        lines.push({ label: line.label, color, xs: data.xs, ys: data.ys, faint: true });
-        lines.push({ label: line.label, color, xs: data.xs, ys: smooth(data.ys, smoothing.value) });
+        add(`${id}/raw`, { label: line.label, color, xs: data.xs, ys: data.ys, faint: true });
+        add(id, { label: line.label, color, xs: data.xs, ys: smooth(data.ys, smoothing.value) });
+        // the legend lists the smoothed line first
+        legend.push(...legend.splice(-2, 1));
       } else {
-        lines.push({ label: line.label, color, xs: data.xs, ys: data.ys });
+        add(id, { label: line.label, color, xs: data.xs, ys: data.ys });
       }
     });
-    return { spec, lines, title: "key" in spec.title ? t(spec.title.key) : spec.title.text };
+    return { spec, lines, legend, title: "key" in spec.title ? t(spec.title.key) : spec.title.text };
   });
 });
 
@@ -76,9 +120,18 @@ const hasSmoothed = computed(() => charts.value.some(({ spec }) => spec.lines.so
         <figcaption>
           {{ chart.title }}
           <span class="legend">
-            <span v-for="line in chart.lines.filter((l) => !l.faint)" :key="line.label" class="legend-item">
-              <span class="swatch" :style="{ background: line.color }" />{{ line.label }}
-            </span>
+            <button
+              v-for="entry in chart.legend"
+              :key="entry.id"
+              type="button"
+              class="legend-item"
+              :class="{ off: entry.hidden }"
+              :aria-pressed="!entry.hidden"
+              :title="t('runs.legend.toggle')"
+              @click="toggle(entry.id)"
+            >
+              <span class="swatch" :class="{ faint: entry.faint }" :style="{ background: entry.color }" />{{ entry.label }}
+            </button>
           </span>
         </figcaption>
         <LineChart :series="chart.lines" :x-label="chart.spec.axis === 'epoch' ? t('runs.axis.epoch') : t('runs.axis.step')" />
@@ -159,11 +212,33 @@ figcaption {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  padding: 1px 4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.legend-item:hover {
+  background: var(--surface-sunken);
+  color: var(--text-strong);
+}
+
+.legend-item.off {
+  opacity: 0.45;
+  text-decoration: line-through;
 }
 
 .swatch {
   width: 12px;
   height: 3px;
   border-radius: 2px;
+}
+
+.swatch.faint {
+  opacity: 0.35;
 }
 </style>

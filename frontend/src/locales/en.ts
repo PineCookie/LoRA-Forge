@@ -67,6 +67,8 @@ const en = {
   "runs.stat.graphsTitle": "Graphs torch.compile has built so far: about one per bucket shape (and batch size)",
   "runs.notice.recompileLimit": "torch.compile reached its limit of {limit} graphs: bucket shapes seen after that run without compile, which is slower. Set compile_shapes to bounded, raise compile_cache_size_limit, or use fewer bucket sizes (a larger bucket_reso_steps).",
   "runs.notice.dynamicSeqOutside": "A {side}x{side} px bucket ({tokens} tokens) at batch {batch} is outside the range of compile_shapes = bounded (up to {max} tokens), so it is compiled separately: one more graph for each such shape.",
+  "runs.legend.raw": "raw",
+  "runs.legend.toggle": "Show or hide this line; the axis fits the lines shown",
   "runs.notice.outOfMemory": "The GPU ran out of memory. Lower train_batch_size or the resolution, or save VRAM with gradient_checkpointing or blocks_to_swap.",
   "runs.notice.outOfMemoryBudget": "The GPU ran out of memory with activation_memory_budget = {budget} (with it, this can also show as \"CUDA driver error: device not ready\"). Pick a lower activation_memory_budget, or off to use gradient checkpointing again.",
   "runs.phase.preparing": "Preparing data",
