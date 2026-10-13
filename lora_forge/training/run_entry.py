@@ -21,6 +21,9 @@ And with LORA_FORGE_COMPILE_DYNAMIC_SEQ=1 (GUI option compile_shapes = bounded) 
 for all bucket sizes: only the token count is dynamic (see bounded_block_call). On the user's
 Anima set (20 buckets, batch 2) that is 2 graphs instead of 28 with matching loss, and it avoids
 pytorch#193194, which only hits when every dimension may become dynamic.
+With LORA_FORGE_ACTIVATION_MEMORY_BUDGET (GUI option activation_memory_budget, a fraction or `auto`)
+torch.compile's recompute planner replaces gradient checkpointing (install_memory_budget). A run
+that fails for lack of VRAM gets an out_of_memory notice.
 
 The output goes to the GUI through a pipe: install_console_output() keeps tqdm bars full width and
 rich's colors, and install_log_filter() shortens network_reg_lrs / network_reg_dims logging.
@@ -30,6 +33,7 @@ first on sys.path.
 """
 
 import json
+import math
 import os
 import re
 import runpy
@@ -43,6 +47,8 @@ PATCHES_ENV = "LORA_FORGE_PATCHES"
 DYNAMIC_SEQ_ENV = "LORA_FORGE_COMPILE_DYNAMIC_SEQ"
 # set by the runner when its console shows ANSI colors
 ANSI_ENV = "LORA_FORGE_ANSI"
+# GUI option activation_memory_budget (Anima with compile), in place of gradient checkpointing
+MEMORY_BUDGET_ENV = "LORA_FORGE_ACTIVATION_MEMORY_BUDGET"
 PROGRESS_INTERVAL = 1.0
 
 
@@ -333,6 +339,122 @@ def install_anima_patches(dynamic_seq: bool = False):
     compile_utils.compile_transformer = compile_inner
 
 
+GIB = 2**30
+# activation_memory_budget = auto, measured on Anima (rank-32 LoRA, 16 GB card): the peak VRAM above
+# what is allocated when training starts grows with the tokens of the largest batch (batch size x
+# px / 256). Per token: gradient checkpointing's own part, and what each 1.0 of budget adds (the
+# upper end of what was measured; the planner saves tensors in steps, not smoothly).
+CHECKPOINTING_GIB_PER_TOKEN = 3.9e-4
+BUDGET_GIB_PER_TOKEN = 2.4e-3
+# left free for what the estimate does not cover (kernel workspaces, preview images)
+BUDGET_MARGIN_GIB = 0.75
+# below this the gain is small: gradient checkpointing stays. Above the maximum the speed barely
+# grows (keeping everything adds memory faster than BUDGET_GIB_PER_TOKEN for ~1% speed)
+BUDGET_MIN, BUDGET_MAX = 0.1, 0.7
+# the budget in use, for the out_of_memory notice
+applied_budget = None
+
+
+def largest_batch_tokens(dataset) -> int:
+    """Anima tokens in the largest batch a dataset makes: images in its largest filled bucket (up to
+    the batch size) x (width / 16) x (height / 16), from the 8x VAE and the 2x2 patches."""
+    largest = 0
+    for part in getattr(dataset, "datasets", [dataset]):
+        manager = getattr(part, "bucket_manager", None)
+        if manager is None:
+            continue
+        batch_size = int(getattr(part, "batch_size", 1) or 1)
+        for (width, height), images in zip(manager.resos, manager.buckets):
+            if images:
+                largest = max(largest, min(len(images), batch_size) * (width // 16) * (height // 16))
+    return largest
+
+
+def estimate_memory_budget(free_gib: float, trainable_gib: float, tokens: int) -> float:
+    """The largest budget (a multiple of 0.05, at most BUDGET_MAX) whose estimated peak fits in the free
+    VRAM; trainable_gib is what gradients and optimizer state will take (allocated after the first step)."""
+    if tokens <= 0:
+        return 0.0
+    spare = free_gib - BUDGET_MARGIN_GIB - trainable_gib - CHECKPOINTING_GIB_PER_TOKEN * tokens
+    budget = spare / (BUDGET_GIB_PER_TOKEN * tokens)
+    return round(max(0.0, min(BUDGET_MAX, math.floor(budget * 20) / 20)), 2)
+
+
+def install_memory_budget(setting: str):
+    """activation_memory_budget: each compiled block keeps at most this fraction of its activations for
+    the backward and recomputes the rest, in place of gradient checkpointing. Applied when the
+    training loop asks for its first batch: by then the model is on the GPU and the datasets and
+    optimizer exist, and nothing has been compiled for training yet (graphs are partitioned when
+    first called). `auto` estimates the budget there; with too little VRAM, checkpointing stays."""
+    import accelerate
+    import torch
+    import torch._functorch.config as functorch_config
+    import torch.utils.data.dataloader as dataloader
+    from library import anima_models
+
+    checkpointed = []  # blocks sd-scripts turned gradient checkpointing on for (compile wraps them later)
+    enable_checkpointing = anima_models.Block.enable_gradient_checkpointing
+
+    def record_checkpointing(self, *args, **kwargs):
+        checkpointed.append(self)
+        return enable_checkpointing(self, *args, **kwargs)
+
+    anima_models.Block.enable_gradient_checkpointing = record_checkpointing
+
+    seen = {"datasets": [], "trainable_bytes": 0}
+    prepare = accelerate.Accelerator.prepare
+
+    def prepare_and_record(self, *args, **kwargs):
+        for arg in args:
+            if isinstance(arg, torch.utils.data.DataLoader):
+                seen["datasets"].append(arg.dataset)
+            optimizer = getattr(arg, "optimizer", arg)
+            if isinstance(optimizer, torch.optim.Optimizer):
+                # gradients, plus optimizer state counted as two fp32 moments (an upper bound for most)
+                seen["trainable_bytes"] = sum(param.numel() * (param.element_size() + 8) for group in optimizer.param_groups
+                                              for param in group["params"] if param.requires_grad)
+        return prepare(self, *args, **kwargs)
+
+    accelerate.Accelerator.prepare = prepare_and_record
+
+    next_batch = dataloader._BaseDataLoaderIter.__next__
+
+    def first_batch(self):
+        dataloader._BaseDataLoaderIter.__next__ = next_batch
+        apply_budget(seen["datasets"] or [self._dataset])
+        return next_batch(self)
+
+    dataloader._BaseDataLoaderIter.__next__ = first_batch
+
+    def apply_budget(datasets):
+        if setting == "auto":
+            if not checkpointed:
+                print("LoRA-Forge: activation_memory_budget = auto: gradient checkpointing is off, nothing to replace", flush=True)
+                return
+            torch.cuda.empty_cache()
+            free, _ = torch.cuda.mem_get_info()
+            tokens = max(largest_batch_tokens(dataset) for dataset in datasets)
+            budget = estimate_memory_budget(free / GIB, seen["trainable_bytes"] / GIB, tokens)
+            print(f"LoRA-Forge: activation_memory_budget = auto: {free / GIB:.1f} GiB free, largest batch "
+                  f"{tokens} tokens -> {budget:g}", flush=True)
+            if budget < BUDGET_MIN:
+                print("LoRA-Forge: too little free VRAM for activation_memory_budget; gradient checkpointing stays on", flush=True)
+                try:
+                    # config.py set them for the budget; a checkpointed run keeps spilling to RAM instead of failing
+                    torch.cuda.memory._set_allocator_settings("expandable_segments:False")
+                except (AttributeError, RuntimeError):
+                    pass
+                return
+        else:
+            budget = float(setting)
+        functorch_config.activation_memory_budget = budget
+        global applied_budget
+        applied_budget = f"{budget:g}"
+        for block in checkpointed:
+            block.disable_gradient_checkpointing()
+        print(f"LoRA-Forge: activation_memory_budget = {budget:g} in place of gradient checkpointing", flush=True)
+
+
 def install_progress(events: EventWriter, compile_monitor: "CompileMonitor"):
     import tqdm as tqdm_module
 
@@ -464,7 +586,24 @@ def main():
     if os.path.basename(trainer) == "anima_train_network.py" and os.environ.get(PATCHES_ENV, "1") != "0":
         install_anima_patches(dynamic_seq=os.environ.get(DYNAMIC_SEQ_ENV) == "1")
 
-    runpy.run_path(trainer, run_name="__main__")
+    budget = os.environ.get(MEMORY_BUDGET_ENV)
+    if budget and os.path.basename(trainer) == "anima_train_network.py":
+        install_memory_budget(budget)
+
+    try:
+        runpy.run_path(trainer, run_name="__main__")
+    except Exception as error:
+        if notify is not None and is_out_of_memory(error):
+            notify("notice", code="out_of_memory", budget=applied_budget, text=str(error).strip().splitlines()[0][:300])
+        raise
+
+
+def is_out_of_memory(error: BaseException) -> bool:
+    """CUDA out of memory, also as it shows with expandable segments on Windows (an allocation that
+    does not fit fails with "CUDA driver error: device not ready")."""
+    message = str(error)
+    return (type(error).__name__ == "OutOfMemoryError" or "out of memory" in message.lower()
+            or "CUDA driver error: device not ready" in message)
 
 
 if __name__ == "__main__":

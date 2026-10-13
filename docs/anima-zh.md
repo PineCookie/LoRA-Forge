@@ -60,6 +60,13 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
       见下文 [PyTorch #193194](#pytorch-193194)。Windows 上 `dynamic` 需要 VS 2022 C++ 编译器。
   - 由于 `bounded` 下多出来的分桶尺寸不再带来额外编译，`bucket_reso_steps = 16`（默认）可以放心使用：在一个 36 张图的数据集上，
     平均裁剪面积从 1.32%（步长 64）降到 0.34%，每个 epoch 只多 2 个 batch。
+  - `activation_memory_budget`（默认 `off`）用空余显存换速度，代替梯度检查点（它让每个 block 的前向跑两遍）：
+    每个已编译的 block 保留最多这一比例的激活，只重算其余部分，loss 不变。数值越大越快，但需要更多显存。
+    `auto` 在训练开始时根据空闲显存和最大的 batch 选出比例（所选的值会打印在控制台输出中）；空闲显存太少时保留梯度检查点。
+    只要用上了比例，该次训练就会关闭梯度检查点；保存的配置仍保留你的 `gradient_checkpointing` 设置。每个比例第一次使用时会编译一次。这类训练还会启用 PyTorch 的可扩展显存段（expandable segments），
+    防止显存碎片化（设置了 `PYTORCH_CUDA_ALLOC_CONF`、多卡训练或 `compile_mode` 使用 CUDA graphs 时不启用）。
+    显存放不下时，训练会在第一步失败，而不是借用系统内存变慢，「运行记录」页面会提示：请选更小的比例。
+    与 `blocks_to_swap` 或 offload 选项同时使用时不生效。
   - 不能与旧的 `torch_compile` 选项同时使用。
 - **`cuda_allow_tf32`、`cuda_cudnn_benchmark`**：与 `compile` 无关，可单独开启（Ampere 及更新的显卡）。
 - **省显存**：`blocks_to_swap`、`gradient_checkpointing`、`unsloth_offload_checkpointing`、`cpu_offload_checkpointing`。
@@ -83,6 +90,7 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 | loss 变成 NaN | 更新 PyTorch；Anima 需要较新的 2.x |
 | 第一步报 Inductor 或 Triton 错误 | 关闭 `compile`，并反馈该错误 |
 | 第一步报 `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` | `compile_shapes` 为 `dynamic` 或 `auto`；见下文 |
+| 第一步报 `CUDA driver error: device not ready` | 使用 `activation_memory_budget` 时显存不足：请选更小的比例或 `off` |
 | 大量 `remark: <file>:<line>:0: N instructions in function` | 旧版 triton-windows（3.8.0.post28，[#54](https://github.com/triton-lang/triton-windows/issues/54)）；锁文件安装的是 post29，执行 `uv sync` 即可 |
 | 时间步预览没有输出 | 结果在「运行记录」页面该次运行的控制台输出中 |
 

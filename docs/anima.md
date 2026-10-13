@@ -69,6 +69,19 @@ for another branch or tag) and run `uv sync` afterwards; starting the GUI never 
   - Because extra bucket sizes cost no compiles with `bounded`, `bucket_reso_steps = 16` (the
     default) is fine: on a 36-image dataset it cut the average crop from 1.32% (step 64) to 0.34%
     for 2 more batches per epoch.
+  - `activation_memory_budget` (default `off`) trades spare VRAM for speed in place of gradient
+    checkpointing, which runs each block's forward twice: every compiled block keeps up to this
+    fraction of its activations and recomputes only the rest; the losses stay the same. Higher is
+    faster but needs more VRAM. `auto` picks the fraction when training starts, from the free VRAM
+    and the largest batch (its choice is in the console output); with too little free VRAM it
+    keeps gradient checkpointing. Whenever a budget is used, gradient checkpointing is off for that
+    run; the saved config keeps your `gradient_checkpointing` setting. A fraction compiles once the
+    first time it is used. Such runs
+    also use PyTorch's expandable memory segments, which stop the memory from fragmenting (not when
+    `PYTORCH_CUDA_ALLOC_CONF` is set, with several GPUs or with a `compile_mode` that uses CUDA
+    graphs). A run that does not fit then fails at its first step instead of slowing down in system
+    RAM, and the Runs page says so: pick a lower fraction. Not used with `blocks_to_swap` or the
+    offload options.
   - Not with the older `torch_compile` option.
 - **`cuda_allow_tf32`, `cuda_cudnn_benchmark`**: independent of `compile` (Ampere or newer).
 - **Less VRAM**: `blocks_to_swap`, `gradient_checkpointing`, `unsloth_offload_checkpointing`,
@@ -96,6 +109,7 @@ positive values high noise (structure)**.
 | Loss becomes NaN | update PyTorch; Anima needs a recent 2.x |
 | A run fails at its first step with an Inductor or Triton error | turn off `compile` and report the error |
 | `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` on the first step | `compile_shapes` is `dynamic` or `auto`; see below |
+| `CUDA driver error: device not ready` on the first step | out of VRAM with `activation_memory_budget`: pick a lower fraction or `off` |
 | Lots of `remark: <file>:<line>:0: N instructions in function` | an older triton-windows (3.8.0.post28, [#54](https://github.com/triton-lang/triton-windows/issues/54)); the lock file installs post29, so run `uv sync` |
 | Timestep preview shows nothing | its output is the run's console output on the Runs page |
 

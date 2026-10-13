@@ -14,6 +14,10 @@ function checked(values: FormValues, name: string) {
 
 const SD15_TYPES = ["sd-lora", "sd-dreambooth"];
 
+function budgetOn(values: FormValues) {
+  return !["", "off"].includes(String(values.activation_memory_budget ?? ""));
+}
+
 /** Force the values the selected optimizer requires (e.g. learning_rate=1 for DAdaptation). */
 export function applyDependentValues(values: FormValues) {
   const rule = optimizerRuleFor(values.optimizer_type);
@@ -51,6 +55,18 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
     setField(values, "cpu_offload_checkpointing", false);
     setField(values, "blocks_to_swap", "");
   }
+  // activation_memory_budget spends VRAM for speed, the others save VRAM: the last edited one wins
+  if (edited === "activation_memory_budget" && budgetOn(values)) {
+    setField(values, "blocks_to_swap", "");
+    setField(values, "cpu_offload_checkpointing", false);
+    setField(values, "unsloth_offload_checkpointing", false);
+  }
+  if (
+    (edited === "blocks_to_swap" && Number(values.blocks_to_swap) > 0) ||
+    (["cpu_offload_checkpointing", "unsloth_offload_checkpointing"].includes(edited ?? "") && checked(values, edited ?? ""))
+  ) {
+    setField(values, "activation_memory_budget", "off");
+  }
 
   // only Anima/SDXL assert "unet_only or no TE caching"; FLUX/SD3 cache one encoder while
   // training the other
@@ -74,6 +90,10 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
     setField(values, "unsloth_offload_checkpointing", false);
   } else if (checked(values, "cpu_offload_checkpointing") || checked(values, "unsloth_offload_checkpointing")) {
     setField(values, "blocks_to_swap", "");
+  }
+  // an imported config with both: the VRAM-saving options win, as in config.py
+  if ((Number(values.blocks_to_swap) || 0) > 0 || checked(values, "cpu_offload_checkpointing") || checked(values, "unsloth_offload_checkpointing")) {
+    setField(values, "activation_memory_budget", "off");
   }
   if (textEncoderCachingLocksUnet && checked(values, "cache_text_encoder_outputs")) {
     setField(values, "network_train_text_encoder_only", false);

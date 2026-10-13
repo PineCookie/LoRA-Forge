@@ -121,7 +121,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     title: "Memory",
     tone: "performance",
     merged: "speed",
-    fields: ["gradient_checkpointing", "blocks_to_swap", "cpu_offload_checkpointing", "unsloth_offload_checkpointing", "split_attn", "lowram"],
+    fields: ["gradient_checkpointing", "activation_memory_budget", "blocks_to_swap", "cpu_offload_checkpointing", "unsloth_offload_checkpointing", "split_attn", "lowram"],
   },
   {
     title: "Speed",

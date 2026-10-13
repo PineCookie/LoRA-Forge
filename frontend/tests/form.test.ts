@@ -116,6 +116,30 @@ describe("rules", () => {
     expect(values.cpu_offload_checkpointing).toBe(false);
   });
 
+  it("keeps activation_memory_budget and the VRAM-saving options apart, the last edit winning", () => {
+    const groups = loadGroups("anima-lora");
+    const values = initialFormValues(groups);
+    values.blocks_to_swap = "8";
+    values.activation_memory_budget = "auto";
+    applyExclusiveRules(values, "activation_memory_budget");
+    expect([values.blocks_to_swap, values.activation_memory_budget]).toEqual(["", "auto"]);
+    values.unsloth_offload_checkpointing = true;
+    applyExclusiveRules(values, "unsloth_offload_checkpointing");
+    expect(values.activation_memory_budget).toBe("off");
+  });
+
+  it("sends activation_memory_budget only when on, with compile, and not with an offload option", () => {
+    const groups = loadGroups("anima-lora");
+    const values = initialFormValues(groups);
+    expect(values.activation_memory_budget).toBe("off");
+    expect(readForm(values, groups)).not.toHaveProperty("activation_memory_budget");
+    for (const budget of ["auto", "0.3"]) expect(readForm({ ...values, activation_memory_budget: budget }, groups).activation_memory_budget).toBe(budget);
+    const on = { ...values, activation_memory_budget: "auto" };
+    expect(readForm({ ...on, compile: false }, groups)).not.toHaveProperty("activation_memory_budget");
+    // an imported combination, which skips the live rules
+    expect(readForm({ ...on, cpu_offload_checkpointing: true }, groups)).not.toHaveProperty("activation_memory_budget");
+  });
+
   it("locks network_train_unet_only while caching text encoder outputs on Anima", () => {
     const values = initialFormValues(loadGroups("anima-lora"));
     values.network_train_text_encoder_only = true;

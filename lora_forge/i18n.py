@@ -87,6 +87,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh": "请选择底模：pretrained_model_name_or_path 未填写。",
         "ja": "ベースモデルを選択してください：pretrained_model_name_or_path が空欄です。",
     },
+    "run.memoryBudgetRange": {
+        "en": "activation_memory_budget must be off, auto, or a number above 0 and at most 1.",
+        "zh": "activation_memory_budget 必须是 off、auto，或大于 0 且不超过 1 的数。",
+        "ja": "activation_memory_budget は off、auto、または 0 より大きく 1 以下の数値にしてください。",
+    },
     "run.weightedCaptions": {
         "en": "This training type does not support weighted_captions: only SD / SDXL implement weighted "
               "tokenization, and Anima / FLUX / SD3 ignore it or fail. Turn the option off and try again.",

@@ -47,6 +47,7 @@ const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = 
   compile_shapes: ["compile", true],
   compile_fullgraph: ["compile", true],
   compile_cache_size_limit: ["compile", true],
+  activation_memory_budget: ["compile", true],
   wandb_api_key: ["log_with", "wandb"],
   // SDXL fine-tune: the text encoders are only trained with train_text_encoder
   learning_rate_te1: ["train_text_encoder", true],

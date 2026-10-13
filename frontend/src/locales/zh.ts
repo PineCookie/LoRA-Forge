@@ -65,6 +65,8 @@ const zh: Messages = {
   "runs.stat.graphs": "已编译图数",
   "runs.stat.graphsTitle": "torch.compile 已构建的图数量：大约每个分桶形状（及批大小）一个",
   "runs.notice.recompileLimit": "torch.compile 已达到 {limit} 个图的上限：之后出现的分桶形状将不经编译运行，速度更慢。请把 compile_shapes 设为 bounded、调高 compile_cache_size_limit，或减少分桶尺寸（增大 bucket_reso_steps）。",
+  "runs.notice.outOfMemory": "显存不足。请降低 train_batch_size 或分辨率，或用 gradient_checkpointing、blocks_to_swap 节省显存。",
+  "runs.notice.outOfMemoryBudget": "在 activation_memory_budget = {budget} 下显存不足（此时也可能显示为 \"CUDA driver error: device not ready\"）。请为 activation_memory_budget 选更小的值，或选 off 以重新使用梯度检查点。",
   "runs.notice.dynamicSeqOutside": "一个 {side}x{side} px 的分桶（{tokens} 个 token，批大小 {batch}）超出了 compile_shapes = bounded 的范围（最多 {max} 个 token），因此单独编译：每种这样的形状多一个图。",
   "runs.phase.preparing": "准备数据",
   "runs.phase.training": "训练",

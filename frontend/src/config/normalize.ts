@@ -238,6 +238,8 @@ export function normalizeTrainingConfig(config: TrainingConfig) {
     if (config.compile) Object.assign(config, COMPILE_SHAPES[config.compile_shapes] ?? {});
     delete config.compile_shapes;
   }
+  // only compiled blocks have the recompute planner it sets
+  if (!config.compile || config.activation_memory_budget === "off") delete config.activation_memory_budget;
   // sd-scripts takes 150 or 225; 75 (CLIP's own length) is its default, without the option
   if (Number(config.max_token_length) === 75) delete config.max_token_length;
 
@@ -267,6 +269,10 @@ function normalizeConstraintCombinations(config: TrainingConfig) {
   }
   if (config.cpu_offload_checkpointing || config.unsloth_offload_checkpointing) {
     delete config.blocks_to_swap;
+  }
+  // the VRAM-saving options win over activation_memory_budget (config.py ignores it with them)
+  if (config.blocks_to_swap || config.cpu_offload_checkpointing || config.unsloth_offload_checkpointing) {
+    delete config.activation_memory_budget;
   }
 
   if (["anima-lora", "sdxl-lora"].includes(config.model_train_type) && config.cache_text_encoder_outputs) {

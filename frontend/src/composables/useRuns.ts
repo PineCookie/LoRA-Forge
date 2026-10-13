@@ -38,6 +38,8 @@ export interface RunNotice {
   batch?: number;
   min?: number;
   max?: number;
+  /** out_of_memory: the run's activation_memory_budget, if it had one */
+  budget?: string | null;
 }
 
 export interface Run {

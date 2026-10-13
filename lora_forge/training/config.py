@@ -199,6 +199,55 @@ def resolve_dataloader_workers(config: dict) -> None:
         config["persistent_data_loader_workers"] = False
 
 
+MEMORY_BUDGET_ENV = "LORA_FORGE_ACTIVATION_MEMORY_BUDGET"
+# compile modes that use CUDA graphs, which have a history of bugs with expandable segments
+CUDA_GRAPH_COMPILE_MODES = {"reduce-overhead", "max-autotune"}
+
+
+def apply_activation_memory_budget(config: dict, model_train_type: str, environment: dict, gpu_count: int) -> None:
+    """activation_memory_budget (Anima with compile): instead of gradient checkpointing, which runs
+    every block's forward twice, torch.compile keeps up to this fraction of each block's activations
+    and recomputes only the rest (cheap element-wise work first). `auto` picks the fraction from the
+    free VRAM when training starts. run_entry.py applies it and turns checkpointing off then.
+
+    Not used without compile (only compiled blocks have the planner) and not with blocks_to_swap or
+    the offload options, which are there to save VRAM.
+    """
+    budget = str(config.pop("activation_memory_budget", "")).strip().lower()
+    if budget in ("", "off", "none"):
+        return
+    if budget != "auto":
+        try:
+            value = float(budget)
+        except ValueError:
+            raise TrainingConfigError(t("run.memoryBudgetRange"))
+        if not 0 < value <= 1:
+            raise TrainingConfigError(t("run.memoryBudgetRange"))
+        budget = repr(value)
+    if model_train_type != "anima-lora" or not config.get("compile"):
+        return
+    offload = [name for name in ("cpu_offload_checkpointing", "unsloth_offload_checkpointing") if config.get(name)]
+    if float(config.get("blocks_to_swap") or 0) > 0:
+        offload.insert(0, "blocks_to_swap")
+    if offload:
+        log.info(f"activation_memory_budget is not used with {', '.join(offload)}; gradient checkpointing stays as set")
+        return
+
+    environment[MEMORY_BUDGET_ENV] = budget
+    log.info(f"activation_memory_budget = {budget}: in place of gradient checkpointing once training starts")
+    # Bounded compile gives the CUDA caching allocator a different tensor size almost every step;
+    # its cached blocks then fragment and push the budget past the VRAM. Expandable segments avoid
+    # that. Only set here: over the VRAM they fail the run ("CUDA driver error: device not ready")
+    # where Windows would otherwise spill into system RAM. Kept away from settings of the user's own,
+    # multi-GPU runs and CUDA graphs.
+    if (
+        not any(os.environ.get(name) for name in ("PYTORCH_CUDA_ALLOC_CONF", "PYTORCH_ALLOC_CONF"))
+        and gpu_count <= 1
+        and config.get("compile_mode") not in CUDA_GRAPH_COMPILE_MODES
+    ):
+        environment["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
+
 def prepare_training(config: dict) -> PreparedRun:
     """Validate a submitted config and write the TOML (and prompt / dataset files) for sd-scripts.
 
@@ -234,6 +283,7 @@ def prepare_training(config: dict) -> PreparedRun:
         # step (ConstraintViolationError). Turned off only here, as it is faster otherwise.
         environment["TORCHINDUCTOR_MIX_ORDER_REDUCTION"] = "0"
         log.info("include_patterns with compile_shapes = bounded: inductor mix-order reduction is off")
+    apply_activation_memory_budget(config, model_train_type, environment, gpu_count=len(gpu_ids or []))
 
     resolve_dataloader_workers(config)
 

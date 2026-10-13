@@ -57,6 +57,7 @@ const ADVANCED_FIELDS = new Set([
   "compile_shapes",
   "compile_fullgraph",
   "compile_cache_size_limit",
+  "activation_memory_budget",
 ]);
 
 /**

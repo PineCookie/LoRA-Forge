@@ -65,6 +65,8 @@ const ja: Messages = {
   "runs.stat.graphs": "コンパイル済みグラフ",
   "runs.stat.graphsTitle": "torch.compile がこれまでに構築したグラフ数：おおよそバケット形状（とバッチサイズ）ごとに 1 つ",
   "runs.notice.recompileLimit": "torch.compile がグラフ数の上限 {limit} に達しました。以降に現れたバケット形状はコンパイルされずに実行され、遅くなります。compile_shapes を bounded にするか、compile_cache_size_limit を上げるか、バケットサイズを減らしてください（bucket_reso_steps を大きくする）。",
+  "runs.notice.outOfMemory": "GPU メモリが不足しました。train_batch_size や解像度を下げるか、gradient_checkpointing や blocks_to_swap で VRAM を節約してください。",
+  "runs.notice.outOfMemoryBudget": "activation_memory_budget = {budget} で GPU メモリが不足しました（この場合 \"CUDA driver error: device not ready\" と表示されることもあります）。activation_memory_budget を小さい値にするか、off にして勾配チェックポイントに戻してください。",
   "runs.notice.dynamicSeqOutside": "{side}x{side} px のバケット（{tokens} トークン、バッチ {batch}）は compile_shapes = bounded の範囲（最大 {max} トークン）を超えるため、個別にコンパイルされます。このようなシェイプごとにグラフが 1 つ増えます。",
   "runs.phase.preparing": "データ準備",
   "runs.phase.training": "学習",
