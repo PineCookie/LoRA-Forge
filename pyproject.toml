@@ -1,6 +1,6 @@
 [project]
 name = "lora-forge"
-version = "1.0.0"
+version = "1.1.0"
 description = "Web UI for training LoRA models (Anima, FLUX, SD3.5, SDXL, SD1.5) with kohya-ss/sd-scripts"
 readme = "README.md"
 license-files = ["LICENSE"]
