@@ -27,7 +27,8 @@ RUN_ID = re.compile(r"^[0-9]{8}-[0-9]{6}(-[0-9]+)?$")
 # a page of events per request: a long run catches up in a few requests instead of one huge one
 MAX_EVENT_BYTES = 2 * 1024 * 1024
 OUTPUT_TAIL_BYTES = 256 * 1024
-ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07")
+# colors and cursor moves (CSI), and OSC sequences such as rich's file links, ended by BEL or ESC \
+ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 MODEL_EXTENSIONS = {".safetensors", ".ckpt", ".pt"}

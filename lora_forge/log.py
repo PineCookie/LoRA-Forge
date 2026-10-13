@@ -4,6 +4,9 @@ import logging
 log = logging.getLogger('lora-forge')
 log.setLevel(logging.DEBUG)
 
+# whether this process's console shows ANSI colors (a terminal that is not an old Windows console)
+console_ansi = False
+
 try:
     from rich.console import Console
     from rich.logging import RichHandler
@@ -37,6 +40,7 @@ try:
     while log.hasHandlers() and len(log.handlers) > 0:
         log.removeHandler(log.handlers[0])
     log.addHandler(rh)
+    console_ansi = console.is_terminal and console.color_system not in (None, 'windows')
 
 except ModuleNotFoundError:
     pass

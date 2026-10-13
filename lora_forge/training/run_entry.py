@@ -22,6 +22,9 @@ for all bucket sizes: only the token count is dynamic (see bounded_block_call). 
 Anima set (20 buckets, batch 2) that is 2 graphs instead of 28 with matching loss, and it avoids
 pytorch#193194, which only hits when every dimension may become dynamic.
 
+The output goes to the GUI through a pipe: install_console_output() keeps tqdm bars full width and
+rich's colors, and install_log_filter() shortens network_reg_lrs / network_reg_dims logging.
+
 Kept free of lora_forge imports: it runs in the training process, with sd-scripts' directory
 first on sys.path.
 """
@@ -38,6 +41,8 @@ EVENTS_ENV = "LORA_FORGE_EVENTS"
 PATCHES_ENV = "LORA_FORGE_PATCHES"
 # set by the runner for the GUI option compile_shapes = bounded (a LoRA-Forge option, not sd-scripts')
 DYNAMIC_SEQ_ENV = "LORA_FORGE_COMPILE_DYNAMIC_SEQ"
+# set by the runner when its console shows ANSI colors
+ANSI_ENV = "LORA_FORGE_ANSI"
 PROGRESS_INTERVAL = 1.0
 
 
@@ -375,6 +380,64 @@ def install_progress(events: EventWriter, compile_monitor: "CompileMonitor"):
     tqdm_module.tqdm = ProgressBar
 
 
+def install_console_output():
+    """The output reaches the GUI's console through a pipe, where tqdm cannot read the console
+    width (a 10-column bar) and rich turns colors off. Use COLUMNS for tqdm's width, and with
+    LORA_FORGE_ANSI=1 (the GUI's console shows ANSI colors; the runner also sets FORCE_COLOR) stop
+    rich from taking the pipe for an old Windows console, which it colors with console API calls
+    that a pipe drops."""
+    columns = int(os.environ.get("COLUMNS") or 0)
+    if columns:
+        import tqdm.std as tqdm_std
+
+        screen_shape_wrapper = tqdm_std._screen_shape_wrapper
+
+        def wrapper():
+            measure = screen_shape_wrapper()
+
+            def screen_shape(fp):
+                cols, rows = measure(fp) if measure else (None, None)
+                return (cols, rows) if cols else (columns - 1, rows)
+
+            return screen_shape
+
+        tqdm_std._screen_shape_wrapper = wrapper
+
+    if os.environ.get(ANSI_ENV) == "1":
+        try:
+            import rich.console
+        except ImportError:
+            return
+        rich.console.detect_legacy_windows = lambda: False
+
+
+# sd-scripts' network modules log one line per LoRA module for network_reg_lrs / network_reg_dims
+# (hundreds of lines for Anima); one line per pattern says the same
+PER_MODULE_LINE = re.compile(r"^Module \S+ matched (?:with )?regex '(.*)' -> (LR|dim:) (.*)$")
+
+
+def install_log_filter():
+    import logging
+
+    seen = set()
+    handle = logging.Logger.handle
+
+    def filtered_handle(self, record):
+        if record.name.startswith("networks."):
+            match = PER_MODULE_LINE.match(record.getMessage())
+            if match:
+                if match.groups() in seen:
+                    return None
+                seen.add(match.groups())
+                pattern, kind, value = match.groups()
+                option = "network_reg_lrs" if kind == "LR" else "network_reg_dims"
+                record.msg = f"{option}: modules matching '{pattern}' -> {kind.rstrip(':')} {value}"
+                record.args = ()
+        return handle(self, record)
+
+    logging.Logger.handle = filtered_handle
+
+
 def main():
     if len(sys.argv) < 2:
         raise SystemExit("usage: run_entry.py <trainer.py> [trainer args...]")
@@ -394,6 +457,9 @@ def main():
         notify = events.write
         install_tracker(events)
         install_progress(events, compile_monitor)
+
+    install_console_output()
+    install_log_filter()
 
     if os.path.basename(trainer) == "anima_train_network.py" and os.environ.get(PATCHES_ENV, "1") != "0":
         install_anima_patches(dynamic_seq=os.environ.get(DYNAMIC_SEQ_ENV) == "1")

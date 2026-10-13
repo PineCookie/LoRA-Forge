@@ -8,7 +8,7 @@ import threading
 
 from lora_forge.i18n import t
 from lora_forge.launcher import base_dir_path
-from lora_forge.log import log
+from lora_forge.log import console_ansi, log
 from lora_forge.training import runs
 from lora_forge.training.config import PreparedRun
 from lora_forge.training.run_entry import EVENTS_ENV
@@ -56,6 +56,12 @@ def start_training(prepared: PreparedRun) -> tuple[str, str]:
     # every platform, and logs as wide as the console instead of rich's 80-column default
     environ["PYTHONIOENCODING"] = "utf-8"
     environ.setdefault("COLUMNS", str(max(120, shutil.get_terminal_size((160, 40)).columns)))
+    # rich (sd-scripts' logs) turns colors off on a pipe; keep them when this console shows them
+    # (run_entry.py handles the rest). output.log keeps them, the Runs page strips them.
+    if console_ansi:
+        environ["FORCE_COLOR"] = "1"
+        environ["TTY_INTERACTIVE"] = "0"
+        environ["LORA_FORGE_ANSI"] = "1"
     environ["PYTHONWARNINGS"] = "ignore::FutureWarning,ignore::UserWarning"
     environ.update(prepared.environment)
 
