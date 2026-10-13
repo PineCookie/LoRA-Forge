@@ -227,6 +227,13 @@ def prepare_training(config: dict) -> PreparedRun:
         # the upper bound of the dynamic batch dimension
         "LORA_FORGE_BATCH_SIZE": str(config.get("train_batch_size") or 1),
     }
+    if dynamic_seq and any(str(arg).split("=", 1)[0].strip() == "include_patterns" for arg in config.get("network_args") or []):
+        # include_patterns can add LoRA to modules sd-scripts excludes by default (AdaLN modulation,
+        # embedders, norms), whose backward sums over the token axis. Inductor's mix-order reduction
+        # then guards at 4096 tokens, which contradicts the bounded token range and fails the first
+        # step (ConstraintViolationError). Turned off only here, as it is faster otherwise.
+        environment["TORCHINDUCTOR_MIX_ORDER_REDUCTION"] = "0"
+        log.info("include_patterns with compile_shapes = bounded: inductor mix-order reduction is off")
 
     resolve_dataloader_workers(config)
 
