@@ -92,7 +92,7 @@ Images directly in the dataset folder are not used; the GUI tells you when no `<
 
 **4. Start and watch.** Press **Start training**. The status in the header shows the progress; click it to open the run on the **Runs** page, where you see the loss, samples and console output. The LoRA files are saved to the output folder (`output/` by default) and listed on the run.
 
-The form is not saved automatically: use **Export JSON** or **Export TOML** to keep a config and **Import…** to load it again. Every training you start also saves its config in `config/autosave/`, which you can import as well.
+Each page keeps what you entered while the browser tab is open, also when you switch to the Runs page or another model and back, but not after a reload. To keep a config, use **Export JSON** or **Export TOML**, and **Import…** to load it again. Every training you start also saves its config in `config/autosave/`, which you can import as well.
 
 ## Updating
 

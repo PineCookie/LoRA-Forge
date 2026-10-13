@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { computed, effectScope, ref } from "vue";
 import { formValueKey, initialFormValues, readForm, toFormValue, type FormValue, type FormValues } from "../config/form";
 import { EXPANDED_KEYS, expandImportedArgs } from "../config/import";
 import type { TrainingConfig } from "../config/normalize";
@@ -8,10 +8,24 @@ import { t } from "../i18n";
 import { buildGroups, schemaOptions, type Group } from "../schema/groups";
 import { getSchema, store } from "../store";
 
-export type TrainerForm = ReturnType<typeof useTrainerForm>;
+export type TrainerForm = ReturnType<typeof createTrainerForm>;
+
+// one form per page for the whole visit, so a page shows what was entered after going to the Runs
+// page or another model and back (a reload starts over; "Reset all" too)
+const forms = new Map<string, TrainerForm>();
+
+/** The form of a trainer page, kept while the app is open. */
+export function useTrainerForm(schemaName: string): TrainerForm {
+  const kept = forms.get(schemaName);
+  if (kept) return kept;
+  // a detached scope: the computed values must outlive the page component that first asked
+  const form = effectScope(true).run(() => createTrainerForm(schemaName))!;
+  if (form.schema) forms.set(schemaName, form);
+  return form;
+}
 
 /** The state of one trainer page: field values, what was edited, and the config they stand for. */
-export function useTrainerForm(schemaName: string) {
+function createTrainerForm(schemaName: string) {
   const schema = getSchema(schemaName);
   const groups: Group[] = schema ? buildGroups(schema, schemaName, store.cards) : [];
   const fieldMap = new Map(groups.flatMap((group) => group.fields.map((field) => [field.name, field] as const)));

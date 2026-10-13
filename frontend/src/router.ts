@@ -1,5 +1,5 @@
 import { watch } from "vue";
-import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import { createRouter, createWebHistory, type RouteLocationNormalized, type RouteRecordRaw } from "vue-router";
 import { locale, t, type MessageKey } from "./i18n";
 import { TRAINER_PAGES } from "./pages";
 import HomeView from "./views/HomeView.vue";
@@ -59,9 +59,29 @@ export const navigation: { heading: { key: MessageKey }; items: { path: string; 
   },
 ];
 
+// a trainer page keeps its form while the app is open (useTrainerForm), so going back to it also
+// returns to where it was scrolled
+const trainerPaths = new Set(TRAINER_PAGES.map((page) => page.path));
+const scrollPositions = new Map<string, number>();
+// the page's own path, also when it was opened under an old URL (an alias)
+const pagePath = (route: RouteLocationNormalized) => {
+  const record = route.matched[0];
+  return record ? (record.aliasOf ?? record).path : route.path;
+};
+
 export const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition;
+    if (to.path === from.path) return false;
+    return { top: scrollPositions.get(pagePath(to)) ?? 0 };
+  },
+});
+
+router.beforeEach((_to, from) => {
+  const path = pagePath(from);
+  if (trainerPaths.has(path)) scrollPositions.set(path, window.scrollY);
 });
 
 function updateDocumentTitle() {
