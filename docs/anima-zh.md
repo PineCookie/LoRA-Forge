@@ -39,7 +39,7 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 | `discrete_flow_shift` | 只在 `timestep_sampling = sigma` 或 `shift` 时使用 |
 | `weighting_scheme` | Anima 只实现了 `sigma_sqrt` 和 `cosmap`，其余都按等权处理 |
 | `vae_disable_cache`、`vae_chunk_size` | 开启 `qwen_image_vae_2d` 时无效（缓存）或影响很小（分块） |
-| `llm_adapter_lr` | 用于全量微调；训练 LoRA 时保持 0（冻结） |
+| `network_reg_lrs` | 按正则为各模块设置学习率（`.*self_attn.*=1e-4,.*mlp.*=5e-5`）。sd-scripts 的 `self_attn_lr`、`cross_attn_lr`、`mlp_lr`、`mod_lr` 和 `llm_adapter_lr` 只用于全量微调，因此 LoRA 页面不提供这些选项 |
 
 ## 加速与显存
 

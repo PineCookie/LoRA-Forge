@@ -40,7 +40,7 @@ for another branch or tag) and run `uv sync` afterwards; starting the GUI never 
 | `discrete_flow_shift` | only used with `timestep_sampling = sigma` or `shift` |
 | `weighting_scheme` | Anima only implements `sigma_sqrt` and `cosmap`; anything else is uniform |
 | `vae_disable_cache`, `vae_chunk_size` | no effect (cache) or little effect (chunks) with `qwen_image_vae_2d` |
-| `llm_adapter_lr` | for full fine-tuning; keep 0 (frozen) for LoRAs |
+| `network_reg_lrs` | learning rate per module, by regex (`.*self_attn.*=1e-4,.*mlp.*=5e-5`). sd-scripts' `self_attn_lr`, `cross_attn_lr`, `mlp_lr`, `mod_lr` and `llm_adapter_lr` only apply to full fine-tuning, so the LoRA page does not offer them |
 
 ## Speed and memory
 

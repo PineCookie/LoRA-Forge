@@ -18,11 +18,8 @@ Schema.intersect([
         discrete_flow_shift: Schema.number().min(0).step(0.001).default(1.0).description("Discrete flow shift"),
         qwen3_max_token_length: Schema.number().min(1).step(1).default(512).description("Qwen3 max token length"),
         t5_max_token_length: Schema.number().min(1).step(1).default(512).description("T5 tokenizer max token length"),
-        llm_adapter_lr: Schema.number().min(0).step(0.000001).default(0).description("LLM adapter learning rate. Freezing it is the official advice for LoRA training; 0 freezes it"),
-        self_attn_lr: Schema.number().min(0).step(0.000001).description("Self-attention learning rate. Empty uses the main learning rate; 0 freezes it"),
-        cross_attn_lr: Schema.number().min(0).step(0.000001).description("Cross-attention learning rate. Empty uses the main learning rate; 0 freezes it"),
-        mlp_lr: Schema.number().min(0).step(0.000001).description("MLP learning rate. Empty uses the main learning rate; 0 freezes it"),
-        mod_lr: Schema.number().min(0).step(0.000001).description("AdaLN modulation learning rate. Empty uses the main learning rate; 0 freezes it"),
+        // sd-scripts' self_attn_lr / cross_attn_lr / mlp_lr / mod_lr / llm_adapter_lr only apply to full
+        // fine-tuning (anima_train.py); for a LoRA, network_reg_lrs sets learning rates per module
     }),
 
     Schema.object(

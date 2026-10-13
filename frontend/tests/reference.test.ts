@@ -87,7 +87,8 @@ describe("typical Anima config", () => {
 
   it("reports only the keys the Anima page has no option for", () => {
     const unused = Object.keys(source).filter((name) => !fields.has(name) && !EXPANDED_KEYS.has(name));
-    expect(unused.sort()).toEqual(["sdpa", "weighted_captions", "xformers"]);
+    // llm_adapter_lr: sd-scripts only reads it for full fine-tuning, so the LoRA page has no option
+    expect(unused.sort()).toEqual(["llm_adapter_lr", "sdpa", "weighted_captions", "xformers"]);
   });
 
   it("exports the same training arguments", () => {
