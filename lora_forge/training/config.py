@@ -184,6 +184,21 @@ def get_sample_prompts(config: dict) -> Tuple[Optional[str], str]:
     return positive_prompts, f'{positive_prompts} --n {negative_prompts}  --w {sample_width} --h {sample_height} --l {sample_cfg}  --s {sample_steps}  --d {sample_seed}'
 
 
+def resolve_dataloader_workers(config: dict) -> None:
+    """max_data_loader_n_workers left empty: none when the latents are cached, else 2.
+
+    Each worker is a separate process that is slow to start (sd-scripts' default of 8 delays the
+    first step noticeably), and with cached latents there is little work to hand to them.
+    """
+    workers = config.get("max_data_loader_n_workers")
+    if workers in (None, ""):
+        workers = 0 if config.get("cache_latents") else 2
+    config["max_data_loader_n_workers"] = int(workers)
+    if config["max_data_loader_n_workers"] == 0:
+        # PyTorch refuses persistent workers without workers
+        config["persistent_data_loader_workers"] = False
+
+
 def prepare_training(config: dict) -> PreparedRun:
     """Validate a submitted config and write the TOML (and prompt / dataset files) for sd-scripts.
 
@@ -212,6 +227,8 @@ def prepare_training(config: dict) -> PreparedRun:
         # the upper bound of the dynamic batch dimension
         "LORA_FORGE_BATCH_SIZE": str(config.get("train_batch_size") or 1),
     }
+
+    resolve_dataloader_workers(config)
 
     train_data_dir = config.get("train_data_dir", "")
     if model_train_type != "sdxl-finetune":

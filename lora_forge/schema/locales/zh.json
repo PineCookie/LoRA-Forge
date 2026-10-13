@@ -218,5 +218,6 @@
   "Memory": "显存",
   "Speed": "速度",
   "torch.compile": "torch.compile",
-  "Multiple GPUs": "多卡训练"
+  "Multiple GPUs": "多卡训练",
+  "Processes that prepare the batches. Empty: chosen when training starts, none when the latents are cached (a batch is then a few small file reads) and 2 otherwise. Each one takes seconds to start; sd-scripts' own default is 8": "准备 batch 的进程数。留空时在开始训练时自动选择：已缓存 latent 时不使用（此时一个 batch 只是读取几个小文件），否则为 2。每个进程启动都要几秒；sd-scripts 自身的默认值是 8"
 }

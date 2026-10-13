@@ -127,7 +127,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     title: "Speed",
     tone: "performance",
     merged: "speed",
-    fields: ["attn_mode", "xformers", "sdpa", "persistent_data_loader_workers", "cuda_allow_tf32", "cuda_cudnn_benchmark"],
+    fields: ["attn_mode", "xformers", "sdpa", "max_data_loader_n_workers", "persistent_data_loader_workers", "cuda_allow_tf32", "cuda_cudnn_benchmark"],
   },
   {
     title: "torch.compile",

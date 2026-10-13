@@ -36,6 +36,7 @@
                 cache_text_encoder_outputs: Schema.boolean().description("Cache text encoder outputs to save VRAM. Needs shuffle_caption off"),
                 cache_text_encoder_outputs_to_disk: Schema.boolean().description("Cache text encoder outputs to disk"),
                 persistent_data_loader_workers: Schema.boolean().default(true).description("Keep the dataloader workers alive to shorten the pause between epochs."),
+                max_data_loader_n_workers: Schema.number().min(0).step(1).description("Processes that prepare the batches. Empty: chosen when training starts, none when the latents are cached (a batch is then a few small file reads) and 2 otherwise. Each one takes seconds to start; sd-scripts' own default is 8"),
                 vae_batch_size: Schema.number().min(1).description("VAE encoding batch size"),
             },
             SAVE_FIELDS: {

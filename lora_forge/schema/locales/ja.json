@@ -218,5 +218,6 @@
   "Memory": "メモリ",
   "Speed": "速度",
   "torch.compile": "torch.compile",
-  "Multiple GPUs": "複数 GPU"
+  "Multiple GPUs": "複数 GPU",
+  "Processes that prepare the batches. Empty: chosen when training starts, none when the latents are cached (a batch is then a few small file reads) and 2 otherwise. Each one takes seconds to start; sd-scripts' own default is 8": "バッチを準備するプロセス数。空欄なら学習開始時に自動で決めます。latent をキャッシュしている場合は使いません（バッチは小さなファイルをいくつか読むだけです）。それ以外は 2。各プロセスの起動には数秒かかります。sd-scripts 自体の既定値は 8"
 }
