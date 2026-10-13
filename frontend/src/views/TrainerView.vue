@@ -89,8 +89,8 @@ interface DisplaySection {
 
 function sectionNote(group: Group) {
   if (group.title === "Learning rate and optimizer") return t("trainer.note.optimizer");
-  if (group.title === "torch.compile / CUDA performance") return t("trainer.note.compile");
-  if (group.title !== "Loss") return undefined;
+  if (group.title === "torch.compile") return t("trainer.note.compile");
+  if (group.title !== "Timesteps and loss") return undefined;
   if (props.schemaName === "anima-lora") return t("trainer.note.lossAnima");
   const names = new Set(group.fields.map((field) => field.name));
   if (names.has("min_snr_gamma") && names.has("debiased_estimation_loss")) return t("trainer.note.lossMinSnr");
@@ -99,7 +99,7 @@ function sectionNote(group: Group) {
 
 const notesOf = (groupsShown: Group[]) => groupsShown.map(sectionNote).filter((note): note is string => Boolean(note));
 
-// All options: the schema's own sections. Essentials: their few options merged into six broader
+// All options: the sections of schema/layout.ts. Essentials: their few options merged into six broader
 // sections, so the page is not a stack of one-option sections.
 const sections = computed<DisplaySection[]>(() => {
   const shown = groups.map((group) => ({ group, fields: group.fields.filter(fieldShown) })).filter((entry) => entry.fields.length);

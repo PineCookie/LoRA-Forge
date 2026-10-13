@@ -7,6 +7,7 @@ import { initialFormValues } from "../src/config/form";
 import { isFieldVisible } from "../src/config/visibility";
 import { parseRichText } from "../src/richText";
 import { groupTone, mergedSectionOf } from "../src/schema/groups";
+import { FALLBACK_SECTION, SECTION_LAYOUT } from "../src/schema/layout";
 import { loadGroups, SCHEMA_NAMES } from "./helpers";
 
 describe("parseRichText", () => {
@@ -26,18 +27,33 @@ describe("parseRichText", () => {
   });
 });
 
-describe("section tones", () => {
-  // sections that are deliberately neutral
-  const GENERAL = new Set(["Training", "Other", "Advanced", "Options"]);
+describe("page layout", () => {
+  const pages = SCHEMA_NAMES.map((name) => ({ name, groups: loadGroups(name, ["GPU 0: A", "GPU 1: B"]) }));
+  const listed = SECTION_LAYOUT.flatMap((section) => section.fields);
 
-  it("gives every schema section an accent", () => {
-    const untoned = new Set<string>();
-    for (const name of SCHEMA_NAMES) {
-      for (const group of loadGroups(name, ["GPU 0: A", "GPU 1: B"])) {
-        if (groupTone(group.title) === "general" && !GENERAL.has(group.title)) untoned.add(group.title);
-      }
+  it("places every option of every page in a section", () => {
+    for (const { name, groups } of pages) {
+      const unplaced = groups.filter((group) => group.title === FALLBACK_SECTION.title).flatMap((group) => group.fields.map((field) => field.name));
+      expect(unplaced, name).toEqual([]);
     }
-    expect([...untoned]).toEqual([]);
+  });
+
+  it("lists each option once, and only options some page has", () => {
+    expect(listed.filter((name, index) => listed.indexOf(name) !== index)).toEqual([]);
+    const used = new Set(pages.flatMap(({ groups }) => groups.flatMap((group) => group.fields.map((field) => field.name))));
+    expect(listed.filter((name) => !used.has(name))).toEqual([]);
+  });
+
+  it("uses the same section order on every page", () => {
+    const order = SECTION_LAYOUT.map((section) => section.title);
+    for (const { name, groups } of pages) {
+      const titles = groups.map((group) => group.title);
+      expect(titles, name).toEqual(order.filter((title) => titles.includes(title)));
+    }
+  });
+
+  it("gives every section an accent", () => {
+    expect(SECTION_LAYOUT.filter((section) => groupTone(section.title) === "general").map((section) => section.title)).toEqual([]);
   });
 });
 
@@ -54,19 +70,6 @@ describe("essentials", () => {
 });
 
 describe("merged Essentials sections", () => {
-  // sections that belong under "Training"; any other title must be mapped explicitly
-  const TRAINING = new Set(["Training", "Learning rate and optimizer", "Optimizer options", "Loss", "Noise", "Anima options", "FLUX options", "SD3 options", "Options", "Other", "Advanced"]);
-
-  it("maps every schema section on purpose", () => {
-    const unmapped = new Set<string>();
-    for (const name of SCHEMA_NAMES) {
-      for (const group of loadGroups(name, ["GPU 0: A", "GPU 1: B"])) {
-        if (mergedSectionOf(group.title) === "training" && !TRAINING.has(group.title)) unmapped.add(group.title);
-      }
-    }
-    expect([...unmapped]).toEqual([]);
-  });
-
   it("puts the dataset folder and outputs together", () => {
     expect(["Dataset", "Saving", "Logging", "Captions"].map(mergedSectionOf)).toEqual(["data", "data", "data", "data"]);
   });

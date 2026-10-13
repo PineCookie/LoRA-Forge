@@ -47,17 +47,20 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
   `network_train_unet_only`。修改 `caption_dropout_rate` 等 caption 设置后，请删除缓存让它重建。
 - **2D VAE**（`qwen_image_vae_2d`）：把 VAE 的 3D 卷积换成等价的 2D 卷积；latent 相同，约 2 倍速，峰值显存约 1/3。
   缓存是同一份，切换时不需要重新缓存。
-- **`compile`**：逐 block 的 `torch.compile`。最初几步较慢，之后明显加速。
-  - `compile_dynamic_seq`（LoRA-Forge 选项，默认开启）让所有分桶尺寸和批大小共用一个编译图：只有 token 数量和批大小是动态的。
-    在一个 20 个分桶的数据集上，编译图从 28 个降到 2 个，loss 不变；一个 epoch 在编译缓存已就绪时快 11%，
-    缓存为空时快 55%（批大小 4）。它覆盖最大 2048x2048 px 的分桶，超出范围的形状会单独编译，「运行记录」页面会提示。
-    与 `blocks_to_swap` 同时使用时不生效。
-  - 关闭它时，每个分桶尺寸（以及每个较小的最后一批）都要编译自己的图，上限为 `compile_cache_size_limit`（64）；
-    超过后，新的尺寸将不经编译运行。「运行记录」页面会显示已编译的图数，并在达到上限时提示。
-  - `compile_dynamic` 请保持 `false`，原因见下文 [PyTorch #193194](#pytorch-193194)。
-  - 由于多出来的分桶尺寸不再带来额外编译，`bucket_reso_steps = 16`（默认）可以放心使用：在一个 36 张图的数据集上，
+- **`compile`**（默认开启）：逐 block 的 `torch.compile`。编译期间最初几步较慢，之后明显加速；编译结果会缓存，
+  之后的训练启动更快。不需要 C++ 编译器（只有 `compile_shapes = dynamic` 需要）。如果编译失败，请关闭 `compile`，训练会以未编译的方式运行。
+  - `compile_shapes` 决定不同分桶尺寸和批大小如何编译：
+    - **`bounded`**（默认，LoRA-Forge 的模式）：所有分桶尺寸和批大小共用一个编译图，只有 token 数量和批大小是动态的。
+      在一个 20 个分桶的数据集上，编译图从 28 个降到 2 个，loss 不变；一个 epoch 在编译缓存已就绪时快 11%，
+      缓存为空时快 55%（批大小 4）。它覆盖最大 2048x2048 px 的分桶，超出范围的形状会单独编译，「运行记录」页面会提示。
+      与 `blocks_to_swap` 同时使用时等同于 `static`。
+    - **`static`**：每个分桶尺寸（以及每个较小的最后一批）都要编译自己的图，上限为 `compile_cache_size_limit`（64）；
+      超过后，新的尺寸将不经编译运行。「运行记录」页面会显示已编译的图数，并在达到上限时提示。
+    - **`auto`** / **`dynamic`**：torch.compile 自带的动态形状（即 sd-scripts 的 `compile_dynamic`）。在 torch 2.14 上会失败，
+      见下文 [PyTorch #193194](#pytorch-193194)。Windows 上 `dynamic` 需要 VS 2022 C++ 编译器。
+  - 由于 `bounded` 下多出来的分桶尺寸不再带来额外编译，`bucket_reso_steps = 16`（默认）可以放心使用：在一个 36 张图的数据集上，
     平均裁剪面积从 1.32%（步长 64）降到 0.34%，每个 epoch 只多 2 个 batch。
-  - 不能与旧的 `torch_compile` 选项同时使用。Windows 上 `compile_dynamic = true` 需要 VS 2022 C++ 编译器。
+  - 不能与旧的 `torch_compile` 选项同时使用。
 - **`cuda_allow_tf32`、`cuda_cudnn_benchmark`**：与 `compile` 无关，可单独开启（Ampere 及更新的显卡）。
 - **省显存**：`blocks_to_swap`、`gradient_checkpointing`、`unsloth_offload_checkpointing`、`cpu_offload_checkpointing`。
   `blocks_to_swap` 与两种 offload 选项互斥；打开其中一个时，GUI 会自动清掉冲突的选项。
@@ -78,16 +81,17 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 |---|---|
 | 开了加速选项但速度没变 | sd-scripts 版本过旧，选项被忽略；查看首页的 **系统信息** |
 | loss 变成 NaN | 更新 PyTorch；Anima 需要较新的 2.x |
-| 第一步报 `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` | `compile_dynamic` 为 `true` 或 `auto`；见下文 |
+| 第一步报 Inductor 或 Triton 错误 | 关闭 `compile`，并反馈该错误 |
+| 第一步报 `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` | `compile_shapes` 为 `dynamic` 或 `auto`；见下文 |
 | 大量 `remark: <file>:<line>:0: N instructions in function` | 旧版 triton-windows（3.8.0.post28，[#54](https://github.com/triton-lang/triton-windows/issues/54)）；锁文件安装的是 post29，执行 `uv sync` 即可 |
 | 时间步预览没有输出 | 结果在「运行记录」页面该次运行的控制台输出中 |
 
 ### PyTorch #193194
 
-`compile_dynamic = true` 或 `auto` 时，torch 2.14（及更早版本）会在第一步报上面的 `lift_tracked_freevar_to_input` 断言：
-这是 Dynamo 在动态形状 + 梯度检查点下的 bug（[issue](https://github.com/pytorch/pytorch/issues/193194)，
-由 [PR #193254](https://github.com/pytorch/pytorch/pull/193254) 修复，预计进入 torch 2.15）。请保持
-`compile_dynamic = false`；`compile_dynamic_seq` 能获得动态形状的好处，又不会触发它。
+`compile_shapes = dynamic` 或 `auto`（即 sd-scripts 的 `compile_dynamic = true` / `auto`）时，torch 2.14（及更早版本）
+会在第一步报上面的 `lift_tracked_freevar_to_input` 断言：这是 Dynamo 在动态形状 + 梯度检查点下的 bug
+（[issue](https://github.com/pytorch/pytorch/issues/193194)，由 [PR #193254](https://github.com/pytorch/pytorch/pull/193254) 修复，
+预计进入 torch 2.15）。请使用 `bounded`（默认）：它能获得动态形状的好处，又不会触发它。
 
 ## 运行时依赖
 

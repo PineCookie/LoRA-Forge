@@ -204,7 +204,8 @@ def prepare_training(config: dict) -> PreparedRun:
     if trainer_file is None:
         raise TrainingConfigError(t("run.unknownType", type=model_train_type))
 
-    # LoRA-Forge's own options, applied by run_entry.py; sd-scripts never sees them
+    # LoRA-Forge's own options, applied by run_entry.py; sd-scripts never sees them.
+    # compile_dynamic_seq is what the web UI sends for compile_shapes = bounded.
     dynamic_seq = bool(config.pop("compile_dynamic_seq", False)) and model_train_type == "anima-lora" and bool(config.get("compile"))
     environment = {
         "LORA_FORGE_COMPILE_DYNAMIC_SEQ": "1" if dynamic_seq else "0",

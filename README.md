@@ -36,7 +36,7 @@ LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://git
 - **Models**: Anima, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
 - **Easy forms**: an *Essentials* view with the options most people change, all options one click away, search, and import / export of configs as JSON or TOML.
 - **Runs page**: progress and time left, loss and learning rate charts, sample images, the saved LoRA files and the console output, also for past runs. No TensorBoard needed.
-- **Fast Anima training**: `torch.compile` set up so that it compiles once instead of once per image size ([details](docs/anima.md)).
+- **Fast Anima training**: `torch.compile` is on by default and set up so that it compiles once instead of once per image size ([details](docs/anima.md)).
 - English, 中文 and 日本語, light and dark mode.
 
 > [!NOTE]

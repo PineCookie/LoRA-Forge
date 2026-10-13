@@ -77,6 +77,11 @@ describe("toml", () => {
     expect(fromToml(toToml(config))).toEqual(config);
   });
 
+  it("writes the page's sections in the page's order", () => {
+    const text = toToml({ compile: true, compile_dynamic: "false", seed: 1, output_name: "a", pretrained_model_name_or_path: "m", network_args: ["x=1"] });
+    expect(text.split("\n").filter((line) => line.startsWith("#"))).toEqual(["# --- Model ---", "# --- Network ---", "# --- Training ---", "# --- Saving ---", "# --- torch.compile ---"]);
+  });
+
   it("rejects tables", () => {
     expect(() => fromToml("[general]\nbatch_size = 1")).toThrow();
   });

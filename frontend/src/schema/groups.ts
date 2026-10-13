@@ -1,4 +1,7 @@
 import { Schema, SchemaNode, type Primitive } from "./dsl";
+import { FALLBACK_SECTION, SECTION_LAYOUT, sectionByTitle, type MergedSectionId, type Tone } from "./layout";
+
+export type { MergedSectionId, Tone } from "./layout";
 
 export interface Field {
   name: string;
@@ -6,43 +9,12 @@ export interface Field {
 }
 
 export interface Group {
-  /** English section title from the schema; also identifies the section (translated when shown) */
+  /** English section title from the layout; also identifies the section (translated when shown) */
   title: string;
   fields: Field[];
 }
 
-export type Tone = "general" | "model" | "data" | "save" | "optimize" | "network" | "observe" | "performance";
-
-const GROUP_TONES: Record<string, Tone> = {
-  Model: "model",
-  "Anima options": "model",
-  "FLUX options": "model",
-  "SD3 options": "model",
-  Dataset: "data",
-  Captions: "data",
-  "Data augmentation": "data",
-  Saving: "save",
-  "Learning rate and optimizer": "optimize",
-  Optimizer: "optimize",
-  "Optimizer options": "optimize",
-  Loss: "optimize",
-  Noise: "optimize",
-  Network: "network",
-  "Network options": "network",
-  "Base weights": "network",
-  "Block-wise learning rates": "network",
-  "Preview images": "observe",
-  Logging: "observe",
-  "Speed and memory": "performance",
-  "Full precision": "performance",
-  "Distributed training": "performance",
-  GPU: "performance",
-  "torch.compile / CUDA performance": "performance",
-};
-
-export type MergedSectionId = "model" | "data" | "training" | "network" | "preview" | "speed";
-
-/** The broader sections the Essentials view merges the schema sections into, in page order. */
+/** The broader sections the Essentials view merges the page's sections into, in page order. */
 export const MERGED_SECTIONS: { id: MergedSectionId; tone: Tone }[] = [
   { id: "model", tone: "model" },
   { id: "data", tone: "data" },
@@ -52,170 +24,78 @@ export const MERGED_SECTIONS: { id: MergedSectionId; tone: Tone }[] = [
   { id: "speed", tone: "performance" },
 ];
 
-const MERGED_BY_TITLE: Record<string, MergedSectionId> = {
-  Model: "model",
-  Dataset: "data",
-  Saving: "data",
-  Captions: "data",
-  Logging: "data",
-  "Data augmentation": "data",
-  Network: "network",
-  "Network options": "network",
-  "Base weights": "network",
-  "Block-wise learning rates": "network",
-  "Preview images": "preview",
-  "Speed and memory": "speed",
-  "Full precision": "speed",
-  "torch.compile / CUDA performance": "speed",
-  "Distributed training": "speed",
-  GPU: "speed",
-};
-
-/** The Essentials section a schema section belongs to; the rest (training, optimizer, model options) is "training". */
+/** The Essentials section a page section belongs to. */
 export function mergedSectionOf(title: string): MergedSectionId {
-  return MERGED_BY_TITLE[title] ?? "training";
+  return sectionByTitle(title).merged;
 }
 
-/** Accent colour of a section; titles without an entry are "general". */
+/** Accent colour of a section. */
 export function groupTone(title: string): Tone {
-  return GROUP_TONES[title] ?? "general";
+  return sectionByTitle(title).tone;
 }
 
-/** Flatten an evaluated schema into titled field groups, as the form renders them. */
+/** A schema's options (plus the ones the UI adds itself), arranged in the sections of layout.ts. */
 export function buildGroups(schema: SchemaNode, schemaName: string, cards: string[]): Group[] {
-  return withGpuSelector(withFrontendAnimaNetworkArgsFields(withFrontendOptimizerFields(flattenSchema(schema)), schemaName), cards);
+  const fields = withGpuSelector(withFrontendAnimaNetworkArgsFields(withFrontendOptimizerFields(schemaFields(schema)), schemaName), cards);
+  return arrange(fields);
 }
 
-export function flattenSchema(schema: SchemaNode): Group[] {
-  const groups: Group[] = [];
-  const seen = new Set<string>();
-
-  function visit(node: SchemaNode | undefined, fallbackTitle = "Options") {
+/** Every option of a schema, in definition order; the first definition of a name wins. */
+export function schemaFields(schema: SchemaNode): Field[] {
+  const fields = new Map<string, Field>();
+  function visit(node: SchemaNode | undefined) {
     if (!node) return;
     if (node.type === "intersect" || node.type === "union") {
-      for (const item of node.items ?? []) visit(item, fallbackTitle);
-      return;
-    }
-    if (node.type !== "object") return;
-
-    const fields: Field[] = [];
-    for (const [name, field] of Object.entries(node.fields ?? {})) {
-      if (seen.has(name)) continue;
-      seen.add(name);
-      fields.push({ name, schema: field });
-    }
-    if (fields.length) {
-      const title = node.meta.description || inferGroupTitle(fields, fallbackTitle);
-      const group = groups.find((item) => item.title === title);
-      if (group) group.fields.push(...fields);
-      else groups.push({ title, fields });
+      for (const item of node.items ?? []) visit(item);
+    } else if (node.type === "object") {
+      for (const [name, field] of Object.entries(node.fields ?? {})) if (!fields.has(name)) fields.set(name, { name, schema: field });
     }
   }
-
   visit(schema);
-  return normalizeGroups(groups);
+  return [...fields.values()];
 }
 
-function normalizeGroups(groups: Group[]): Group[] {
-  const normalized = groups.filter((group) => group.fields.length);
-
-  moveFieldToGroup(normalized, "seed", "Training");
-  return normalized;
+function arrange(fields: Field[]): Group[] {
+  const byName = new Map(fields.map((field) => [field.name, field]));
+  const groups: Group[] = [];
+  for (const section of SECTION_LAYOUT) {
+    const members = section.fields.flatMap((name) => {
+      const field = byName.get(name);
+      byName.delete(name);
+      return field ? [field] : [];
+    });
+    if (members.length) groups.push({ title: section.title, fields: members });
+  }
+  if (byName.size) groups.push({ title: FALLBACK_SECTION.title, fields: [...byName.values()] });
+  return groups;
 }
 
-function moveFieldToGroup(groups: Group[], fieldName: string, targetTitle: string) {
-  let movedField: Field | undefined;
-  for (const group of groups) {
-    const index = group.fields.findIndex((field) => field.name === fieldName);
-    if (index >= 0) {
-      [movedField] = group.fields.splice(index, 1);
-      break;
-    }
-  }
-  if (!movedField) return;
-
-  let target = groups.find((group) => group.title === targetTitle);
-  if (!target) {
-    target = { title: targetTitle, fields: [] };
-    groups.push(target);
-  }
-  target.fields.push(movedField);
-
-  for (let index = groups.length - 1; index >= 0; index -= 1) {
-    if (!groups[index].fields.length) groups.splice(index, 1);
-  }
+function withGpuSelector(fields: Field[], cards: string[]): Field[] {
+  if (cards.length < 2) return fields;
+  const schema = Schema.array(Schema.union(cards)).default([cards[0]]).description("GPUs to use. When none is selected, the first GPU is used").role("select");
+  return [...fields, { name: "gpu_ids", schema }];
 }
 
-const GROUP_TITLE_HINTS: [string, string[]][] = [
-  ["Model", ["model_train_type", "pretrained_model_name_or_path", "qwen3", "vae", "clip_l", "clip_g", "t5xxl", "v2", "v_parameterization", "scale_v_pred_loss_like_noise_pred"]],
-  ["Dataset", ["train_data_dir", "resolution", "enable_bucket", "bucket_no_upscale"]],
-  ["Saving", ["output_name", "output_dir", "save_model_as", "save_state", "save_last_n_epochs_state"]],
-  ["Training", ["max_train_epochs", "train_batch_size", "gradient_checkpointing", "seed"]],
-  ["Learning rate and optimizer", ["optimizer_type", "learning_rate", "lr_scheduler", "lr_scheduler_num_cycles", "unet_lr", "text_encoder_lr", "optimizer_args_custom"]],
-  ["Loss", ["loss_type", "huber_schedule", "huber_c", "min_snr_gamma", "debiased_estimation_loss"]],
-  ["Optimizer options", ["prodigy_d0", "prodigyplus_d_coef"]],
-  ["Network", ["network_module", "network_dim", "network_alpha", "network_weights"]],
-  ["Network options", ["lycoris_algo", "conv_dim", "conv_alpha", "lokr_factor", "dylora_unit"]],
-  ["Base weights", ["enable_base_weight", "base_weights", "base_weights_multiplier"]],
-  ["Block-wise learning rates", ["enable_block_weights", "down_lr_weight", "mid_lr_weight", "up_lr_weight"]],
-  ["Preview images", ["enable_preview", "sample_prompts", "positive_prompts", "sample_width"]],
-  ["Logging", ["log_with", "logging_dir", "wandb_api_key"]],
-  ["Captions", ["caption_extension", "shuffle_caption", "keep_tokens", "max_token_length"]],
-  ["Noise", ["noise_offset", "multires_noise_iterations"]],
-  ["Data augmentation", ["color_aug", "flip_aug", "random_crop"]],
-  ["Speed and memory", ["mixed_precision", "xformers", "sdpa", "cache_latents", "attn_mode"]],
-  ["Distributed training", ["ddp_timeout", "ddp_gradient_as_bucket_view"]],
-  ["Other", ["clip_skip"]],
-];
-
-function inferGroupTitle(fields: Field[], fallbackTitle: string) {
+function withFrontendOptimizerFields(fields: Field[]): Field[] {
   const names = new Set(fields.map((field) => field.name));
-  return GROUP_TITLE_HINTS.find(([, candidates]) => candidates.some((name) => names.has(name)))?.[0] ?? fallbackTitle;
-}
-
-function fieldNames(groups: Group[]) {
-  return new Set(groups.flatMap((group) => group.fields.map((field) => field.name)));
-}
-
-function withGpuSelector(groups: Group[], cards: string[]): Group[] {
-  if (cards.length < 2) return groups;
-  return [
-    ...groups,
-    {
-      title: "GPU",
-      fields: [
-        {
-          name: "gpu_ids",
-          schema: Schema.array(Schema.union(cards)).default([cards[0]]).description("GPUs to use. When none is selected, the first GPU is used").role("select"),
-        },
-      ],
-    },
-  ];
-}
-
-function withFrontendOptimizerFields(groups: Group[]): Group[] {
-  const allNames = fieldNames(groups);
-  const optimizerField = groups.flatMap((group) => group.fields).find((field) => field.name === "optimizer_type");
+  const optimizerField = fields.find((field) => field.name === "optimizer_type");
   const optimizerOptions = optimizerField ? schemaOptions(optimizerField.schema) ?? [] : [];
-  if (!optimizerOptions.includes("prodigyplus.ProdigyPlusScheduleFree")) return groups;
+  if (!optimizerOptions.includes("prodigyplus.ProdigyPlusScheduleFree")) return fields;
 
   const extra: [string, SchemaNode][] = [
-    ["prodigy_d0", Schema.string().description("Prodigy d0: the initial LR estimate; try 1e-7, 1e-6 or 1e-5")],
-    ["prodigy_d_coef", Schema.string().default("2.0").description("Prodigy d_coef. Default 2.0")],
-    ["prodigyplus_d_coef", Schema.string().default("1.0").description("Prodigy Plus d_coef. Official default 1.0; try 2 or higher to help the LR grow")],
+    ["prodigy_d0", Schema.number().min(0).description("Prodigy d0: the initial LR estimate; try 1e-7, 1e-6 or 1e-5")],
+    ["prodigy_d_coef", Schema.number().min(0).step(0.1).default("2.0").description("Prodigy d_coef. Default 2.0")],
+    ["prodigyplus_d_coef", Schema.number().min(0).step(0.1).default("1.0").description("Prodigy Plus d_coef. Official default 1.0; try 2 or higher to help the LR grow")],
     ["prodigyplus_betas", Schema.string().default("(0.9, 0.99)").description("Prodigy Plus betas as a Python tuple, e.g. (0.95, 0.99)")],
-    ["prodigyplus_schedulefree_c", Schema.string().default("0").description("Prodigy Plus schedulefree_c. Official default 0")],
-    ["prodigyplus_prodigy_steps", Schema.string().default("0").description("Prodigy Plus prodigy_steps. Official default 0; on older versions, 5-25% of the total steps")],
+    ["prodigyplus_schedulefree_c", Schema.number().min(0).default("0").description("Prodigy Plus schedulefree_c. Official default 0")],
+    ["prodigyplus_prodigy_steps", Schema.number().min(0).step(1).default("0").description("Prodigy Plus prodigy_steps. Official default 0; on older versions, 5-25% of the total steps")],
   ];
-  const fields = extra.filter(([name]) => !allNames.has(name)).map(([name, schema]) => ({ name, schema }));
-  if (!fields.length) return groups;
-  return [...groups, { title: "Optimizer options", fields }];
+  return [...fields, ...extra.filter(([name]) => !names.has(name)).map(([name, schema]) => ({ name, schema }))];
 }
 
-function withFrontendAnimaNetworkArgsFields(groups: Group[], schemaName: string): Group[] {
-  if (schemaName !== "anima-lora") return groups;
-
-  const allNames = fieldNames(groups);
+function withFrontendAnimaNetworkArgsFields(fields: Field[], schemaName: string): Field[] {
+  if (schemaName !== "anima-lora") return fields;
+  const names = new Set(fields.map((field) => field.name));
   const extra: [string, SchemaNode][] = [
     [
       "network_reg_dims",
@@ -226,15 +106,7 @@ function withFrontendAnimaNetworkArgsFields(groups: Group[], schemaName: string)
       Schema.string().default("").description("Learning rate per module, matched by regex (Anima). Format: pattern=lr,pattern=lr. Example: .*self_attn.*=1e-4,.*cross_attn.*=5e-5"),
     ],
   ];
-  const fields = extra.filter(([name]) => !allNames.has(name)).map(([name, schema]) => ({ name, schema }));
-  if (!fields.length) return groups;
-
-  const networkGroup = groups.find((group) => group.fields.some((field) => field.name === "network_module"));
-  if (networkGroup) {
-    networkGroup.fields.push(...fields);
-    return groups;
-  }
-  return [...groups, { title: "Network", fields }];
+  return [...fields, ...extra.filter(([name]) => !names.has(name)).map(([name, schema]) => ({ name, schema }))];
 }
 
 export function schemaOptions(node: SchemaNode): Primitive[] | null {

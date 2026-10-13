@@ -33,6 +33,9 @@ const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = 
   sample_sampler: ["enable_preview", true],
   sample_every_n_epochs: ["enable_preview", true],
   sample_prompts: ["enable_preview", true],
+  // sd-scripts ignores both with bucket_no_upscale (it sizes each bucket from its image)
+  min_bucket_reso: ["bucket_no_upscale", false],
+  max_bucket_reso: ["bucket_no_upscale", false],
   huber_schedule: ["loss_type", ["huber", "smooth_l1"]],
   huber_c: ["loss_type", ["huber", "smooth_l1"]],
   v2: ["model_train_type", ["sd-lora", "sd-dreambooth"]],
@@ -41,8 +44,7 @@ const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = 
   // Anima per-block compile: these only matter while compile is enabled
   compile_backend: ["compile", true],
   compile_mode: ["compile", true],
-  compile_dynamic: ["compile", true],
-  compile_dynamic_seq: ["compile", true],
+  compile_shapes: ["compile", true],
   compile_fullgraph: ["compile", true],
   compile_cache_size_limit: ["compile", true],
   wandb_api_key: ["log_with", "wandb"],

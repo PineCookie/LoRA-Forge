@@ -65,8 +65,8 @@ const en = {
   "runs.stat.loss": "Average loss",
   "runs.stat.graphs": "Compiled graphs",
   "runs.stat.graphsTitle": "Graphs torch.compile has built so far: about one per bucket shape (and batch size)",
-  "runs.notice.recompileLimit": "torch.compile reached its limit of {limit} graphs: bucket shapes seen after that run without compile, which is slower. Raise compile_cache_size_limit, or use fewer bucket sizes (a larger bucket_reso_steps).",
-  "runs.notice.dynamicSeqOutside": "A {side}x{side} px bucket ({tokens} tokens) at batch {batch} is outside compile_dynamic_seq's range (up to {max} tokens), so it is compiled separately: one more graph for each such shape.",
+  "runs.notice.recompileLimit": "torch.compile reached its limit of {limit} graphs: bucket shapes seen after that run without compile, which is slower. Set compile_shapes to bounded, raise compile_cache_size_limit, or use fewer bucket sizes (a larger bucket_reso_steps).",
+  "runs.notice.dynamicSeqOutside": "A {side}x{side} px bucket ({tokens} tokens) at batch {batch} is outside the range of compile_shapes = bounded (up to {max} tokens), so it is compiled separately: one more graph for each such shape.",
   "runs.phase.preparing": "Preparing data",
   "runs.phase.training": "Training",
   "runs.phase.validation": "Validation",
@@ -102,7 +102,7 @@ const en = {
   "trainer.noMatch": "No options match “{query}”.",
   "trainer.note.optimizer":
     "Switching the optimizer resets some learning rates, the scheduler and optimizer_args to the values recommended for it.",
-  "trainer.note.compile": "⚠ Needs sd-scripts v0.11.1+. compile_dynamic_seq (on by default) compiles one graph for every bucket size; compile_dynamic stays false because of PyTorch #193194.",
+  "trainer.note.compile": "⚠ Needs sd-scripts v0.11.1+. compile_shapes = bounded (the default) compiles one graph for every bucket and batch size.",
   "trainer.note.lossAnima":
     "Anima uses the FlowMatch scheduler: the snr Huber schedule is not supported, and exponential may run on the network training path, but its timestep scaling makes it close to constant. constant is usually the better choice.",
   "trainer.note.lossMinSnr": "Min-SNR and Debiased Estimation loss have similar effects; enabling both is usually not recommended.",

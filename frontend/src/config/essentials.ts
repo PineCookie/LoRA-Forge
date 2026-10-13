@@ -49,13 +49,23 @@ const ESSENTIAL_FIELDS = new Set([
   "compile",
 ]);
 
+// Sub-options of an essential option that stay under "All options": compile is on by default,
+// and its settings are for tuning, not for getting started.
+const ADVANCED_FIELDS = new Set([
+  "compile_backend",
+  "compile_mode",
+  "compile_shapes",
+  "compile_fullgraph",
+  "compile_cache_size_limit",
+]);
+
 /**
  * Whether an option belongs to Essentials: listed above, or a sub-option of one that is (shown
- * only once that option turns it on, e.g. ProdigyPlus' settings, the preview prompts, compile's
- * settings).
+ * only once that option turns it on, e.g. ProdigyPlus' settings, the preview prompts).
  */
 export function isEssential(name: string): boolean {
   if (ESSENTIAL_FIELDS.has(name)) return true;
+  if (ADVANCED_FIELDS.has(name)) return false;
   const controller = controllerOf(name);
   return controller !== undefined && isEssential(controller);
 }

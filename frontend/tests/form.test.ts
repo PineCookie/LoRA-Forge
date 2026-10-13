@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { initialFormValues, readForm, toFormValue } from "../src/config/form";
+import { compileShapesOf } from "../src/config/normalize";
 import { applyDependentValues, applyExclusiveRules } from "../src/config/rules";
 import { isFieldVisible } from "../src/config/visibility";
 import { loadGroups, SCHEMA_NAMES } from "./helpers";
@@ -16,7 +17,7 @@ describe("schema groups", () => {
   });
 
   it("adds the GPU picker only with two or more cards, defaulting to the first", () => {
-    expect(loadGroups("anima-lora", ["GPU 0: A"]).some((group) => group.title === "GPU")).toBe(false);
+    expect(loadGroups("anima-lora", ["GPU 0: A"]).some((group) => group.fields.some((field) => field.name === "gpu_ids"))).toBe(false);
     const groups = loadGroups("anima-lora", ["GPU 0: A", "GPU 1: B"]);
     expect(initialFormValues(groups).gpu_ids).toEqual(["GPU 0: A"]);
   });
@@ -46,6 +47,51 @@ describe("anima defaults", () => {
 
   it("shows the resolution as WxH in the form", () => {
     expect(values.resolution).toBe("1024x1024");
+  });
+
+  it("compiles with bounded shapes, sent as sd-scripts' compile_dynamic plus compile_dynamic_seq", () => {
+    expect(config).toMatchObject({ compile: true, compile_dynamic: "false", compile_dynamic_seq: true });
+    expect(config).not.toHaveProperty("compile_shapes");
+    const shapes = (value: string, compile = true) => readForm({ ...values, compile_shapes: value, compile }, groups);
+    expect(shapes("static")).toMatchObject({ compile_dynamic: "false" });
+    expect(shapes("static")).not.toHaveProperty("compile_dynamic_seq");
+    expect(shapes("auto").compile_dynamic).toBe("auto");
+    expect(shapes("dynamic").compile_dynamic).toBe("true");
+    expect(shapes("bounded", false)).not.toHaveProperty("compile_dynamic");
+  });
+
+  it("submits learning rates as numbers", () => {
+    expect([config.learning_rate, config.unet_lr]).toEqual([1e-4, 1e-4]);
+  });
+});
+
+describe("compile_shapes import", () => {
+  it.each([
+    [{ compile_dynamic: "false", compile_dynamic_seq: true }, "bounded"],
+    [{ compile_dynamic: "false", compile_dynamic_seq: false }, "static"],
+    // from before compile_dynamic_seq: false was the only working choice
+    [{ compile_dynamic: "false" }, "bounded"],
+    [{ compile_dynamic: "auto" }, "auto"],
+    [{ compile_dynamic: "true", compile_dynamic_seq: false }, "dynamic"],
+    [{}, undefined],
+  ])("%o -> %s", (config, shapes) => {
+    expect(compileShapesOf(config)).toBe(shapes);
+  });
+});
+
+describe("max_token_length", () => {
+  it("is 75, 150 or 225 and submitted as a number; 75 is sd-scripts' default", () => {
+    const groups = loadGroups("sdxl-lora");
+    const values = initialFormValues(groups);
+    expect(readForm(values, groups).max_token_length).toBe(225);
+    expect(readForm({ ...values, max_token_length: "75" }, groups)).not.toHaveProperty("max_token_length");
+  });
+
+  it("turns an older config's 255 into 225", () => {
+    const values = initialFormValues(loadGroups("sdxl-lora"));
+    values.max_token_length = "255";
+    applyExclusiveRules(values, null);
+    expect(values.max_token_length).toBe("225");
   });
 });
 
@@ -138,6 +184,18 @@ describe("visibility", () => {
     expect(isFieldVisible("huber_c", values)).toBe(true);
     expect(isFieldVisible("wandb_api_key", values)).toBe(false);
     expect(isFieldVisible("network_dim", values)).toBe(true);
+  });
+
+  it("shows the bucket side limits only without bucket_no_upscale, which makes sd-scripts ignore them", () => {
+    for (const schema of ["anima-lora", "flux-lora", "sd3-lora", "sdxl-lora", "sd-lora", "sdxl-finetune", "sd-dreambooth"]) {
+      const values = initialFormValues(loadGroups(schema));
+      // the two full-training pages keep sd-scripts' default (off), so their limits stay in use
+      const upscaleOff = ["sdxl-finetune", "sd-dreambooth"].includes(schema);
+      expect(values.bucket_no_upscale, schema).toBe(!upscaleOff);
+      expect(isFieldVisible("min_bucket_reso", values), schema).toBe(upscaleOff);
+      values.bucket_no_upscale = upscaleOff;
+      expect(isFieldVisible("max_bucket_reso", values), schema).toBe(!upscaleOff);
+    }
   });
 });
 

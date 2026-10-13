@@ -80,6 +80,9 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
     setField(values, "network_train_unet_only", true);
   }
 
+  // an older config's 255 (sd-scripts only takes 150 / 225, and 255 trained as 225)
+  if ("max_token_length" in values && !["75", "150", "225"].includes(String(values.max_token_length))) setField(values, "max_token_length", "225");
+
   // sd-scripts requires mixed_precision to match full_fp16 / full_bf16
   if (values.full_precision === "full_fp16") setField(values, "mixed_precision", "fp16");
   else if (values.full_precision === "full_bf16") setField(values, "mixed_precision", "bf16");

@@ -17,7 +17,7 @@ LORA_FORGE_PATCHES=0 to run sd-scripts exactly as it is, e.g. to compare):
   so every bucket shape compiled two graphs and hit the recompile limit twice as fast;
 - with unsloth_offload_checkpointing the compiled block only calls the dynamo-disabled
   checkpoint function, so nothing was compiled; the block's inner _forward is compiled instead.
-And with LORA_FORGE_COMPILE_DYNAMIC_SEQ=1 (GUI option compile_dynamic_seq) it compiles one graph
+And with LORA_FORGE_COMPILE_DYNAMIC_SEQ=1 (GUI option compile_shapes = bounded) it compiles one graph
 for all bucket sizes: only the token count is dynamic (see bounded_block_call). On the user's
 Anima set (20 buckets, batch 2) that is 2 graphs instead of 28 with matching loss, and it avoids
 pytorch#193194, which only hits when every dimension may become dynamic.
@@ -36,7 +36,7 @@ import time
 
 EVENTS_ENV = "LORA_FORGE_EVENTS"
 PATCHES_ENV = "LORA_FORGE_PATCHES"
-# set by the runner from the GUI option compile_dynamic_seq (a LoRA-Forge option, not sd-scripts')
+# set by the runner for the GUI option compile_shapes = bounded (a LoRA-Forge option, not sd-scripts')
 DYNAMIC_SEQ_ENV = "LORA_FORGE_COMPILE_DYNAMIC_SEQ"
 PROGRESS_INTERVAL = 1.0
 
@@ -218,7 +218,7 @@ def report_outside_range(tokens: int, batch: int, seq_max: int):
     if (tokens, batch) in _reported_shapes:
         return
     _reported_shapes.add((tokens, batch))
-    print(f"LoRA-Forge: {tokens} tokens at batch {batch} is outside compile_dynamic_seq's range "
+    print(f"LoRA-Forge: {tokens} tokens at batch {batch} is outside the range of compile_shapes = bounded "
           f"({SEQ_MIN}..{seq_max}); this shape is compiled separately", flush=True)
     if notify is not None:
         notify("notice", code="dynamic_seq_outside", tokens=tokens, batch=batch, min=SEQ_MIN, max=seq_max)
@@ -258,7 +258,7 @@ def install_anima_patches(dynamic_seq: bool = False):
     if dynamic_seq:
         problem = bounded_patch_problem(anima_models)
         if problem:
-            print(f"LoRA-Forge: compile_dynamic_seq is off for this sd-scripts version ({problem}); "
+            print(f"LoRA-Forge: compile_shapes = bounded does not work with this sd-scripts version ({problem}); "
                   "compiling with static shapes", flush=True)
             dynamic_seq = False
 
@@ -294,7 +294,7 @@ def install_anima_patches(dynamic_seq: bool = False):
         # block swap indexes the block list itself; keep sd-scripts' static compile there
         bounded = dynamic_seq and not disable_linear
         if dynamic_seq and disable_linear:
-            print("LoRA-Forge: compile_dynamic_seq is not used with blocks_to_swap; compiling with static shapes", flush=True)
+            print("LoRA-Forge: compile_shapes = bounded is not used with blocks_to_swap; compiling with static shapes", flush=True)
         if not unsloth and not bounded:
             return compile_transformer(args, transformer, target_blocks, disable_linear)
 
@@ -307,7 +307,7 @@ def install_anima_patches(dynamic_seq: bool = False):
             # only the marked sequence axis is dynamic: no automatic dynamic shapes (pytorch#193194)
             torch._dynamo.config.automatic_dynamic_shapes = False
             dynamic = None
-            print(f"LoRA-Forge: compile_dynamic_seq: one graph for every token count from {SEQ_MIN} to {SEQ_MAX}", flush=True)
+            print(f"LoRA-Forge: compile_shapes = bounded: one graph for every token count from {SEQ_MIN} to {SEQ_MAX}", flush=True)
         else:
             dynamic = None if args.compile_dynamic is None else {"true": True, "false": False, "auto": None}[args.compile_dynamic.lower()]
         options = dict(backend=args.compile_backend, mode=args.compile_mode, dynamic=dynamic, fullgraph=args.compile_fullgraph)

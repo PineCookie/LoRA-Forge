@@ -36,7 +36,7 @@ LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scr
 - **模型**：Anima、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
 - **简洁的表单**：*常用* 视图只显示大多数人会改的选项，全部选项一键切换，支持搜索，配置可导入/导出为 JSON 或 TOML。
 - **运行记录页面**：进度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件和控制台输出，以往的训练也能查看。不需要 TensorBoard。
-- **更快的 Anima 训练**：`torch.compile` 经过调整，只编译一次，而不是每种图像尺寸各编译一次（[详情](docs/anima-zh.md)）。
+- **更快的 Anima 训练**：`torch.compile` 默认开启，并经过调整，只编译一次，而不是每种图像尺寸各编译一次（[详情](docs/anima-zh.md)）。
 - 界面支持 English、中文、日本語，以及浅色和深色模式。
 
 > [!NOTE]

@@ -81,6 +81,8 @@ describe("typical Anima config", () => {
     expect(values.full_precision).toBe("full_bf16");
     expect(values.prodigyplus_prodigy_steps).toBe("1073");
     expect(values.network_reg_lrs).toBe(".*self_attn.*=1.0,.*cross_attn.*=1.0,.*mlp.*=1.0");
+    // compile_dynamic = "false" from before compile_dynamic_seq existed
+    expect(values.compile_shapes).toBe("bounded");
   });
 
   it("reports only the keys the Anima page has no option for", () => {
@@ -91,7 +93,7 @@ describe("typical Anima config", () => {
   it("exports the same training arguments", () => {
     expect(config.optimizer_args).toEqual(expect.arrayContaining(["d_coef=1.0", "betas=(0.95, 0.99)", "schedulefree_c=20", "prodigy_steps=1073"]));
     expect(config.network_args).toEqual(["network_reg_lrs=.*self_attn.*=1.0,.*cross_attn.*=1.0,.*mlp.*=1.0"]);
-    for (const key of ["attn_mode", "compile", "qwen_image_vae_2d", "full_bf16", "max_grad_norm", "keep_tokens", "bucket_reso_steps"]) {
+    for (const key of ["attn_mode", "compile", "compile_dynamic", "qwen_image_vae_2d", "full_bf16", "max_grad_norm", "keep_tokens", "bucket_reso_steps", "learning_rate"]) {
       expect(config[key], key).toEqual(source[key]);
     }
   });

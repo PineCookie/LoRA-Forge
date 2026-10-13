@@ -1,4 +1,4 @@
-import { optimizerRuleFor, type TrainingConfig } from "./normalize";
+import { compileShapesOf, optimizerRuleFor, type TrainingConfig } from "./normalize";
 
 // Inverse of normalizeTrainingConfig() for import. Anything it generated must go back into its
 // form field: *_args_custom is appended after the generated args and sd-scripts keeps the last
@@ -27,7 +27,7 @@ function splitArg(arg: unknown): [text: string, name: string, value: string] {
 
 /** Keys an import uses without a field of the same name: expanded into other fields by
  * expandImportedArgs(), or set by the page itself (show_timesteps, by "Preview timesteps"). */
-export const EXPANDED_KEYS = new Set(["network_args", "optimizer_args", "full_fp16", "full_bf16", "show_timesteps"]);
+export const EXPANDED_KEYS = new Set(["network_args", "optimizer_args", "full_fp16", "full_bf16", "show_timesteps", "compile_dynamic", "compile_dynamic_seq"]);
 
 export function expandImportedArgs(config: TrainingConfig): TrainingConfig {
   const result: TrainingConfig = { ...config };
@@ -76,6 +76,10 @@ export function expandImportedArgs(config: TrainingConfig): TrainingConfig {
   if ("full_fp16" in config || "full_bf16" in config) {
     result.full_precision = config.full_fp16 ? "full_fp16" : config.full_bf16 ? "full_bf16" : "none";
   }
+
+  // compile_shapes is a form-only field that normalizeTrainingConfig() turns into compile_dynamic(_seq)
+  const shapes = compileShapesOf(config);
+  if (shapes) result.compile_shapes = shapes;
 
   return result;
 }

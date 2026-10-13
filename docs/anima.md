@@ -50,21 +50,26 @@ for another branch or tag) and run `uv sync` afterwards; starting the GUI never 
 - **2D VAE** (`qwen_image_vae_2d`): converts the VAE's 3D convolutions to equivalent 2D ones; same
   latents, about twice as fast, a third of the peak VRAM. The cache is the same, so switching needs
   no re-caching.
-- **`compile`**: per-block `torch.compile`. The first steps are slow, later ones clearly faster.
-  - `compile_dynamic_seq` (a LoRA-Forge option, on by default) compiles one graph for all bucket
-    and batch sizes; only the token count and batch are dynamic. On a 20-bucket dataset that is
-    2 graphs instead of 28, with the same loss: an epoch was 11% faster with a warm compile cache
-    and 55% faster with a cold one (batch 4). It covers buckets up to 2048x2048 px; anything outside
-    is compiled separately and the Runs page says so. Not used together with `blocks_to_swap`.
-  - With it off, every bucket size (and every smaller last batch) compiles its own graph, up to
-    `compile_cache_size_limit` (64); past that, new sizes run uncompiled. The Runs page shows the
-    graph count and warns when the limit is reached.
-  - Keep `compile_dynamic` at `false`, see [PyTorch #193194](#pytorch-193194) below.
-  - Because extra bucket sizes cost no compiles, `bucket_reso_steps = 16` (the default) is fine: on
-    a 36-image dataset it cut the average crop from 1.32% (step 64) to 0.34% for 2 more batches
-    per epoch.
-  - Not with the older `torch_compile` option. On Windows, `compile_dynamic = true` needs the
-    VS 2022 C++ compiler.
+- **`compile`** (on by default): per-block `torch.compile`. The first steps of a run are slow while
+  it compiles, later ones clearly faster; the compiled code is cached, so later runs start faster.
+  It needs no C++ compiler (only `compile_shapes = dynamic` does). If compiling fails, turn
+  `compile` off: training then runs uncompiled.
+  - `compile_shapes` sets how different bucket and batch sizes are compiled:
+    - **`bounded`** (the default, a LoRA-Forge mode) compiles one graph for all bucket and batch
+      sizes; only the token count and batch are dynamic. On a 20-bucket dataset that is 2 graphs
+      instead of 28, with the same loss: an epoch was 11% faster with a warm compile cache and 55%
+      faster with a cold one (batch 4). It covers buckets up to 2048x2048 px; anything outside is
+      compiled separately and the Runs page says so. With `blocks_to_swap` it works like `static`.
+    - **`static`**: every bucket size (and every smaller last batch) compiles its own graph, up to
+      `compile_cache_size_limit` (64); past that, new sizes run uncompiled. The Runs page shows the
+      graph count and warns when the limit is reached.
+    - **`auto`** / **`dynamic`**: torch.compile's own dynamic shapes (sd-scripts'
+      `compile_dynamic`). They fail on torch 2.14, see [PyTorch #193194](#pytorch-193194) below.
+      On Windows, `dynamic` needs the VS 2022 C++ compiler.
+  - Because extra bucket sizes cost no compiles with `bounded`, `bucket_reso_steps = 16` (the
+    default) is fine: on a 36-image dataset it cut the average crop from 1.32% (step 64) to 0.34%
+    for 2 more batches per epoch.
+  - Not with the older `torch_compile` option.
 - **`cuda_allow_tf32`, `cuda_cudnn_benchmark`**: independent of `compile` (Ampere or newer).
 - **Less VRAM**: `blocks_to_swap`, `gradient_checkpointing`, `unsloth_offload_checkpointing`,
   `cpu_offload_checkpointing`. `blocks_to_swap` and the two offload options exclude each other;
@@ -89,18 +94,19 @@ positive values high noise (structure)**.
 |---|---|
 | A speed option changes nothing | sd-scripts is too old and ignores it; check **System info** on the home page |
 | Loss becomes NaN | update PyTorch; Anima needs a recent 2.x |
-| `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` on the first step | `compile_dynamic` is `true` or `auto`; see below |
+| A run fails at its first step with an Inductor or Triton error | turn off `compile` and report the error |
+| `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` on the first step | `compile_shapes` is `dynamic` or `auto`; see below |
 | Lots of `remark: <file>:<line>:0: N instructions in function` | an older triton-windows (3.8.0.post28, [#54](https://github.com/triton-lang/triton-windows/issues/54)); the lock file installs post29, so run `uv sync` |
 | Timestep preview shows nothing | its output is the run's console output on the Runs page |
 
 ### PyTorch #193194
 
-With `compile_dynamic = true` or `auto`, torch 2.14 (and earlier) fails on the first step with the
-`lift_tracked_freevar_to_input` assertion above: a Dynamo bug with dynamic shapes and gradient
-checkpointing ([issue](https://github.com/pytorch/pytorch/issues/193194), fixed by
-[PR #193254](https://github.com/pytorch/pytorch/pull/193254), expected in torch 2.15). Keep
-`compile_dynamic = false`; `compile_dynamic_seq` gives the benefit of dynamic shapes without
-triggering it.
+With `compile_shapes = dynamic` or `auto` (sd-scripts' `compile_dynamic = true` / `auto`), torch
+2.14 (and earlier) fails on the first step with the `lift_tracked_freevar_to_input` assertion
+above: a Dynamo bug with dynamic shapes and gradient checkpointing
+([issue](https://github.com/pytorch/pytorch/issues/193194), fixed by
+[PR #193254](https://github.com/pytorch/pytorch/pull/193254), expected in torch 2.15). Use
+`bounded` (the default), which gives the benefit of dynamic shapes without triggering it.
 
 ## Runtime dependencies
 

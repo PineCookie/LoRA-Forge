@@ -1,4 +1,4 @@
-import type { Group } from "../schema/groups";
+import { schemaOptions, type Group } from "../schema/groups";
 
 // A training config as sent to /api/run and exported as JSON/TOML. Values are whatever the
 // schema field produces (strings, numbers, booleans, string arrays), so this stays loose.
@@ -31,7 +31,9 @@ export function cleanConfig(values: TrainingConfig, groups: Group[]): TrainingCo
     const schema = fieldMap.get(name);
     if (!schema) continue;
     if (schema.type !== "boolean" && schema.type !== "const" && value === "") continue;
-    if (schema.type === "number") config[name] = Number(value);
+    // form-only numbers become *_args text (d_coef=2.0), so they keep the text as typed
+    if (schema.type === "number") config[name] = FORM_ONLY_KEYS.includes(name) ? String(value).trim() : Number(value);
+    else if (schema.type === "enum" && schemaOptions(schema)?.every((option) => typeof option === "number")) config[name] = Number(value);
     else if (schema.type === "array") config[name] = Array.isArray(value) ? value : String(value).split(/\r?\n/).filter(Boolean);
     else config[name] = value;
   }
@@ -90,13 +92,28 @@ function applyOptimizerRuleToConfig(config: TrainingConfig) {
   config.optimizer_args.push(...rule.args(config, optimizer).filter(Boolean));
 }
 
-function coerceNumericStrings(config: TrainingConfig, names: string[]) {
-  for (const name of names) {
-    if (typeof config[name] !== "string") continue;
-    const value = config[name].trim();
-    if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value)) continue;
-    config[name] = Number(value);
+// compile_shapes (a LoRA-Forge option) -> sd-scripts' compile_dynamic; `bounded` also sets
+// compile_dynamic_seq, which the backend turns into run_entry.py's patch (it is not an sd-scripts key)
+const COMPILE_SHAPES: Record<string, { compile_dynamic: string; compile_dynamic_seq?: boolean }> = {
+  bounded: { compile_dynamic: "false", compile_dynamic_seq: true },
+  static: { compile_dynamic: "false" },
+  auto: { compile_dynamic: "auto" },
+  dynamic: { compile_dynamic: "true" },
+};
+
+/** compile_shapes for imported compile_dynamic / compile_dynamic_seq values (the inverse of COMPILE_SHAPES). */
+export function compileShapesOf(config: TrainingConfig): string | undefined {
+  if ("compile_dynamic_seq" in config) {
+    if (config.compile_dynamic_seq) return "bounded";
+  } else if (!("compile_dynamic" in config)) {
+    return undefined;
   }
+  const dynamic = String(config.compile_dynamic ?? "false").toLowerCase();
+  if (dynamic === "true") return "dynamic";
+  if (dynamic === "auto") return "auto";
+  // a config from before compile_dynamic_seq existed had false only because nothing else worked;
+  // bounded trains the same and compiles once
+  return "compile_dynamic_seq" in config ? "static" : "bounded";
 }
 
 function appendNetworkArg(config: TrainingConfig, name: string) {
@@ -150,8 +167,6 @@ const PREVIEW_KEYS = [
 export function normalizeTrainingConfig(config: TrainingConfig) {
   config.network_args ??= [];
   config.optimizer_args ??= [];
-
-  coerceNumericStrings(config, ["learning_rate", "unet_lr", "text_encoder_lr", "learning_rate_te", "learning_rate_te1", "learning_rate_te2"]);
 
   appendNetworkArg(config, "network_reg_dims");
   appendNetworkArg(config, "network_reg_lrs");
@@ -218,6 +233,13 @@ export function normalizeTrainingConfig(config: TrainingConfig) {
   delete config.full_precision;
 
   if (!config.enable_preview) for (const key of PREVIEW_KEYS) delete config[key];
+
+  if (config.compile_shapes !== undefined) {
+    if (config.compile) Object.assign(config, COMPILE_SHAPES[config.compile_shapes] ?? {});
+    delete config.compile_shapes;
+  }
+  // sd-scripts takes 150 or 225; 75 (CLIP's own length) is its default, without the option
+  if (Number(config.max_token_length) === 75) delete config.max_token_length;
 
   for (const key of Object.keys(config)) {
     if (typeof config[key] === "string" && /(_dir|_path|weights|vae|qwen3|t5xxl|clip_l|clip_g|ae|resume)$/.test(key)) {
