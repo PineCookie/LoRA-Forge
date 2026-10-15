@@ -31,7 +31,8 @@ loads on either model in ComfyUI.
 1. **Caching.** The latents (VAE) and the text encoder outputs are cached by musubi-tuner's two
    caching scripts before training starts; the Runs page shows them as "Caching latents" and
    "Caching text encoder outputs". Cache files are written next to the images, like sd-scripts'
-   `.npz` files, and a second run on the same dataset only encodes new images.
+   `.npz` files, and a second run on the same dataset only encodes new images and changed
+   captions.
 2. **Training.** `krea2_train_network.py` with the page's options, through the same monitor as the
    other pages: progress, loss charts, preview images and the saved LoRA files.
 

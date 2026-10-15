@@ -608,8 +608,8 @@ def main():
 
 def run_krea2_caching(trainer: str, cache: dict):
     """musubi-tuner caches latents and text-encoder outputs with two scripts before training
-    (`--skip_existing`: a second run on the same dataset only encodes new images). They run here, in
-    the training process, so the Runs page shows them as part of the run."""
+    (`--skip_existing`: a second run on the same dataset only encodes new images and changed
+    captions). They run here, in the training process, so the Runs page shows them as part of the run."""
     import gc
 
     import torch
@@ -620,6 +620,7 @@ def run_krea2_caching(trainer: str, cache: dict):
     )
     folder = os.path.dirname(trainer)
     trainer_argv = list(sys.argv)
+    install_caption_check()
     for name, args in scripts:
         if os.environ.get("RANK", "0") != "0":
             break
@@ -637,6 +638,33 @@ def run_krea2_caching(trainer: str, cache: dict):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     sys.argv = trainer_argv
+
+
+def install_caption_check():
+    """With `--skip_existing` musubi-tuner keeps a text-encoder cache whenever its file exists, so
+    an edited caption would train with the old one. Each cache records its caption (`caption1`
+    metadata): a cache counts as current only when that still matches."""
+    from musubi_tuner import cache_text_encoder_outputs
+    from safetensors import safe_open
+
+    original = cache_text_encoder_outputs.process_text_encoder_batches
+
+    def cache_is_current(item) -> bool:
+        path = item.text_encoder_output_cache_path
+        if not os.path.exists(path):
+            return False
+        try:
+            with safe_open(path, "pt") as f:
+                return (f.metadata() or {}).get("caption1") == item.caption
+        except Exception:
+            return False
+
+    def process_text_encoder_batches(*args, **kwargs):
+        if kwargs.get("cache_is_current") is None:
+            kwargs["cache_is_current"] = cache_is_current
+        return original(*args, **kwargs)
+
+    cache_text_encoder_outputs.process_text_encoder_batches = process_text_encoder_batches
 
 
 def install_turbo_lora_conversion(path: str):
