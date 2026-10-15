@@ -22,9 +22,9 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     tone: "model",
     merged: "model",
     fields: [
-      "model_train_type", "model_type", "pretrained_model_name_or_path", "qwen3", "vae", "ae", "clip_l", "clip_g", "t5xxl",
-      "llm_adapter_path", "t5_tokenizer_path", "v2", "v_parameterization", "scale_v_pred_loss_like_noise_pred", "clip_skip",
-      "apply_t5_attn_mask",
+      "model_train_type", "model_type", "pretrained_model_name_or_path", "qwen3", "vae", "text_encoder", "turbo_dit", "ae", "clip_l",
+      "clip_g", "t5xxl", "llm_adapter_path", "t5_tokenizer_path", "v2", "v_parameterization", "scale_v_pred_loss_like_noise_pred",
+      "clip_skip", "apply_t5_attn_mask",
     ],
   },
   {
@@ -86,8 +86,8 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     merged: "training",
     fields: [
       "timestep_sampling", "sigmoid_scale", "discrete_flow_shift", "model_prediction_type", "guidance_scale", "weighting_scheme",
-      "loss_type", "huber_schedule", "huber_c", "min_snr_gamma", "debiased_estimation_loss", "show_timesteps_resolution",
-      "show_timesteps_offset",
+      "min_timestep", "max_timestep", "loss_type", "huber_schedule", "huber_c", "min_snr_gamma", "debiased_estimation_loss",
+      "show_timesteps_resolution", "show_timesteps_offset",
     ],
   },
   { title: "Noise", tone: "optimize", merged: "training", fields: ["noise_offset", "multires_noise_iterations", "multires_noise_discount"] },
@@ -107,7 +107,12 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     ],
   },
   { title: "Logging", tone: "observe", merged: "data", fields: ["log_with", "wandb_api_key", "logging_dir", "log_prefix", "log_tracker_name"] },
-  { title: "Precision", tone: "performance", merged: "speed", fields: ["mixed_precision", "full_precision", "fp8_base", "fp8_base_unet", "no_half_vae"] },
+  {
+    title: "Precision",
+    tone: "performance",
+    merged: "speed",
+    fields: ["mixed_precision", "full_precision", "convrot_int8", "convrot_int8_bwd", "fp8_base", "fp8_base_unet", "no_half_vae"],
+  },
   {
     title: "Caching and VAE",
     tone: "performance",
@@ -121,7 +126,11 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     title: "Memory",
     tone: "performance",
     merged: "speed",
-    fields: ["gradient_checkpointing", "activation_memory_budget", "blocks_to_swap", "cpu_offload_checkpointing", "unsloth_offload_checkpointing", "split_attn", "lowram"],
+    fields: [
+      "gradient_checkpointing", "activation_memory_budget", "gradient_checkpointing_cpu_offload", "blocks_to_swap",
+      "use_pinned_memory_for_block_swap", "block_swap_h2d_only", "cpu_offload_checkpointing", "unsloth_offload_checkpointing",
+      "split_attn", "lowram",
+    ],
   },
   {
     title: "Speed",

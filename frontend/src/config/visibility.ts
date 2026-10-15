@@ -48,6 +48,9 @@ const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = 
   compile_fullgraph: ["compile", true],
   compile_cache_size_limit: ["compile", true],
   activation_memory_budget: ["compile", true],
+  // Krea 2 (musubi-tuner)
+  convrot_int8_bwd: ["convrot_int8", true],
+  turbo_dit: ["enable_preview", true],
   wandb_api_key: ["log_with", "wandb"],
   // SDXL fine-tune: the text encoders are only trained with train_text_encoder
   learning_rate_te1: ["train_text_encoder", true],

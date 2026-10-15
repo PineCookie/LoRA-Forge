@@ -8,6 +8,7 @@ import { labelText } from "../router";
 
 const DESCRIPTIONS: Record<string, MessageKey> = {
   "anima-lora": "home.mode.anima",
+  "krea2-lora": "home.mode.krea2",
   "sdxl-lora": "home.mode.sdxl",
   "flux-lora": "home.mode.flux",
   "sd3-lora": "home.mode.sd3",

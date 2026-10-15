@@ -270,6 +270,9 @@ function normalizeConstraintCombinations(config: TrainingConfig) {
   if (config.cpu_offload_checkpointing || config.unsloth_offload_checkpointing) {
     delete config.blocks_to_swap;
   }
+  // Krea 2: an imported config with both keeps int8 (config.py does the same)
+  if (config.convrot_int8) delete config.fp8_base;
+
   // the VRAM-saving options win over activation_memory_budget (config.py ignores it with them)
   if (config.blocks_to_swap || config.cpu_offload_checkpointing || config.unsloth_offload_checkpointing) {
     delete config.activation_memory_budget;

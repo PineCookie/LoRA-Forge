@@ -1,0 +1,81 @@
+# Krea 2 LoRA training
+
+[中文](krea2-zh.md)
+
+Krea 2 LoRAs are trained with [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)
+(its `krea2_train_network.py`), which LoRA Forge clones into `scripts/musubi-tuner` on first
+start, next to sd-scripts. The page's options are musubi-tuner's; for what they mean, see its
+[`docs/krea2.md`](https://github.com/kohya-ss/musubi-tuner/blob/main/docs/krea2.md). Krea 2
+support is marked experimental there.
+
+## Model files
+
+Krea 2 is a 12.9B text-to-image model with the Qwen3-VL-4B text encoder and the Qwen-Image VAE
+(the same VAE Anima uses). Download from [Comfy-Org/Krea-2](https://huggingface.co/Comfy-Org/Krea-2)
+and [Comfy-Org/Qwen3-VL](https://huggingface.co/Comfy-Org/Qwen3-VL):
+
+| Option | File | Notes |
+|---|---|---|
+| `pretrained_model_name_or_path` | `krea2_raw_int8_convrot.safetensors` (13.5 GB) | the RAW model, pre-quantized; trains as it is with `convrot_int8` (the default). `krea2_raw_bf16` (26 GB) is needed for `fp8_base` or bf16 training |
+| `vae` | `qwen_image_vae.safetensors` | **required** |
+| `text_encoder` | `text_encoders/qwen3vl_4b_bf16.safetensors` | **required**: the captions are encoded with it before training; also used for preview images |
+| `turbo_dit` | `krea2_turbo_*.safetensors` | optional, preview images only; not with `convrot_int8` yet |
+
+**Train on RAW, use the LoRA on Turbo.** Turbo is a distilled few-step model without CFG, so
+training on it would work against the distillation; musubi-tuner only trains on RAW. The LoRA
+loads on either model in ComfyUI.
+
+## How a run works
+
+1. **Caching.** The latents (VAE) and the text encoder outputs are cached by musubi-tuner's two
+   caching scripts before training starts; the Runs page shows them as "Caching latents" and
+   "Caching text encoder outputs". Cache files are written next to the images, like sd-scripts'
+   `.npz` files, and a second run on the same dataset only encodes new images.
+2. **Training.** `krea2_train_network.py` with the page's options, through the same monitor as the
+   other pages: progress, loss charts, preview images and the saved LoRA files.
+
+The dataset folder has the same layout as for the other models (`<repeats>_<name>` subfolders
+with images and `.txt` captions); LoRA Forge writes musubi-tuner's dataset TOML from it. Only
+single-GPU training is offered (untested upstream with several GPUs).
+
+## Memory and speed
+
+- **`convrot_int8`** (default on): the frozen base weights stay in int8 and run a real int8
+  matmul through Triton, which LoRA Forge installs. Half the VRAM of bf16, and faster than fp8 on
+  Krea 2, whose fp8 path dequantizes on every forward. The LoRA itself trains in full precision.
+- **`blocks_to_swap`** (default 10): blocks kept in system RAM and moved to the GPU when used.
+  With int8 weights, 10 fits a 16 GB card at 1024x1024, batch 1, with the step time barely
+  changed. More blocks for less VRAM; 0 keeps the whole model on the GPU.
+- **`gradient_checkpointing`** (default on) is needed at this model size.
+- **`compile`** (default on): torch.compile of the 28 main blocks; the quantized layers and the
+  swapped blocks stay out automatically. The first steps compile.
+- A run that does not fit spills into system RAM on Windows and becomes very slow (minutes per
+  step) rather than failing: raise `blocks_to_swap`.
+
+## Training settings
+
+The defaults follow musubi-tuner's Krea 2 example: rank and alpha 32, AdamW8bit at 1e-4,
+16 epochs, `timestep_sampling = krea2_shift` (Krea 2's own resolution-dependent timestep shift;
+`shift` with `discrete_flow_shift = 2.5` is the fixed equivalent at 1024x1024). The LoRA covers
+all 264 Linear layers of the DiT by default; `network_args` can narrow it (see musubi-tuner's
+docs). Optimal settings are not established yet upstream.
+
+## Preview images
+
+Previews need `text_encoder`. They are generated with the RAW model (28 steps, CFG 5.5 by
+default); with `turbo_dit` set, with the Turbo model instead (8 steps, no CFG), which is what the
+LoRA is mostly used with.
+
+## Updating musubi-tuner
+
+Like sd-scripts, musubi-tuner is cloned at the tested version and never updated automatically:
+
+```powershell
+.\run_gui.ps1 update-musubi-tuner           # Windows
+```
+
+```sh
+bash run_gui.sh update-musubi-tuner         # Linux
+```
+
+`--branch <name or tag>` picks another branch or tag.

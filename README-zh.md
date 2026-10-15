@@ -28,15 +28,18 @@ _✨ 享受 LoRA 训练！ ✨_
   ·
   <a href="docs/anima-zh.md">Anima 训练说明</a>
   ·
+  <a href="docs/krea2-zh.md">Krea 2 训练说明</a>
+  ·
   <a href="README.md">English</a>
 </p>
 
-LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) 训练 LoRA 的网页界面。在浏览器里填好表单、点击开始，就能在实时页面上跟踪训练；Python、PyTorch 和 sd-scripts 都由 LoRA Forge 自动准备。本项目延续自 [lora-scripts](https://github.com/Akegarasu/lora-scripts)。
+LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)（Krea 2 则用 [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)）训练 LoRA 的网页界面。在浏览器里填好表单、点击开始，就能在实时页面上跟踪训练；Python、PyTorch 和训练脚本都由 LoRA Forge 自动准备。本项目延续自 [lora-scripts](https://github.com/Akegarasu/lora-scripts)。
 
-- **模型**：Anima、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
+- **模型**：Anima、Krea 2、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
 - **简洁的表单**：*常用* 视图只显示大多数人会改的选项，全部选项一键切换，支持搜索，配置可导入/导出为 JSON 或 TOML。
 - **运行记录页面**：进度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件和控制台输出，以往的训练也能查看。不需要 TensorBoard。
 - **更快的 Anima 训练**：`torch.compile` 默认开启，并经过调整，只编译一次，而不是每种图像尺寸各编译一次（[详情](docs/anima-zh.md)）。
+- **16 GB 显卡也能训练 Krea 2**：默认使用 int8 底模权重和 block 交换（[详情](docs/krea2-zh.md)）。
 - 界面支持 English、中文、日本語，以及浅色和深色模式。
 
 > [!NOTE]
@@ -68,7 +71,7 @@ LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scr
    国内用户请加上 `--cn`（`.\run_gui.ps1 --cn`），通过清华 PyPI 镜像和 hf-mirror 下载。
 3. 打开 [http://127.0.0.1:28000](http://127.0.0.1:28000)（或加上 `--open-browser` 自动打开）。
 
-首次启动会下载 Python、PyTorch 和 sd-scripts，耗时较长；之后启动会很快。不需要单独的安装步骤。
+首次启动会下载 Python、PyTorch、sd-scripts 和 musubi-tuner，耗时较长；之后启动会很快。不需要单独的安装步骤。
 
 ## 训练第一个 LoRA
 
@@ -86,7 +89,7 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
 
 直接放在数据集文件夹里的图片不会被使用；找不到 `<重复次数>_<名称>` 子文件夹时，GUI 会给出提示。
 
-**2. 准备底模。** 下载要在其上训练的模型（Anima 还需要它的文本编码器和 VAE）。模型页面会说明需要哪些文件。
+**2. 准备底模。** 下载要在其上训练的模型（Anima 和 Krea 2 还需要各自的文本编码器和 VAE）。模型页面会说明需要哪些文件。
 
 **3. 填写表单。** 在侧边栏打开对应模型的页面。在 *常用* 视图中至少填写底模文件、数据集文件夹和输出名称，其他值都有合理的默认值。数据集文件夹旁的 **步数预测** 会显示当前设置下的训练步数。
 
@@ -108,6 +111,7 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
   ```
 
   `--branch <分支或标签>` 可选择其他分支或标签（`update-sd-scripts --branch v0.12.0`）。如果你修改过 `scripts/sd-scripts` 中的文件，更新会停止而不会覆盖。首页的 **系统信息** 面板会显示已安装的 sd-scripts 是否支持 GUI 的所有选项。
+- **musubi-tuner**（Krea 2）同理：`update-musubi-tuner [--branch <分支或标签>]` 更新 `scripts/musubi-tuner`。
 
 ## 可选功能
 
@@ -142,6 +146,8 @@ uv sync --extra flash-attn
 | `--tensorboard-port` | `6006` | TensorBoard 的端口 |
 | `--sd-scripts-branch` | `v0.12.0` | sd-scripts 不存在时克隆的分支或标签（已测试的版本） |
 | `--skip-prepare-sd-scripts` | 关 | 不克隆 sd-scripts |
+| `--musubi-tuner-branch` | `v0.3.6` | musubi-tuner 不存在时克隆的分支或标签（已测试的版本） |
+| `--skip-prepare-musubi-tuner` | 关 | 不克隆 musubi-tuner |
 | `--skip-frontend-build` | 关 | 启动时不（重新）构建网页界面 |
 | `--dev` | 关 | 开发者模式 |
 
@@ -157,6 +163,7 @@ uv sync --extra flash-attn
 | 训练失败 | 在运行记录页面打开它：控制台输出中有错误信息 |
 | 某个选项似乎不起作用 | 查看首页 **系统信息** 面板中的 *sd-scripts 兼容性* |
 | Anima：编译报错或最初几步很慢 | 见 [Anima 训练说明](docs/anima-zh.md) |
+| Krea 2：每步要几分钟 | 模型放不进显存；请调高 `blocks_to_swap`（见 [Krea 2 训练说明](docs/krea2-zh.md)） |
 
 ## 开发者
 
@@ -195,13 +202,13 @@ npm run typecheck
 
 | 路径 | 说明 |
 |---|---|
-| `main.py` | 程序入口（GUI 与 `update-sd-scripts` 命令） |
+| `main.py` | 程序入口（GUI 与 `update-sd-scripts` / `update-musubi-tuner` 命令） |
 | `run_gui.ps1`、`run_gui.sh` | 启动脚本：检查 uv，然后通过 `uv run` 运行 `main.py` |
 | `lora_forge/` | Python 后端：网页服务与 API（`app/`）、训练配置/校验/运行（`training/`）、sd-scripts 兼容性检查 |
 | `lora_forge/schema/` | 训练表单定义，由网页界面读取 |
 | `frontend/` | Vue 3 + TypeScript 网页界面 |
-| `docs/` | 使用说明（Anima） |
-| `scripts/sd-scripts` | kohya-ss/sd-scripts，首次启动时克隆（不属于本仓库；请勿用 `git clean` 删除） |
+| `docs/` | 使用说明（Anima、Krea 2） |
+| `scripts/sd-scripts`、`scripts/musubi-tuner` | kohya-ss/sd-scripts 与 musubi-tuner，首次启动时克隆（不属于本仓库；请勿用 `git clean` 删除） |
 
 后端包在上游 lora-scripts 中名为 `mikazuki`，已于 2026 年 10 月改名为 `lora_forge`，环境变量也随之改为 `LORA_FORGE_*`（原 `MIKAZUKI_*`）。
 
@@ -212,7 +219,7 @@ npm run typecheck
 LoRA-Forge 是 Akegarasu 及贡献者的 [lora-scripts](https://github.com/Akegarasu/lora-scripts) 的修改版本，于 2026 年 5 月分叉，此后有大幅修改（Vue 网页界面、Anima 训练、重写的后端与启动脚本）。与原项目相同，采用 **GNU Affero General Public License v3.0** 许可，见 [LICENSE](LICENSE)。
 
 - 如果把修改后的版本作为网络服务运行（例如使用 `--listen`），AGPL 第 13 条要求向使用者提供源代码。网页界面为此链接到本仓库；托管修改版时请把链接改为你自己的源代码。
-- [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)（Apache-2.0）在首次启动时下载到 `scripts/sd-scripts`，不随本仓库分发。
+- [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) 与 [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)（Apache-2.0）在首次启动时下载到 `scripts/`，不随本仓库分发。
 - 构建后的网页界面包含 Vue 和 vue-router（MIT），其许可声明位于 `frontend/dist/THIRD-PARTY-LICENSES.md`，并包含在发布压缩包中。
 
 感谢 Akegarasu 和原项目贡献者打下的基础。

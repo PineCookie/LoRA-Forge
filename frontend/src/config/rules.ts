@@ -55,6 +55,10 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
     setField(values, "cpu_offload_checkpointing", false);
     setField(values, "blocks_to_swap", "");
   }
+  // Krea 2: int8 and fp8 base weights are alternatives
+  if (edited === "convrot_int8" && checked(values, edited)) setField(values, "fp8_base", false);
+  if (edited === "fp8_base" && checked(values, edited)) setField(values, "convrot_int8", false);
+
   // activation_memory_budget spends VRAM for speed, the others save VRAM: the last edited one wins
   if (edited === "activation_memory_budget" && budgetOn(values)) {
     setField(values, "blocks_to_swap", "");

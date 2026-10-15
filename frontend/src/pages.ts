@@ -4,6 +4,7 @@ import type { Label } from "./router";
 // are URLs of pages a page replaced, so bookmarks keep working.
 export const TRAINER_PAGES: { path: string; title: Label; schemaName: string; oldPaths?: string[] }[] = [
   { path: "/lora/anima.html", title: { text: "Anima" }, schemaName: "anima-lora" },
+  { path: "/lora/krea2.html", title: { text: "Krea 2" }, schemaName: "krea2-lora" },
   // the combined SD1.5 / SDXL page was /lora/master.html
   { path: "/lora/sdxl.html", title: { text: "SDXL" }, schemaName: "sdxl-lora", oldPaths: ["/lora/master.html"] },
   { path: "/lora/flux.html", title: { text: "Flux" }, schemaName: "flux-lora" },

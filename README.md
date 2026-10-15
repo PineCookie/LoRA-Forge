@@ -28,15 +28,18 @@ _✨ Enjoy LoRA training! ✨_
   ·
   <a href="docs/anima.md">Anima guide</a>
   ·
+  <a href="docs/krea2.md">Krea 2 guide</a>
+  ·
   <a href="README-zh.md">中文</a>
 </p>
 
-LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts). You fill in a form in the browser, press Start, and follow the training on a live page; LoRA Forge sets up Python, PyTorch and sd-scripts for you. It continues [lora-scripts](https://github.com/Akegarasu/lora-scripts).
+LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) and, for Krea 2, [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner). You fill in a form in the browser, press Start, and follow the training on a live page; LoRA Forge sets up Python, PyTorch and the trainers for you. It continues [lora-scripts](https://github.com/Akegarasu/lora-scripts).
 
-- **Models**: Anima, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
+- **Models**: Anima, Krea 2, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
 - **Easy forms**: an *Essentials* view with the options most people change, all options one click away, search, and import / export of configs as JSON or TOML.
 - **Runs page**: progress and time left, loss and learning rate charts, sample images, the saved LoRA files and the console output, also for past runs. No TensorBoard needed.
 - **Fast Anima training**: `torch.compile` is on by default and set up so that it compiles once instead of once per image size ([details](docs/anima.md)).
+- **Krea 2 on 16 GB cards**: int8 base weights and block swap by default ([details](docs/krea2.md)).
 - English, 中文 and 日本語, light and dark mode.
 
 > [!NOTE]
@@ -68,7 +71,7 @@ LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://git
    In mainland China, add `--cn` (`.\run_gui.ps1 --cn`) to download through the TUNA PyPI mirror and hf-mirror.
 3. Open [http://127.0.0.1:28000](http://127.0.0.1:28000) (or start with `--open-browser`).
 
-The first start downloads Python, PyTorch and sd-scripts and takes a while; later starts are quick. There is no separate install step.
+The first start downloads Python, PyTorch, sd-scripts and musubi-tuner and takes a while; later starts are quick. There is no separate install step.
 
 ## Training your first LoRA
 
@@ -86,7 +89,7 @@ train/my_character/          ← choose this folder in the GUI
 
 Images directly in the dataset folder are not used; the GUI tells you when no `<repeats>_<name>` subfolder is found.
 
-**2. Get the base model.** Download the model you want to train on (for Anima also its text encoder and VAE). The model page shows which files it needs.
+**2. Get the base model.** Download the model you want to train on (for Anima and Krea 2 also their text encoder and VAE). The model page shows which files it needs.
 
 **3. Fill in the form.** Open the page for your model in the sidebar. In the *Essentials* view, set at least the base model file, the dataset folder and the output name; the other values are reasonable defaults. The step estimate next to the dataset folder shows how many steps the settings give.
 
@@ -108,6 +111,7 @@ Each page keeps what you entered while the browser tab is open, also when you sw
   ```
 
   `--branch <name or tag>` picks another branch or a tag (`update-sd-scripts --branch v0.12.0`). The update stops instead of overwriting changes you made in `scripts/sd-scripts`. The **System info** panel on the home page shows whether the installed sd-scripts supports every option of the GUI.
+- **musubi-tuner** (Krea 2) works the same way: `update-musubi-tuner [--branch <name or tag>]` updates `scripts/musubi-tuner`.
 
 ## Options
 
@@ -142,6 +146,8 @@ The Runs page covers what most people need. To use TensorBoard as well, start wi
 | `--tensorboard-port` | `6006` | Port of TensorBoard |
 | `--sd-scripts-branch` | `v0.12.0` | Branch or tag to clone when sd-scripts is missing (the tested version) |
 | `--skip-prepare-sd-scripts` | off | Do not clone sd-scripts |
+| `--musubi-tuner-branch` | `v0.3.6` | Branch or tag to clone when musubi-tuner is missing (the tested version) |
+| `--skip-prepare-musubi-tuner` | off | Do not clone musubi-tuner |
 | `--skip-frontend-build` | off | Do not (re)build the web UI on start |
 | `--dev` | off | Developer mode |
 
@@ -157,6 +163,7 @@ The Runs page covers what most people need. To use TensorBoard as well, start wi
 | A training fails | Open it on the Runs page: the console output shows the error |
 | An option seems to have no effect | Check *sd-scripts compatibility* in the **System info** panel on the home page |
 | Anima: compile errors or slow first steps | See the [Anima guide](docs/anima.md) |
+| Krea 2: minutes per step | The model does not fit in VRAM; raise `blocks_to_swap` (see the [Krea 2 guide](docs/krea2.md)) |
 
 ## For developers
 
@@ -195,13 +202,13 @@ GitHub Actions builds the releases: pushing a `v*` tag publishes a release with 
 
 | Path | What it is |
 |---|---|
-| `main.py` | Entry point (GUI and the `update-sd-scripts` command) |
+| `main.py` | Entry point (GUI and the `update-sd-scripts` / `update-musubi-tuner` commands) |
 | `run_gui.ps1`, `run_gui.sh` | Launchers: check for uv, then run `main.py` through `uv run` |
 | `lora_forge/` | Python backend: web server and API (`app/`), training config, validation and runs (`training/`), sd-scripts compatibility checks |
 | `lora_forge/schema/` | Training form definitions, read by the web UI |
 | `frontend/` | Vue 3 + TypeScript web UI |
-| `docs/` | User guides (Anima) |
-| `scripts/sd-scripts` | kohya-ss/sd-scripts checkout, cloned on first start (not part of this repository; do not remove it with `git clean`) |
+| `docs/` | User guides (Anima, Krea 2) |
+| `scripts/sd-scripts`, `scripts/musubi-tuner` | kohya-ss/sd-scripts and musubi-tuner checkouts, cloned on first start (not part of this repository; do not remove them with `git clean`) |
 
 The backend package was named `mikazuki` in upstream lora-scripts. It was renamed to `lora_forge` in October 2026, together with its environment variables (`MIKAZUKI_*` → `LORA_FORGE_*`).
 
@@ -212,7 +219,7 @@ The backend package was named `mikazuki` in upstream lora-scripts. It was rename
 LoRA-Forge is a modified version of [lora-scripts](https://github.com/Akegarasu/lora-scripts) by Akegarasu and contributors. It was forked in May 2026 and has been substantially changed since (Vue web UI, Anima training, reworked backend and launchers). Like the original, it is licensed under the **GNU Affero General Public License v3.0**; see [LICENSE](LICENSE).
 
 - If you run a modified version as a network service (for example with `--listen`), AGPL section 13 requires offering its source code to the users. The web UI links to this repository for that; point the link at your own source if you host a modified version.
-- [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) (Apache-2.0) is downloaded into `scripts/sd-scripts` on first start and is not distributed with this repository.
+- [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) and [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner) (Apache-2.0) are downloaded into `scripts/` on first start and are not distributed with this repository.
 - The built web UI bundles Vue and vue-router (MIT). Their license notices are in `frontend/dist/THIRD-PARTY-LICENSES.md`, which is included in the release zip.
 
 Thanks to Akegarasu and the original contributors for building the foundation.

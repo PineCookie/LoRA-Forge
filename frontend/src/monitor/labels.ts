@@ -6,6 +6,9 @@ const PHASES: Record<string, MessageKey> = {
   "loading image sizes": "runs.phase.preparing",
   "get image size": "runs.phase.preparing",
   "read caption": "runs.phase.preparing",
+  // Krea 2 (musubi-tuner): run_entry reports its two caching scripts as bars
+  "caching latents": "runs.phase.cachingLatents",
+  "caching text encoder outputs": "runs.phase.cachingText",
   steps: "runs.phase.training",
   "validation steps": "runs.phase.validation",
   "epoch validation steps": "runs.phase.validation",
@@ -21,6 +24,7 @@ export function phaseLabel(desc: string): string {
 
 const MODELS: Record<string, string> = {
   "anima-lora": "Anima",
+  "krea2-lora": "Krea 2",
   "flux-lora": "FLUX",
   "sd3-lora": "SD3.5",
   "sdxl-lora": "SDXL",
