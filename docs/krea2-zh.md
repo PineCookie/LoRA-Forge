@@ -36,10 +36,16 @@ musubi-tuner 的数据集 TOML。只支持单卡训练（上游未测试多卡�
 
 - **`convrot_int8`**（默认开启）：冻结的底模权重以 int8 保存，并通过 Triton（LoRA Forge 已安装）运行真正的 int8 矩阵乘法。
   显存为 bf16 的一半，且在 Krea 2 上比 fp8 更快（fp8 路径每次前向都要反量化）。LoRA 本身仍以全精度训练。
-- **`blocks_to_swap`**（默认 10）：放在系统内存、用到时再搬进显存的 block 数。使用 int8 权重时，10 可让 16 GB 显卡以
-  1024x1024、批大小 1 训练，每步耗时几乎不变。更多 block 更省显存；0 表示整个模型都在显存里。
-- **`gradient_checkpointing`**（默认开启）：这个模型规模下必需。
+- **`blocks_to_swap`**（默认 18）：放在系统内存、用到时再搬进显存的 block 数。开启 `use_pinned_memory_for_block_swap`
+  和 `block_swap_h2d_only`（默认都开启）时，复制与计算同时进行，即使换出全部 26 个可换出的 block 也几乎不耗时。
+  默认值让 16 GB 显卡在 1024x1024 下留有充足显存；训练更大的图片或批次时可调高。0 表示整个模型都在显存里。
+- **锁页内存**（`use_pinned_memory_for_block_swap`）不能被换页：每个换出的 block 约 0.5 GB，默认约 9 GB。
+  Windows 任务管理器会把它显示为共享 GPU 内存，这并不表示模型溢出了显存。内存较少的电脑请减少换出的 block。
+- **`gradient_checkpointing`**（默认开启）：这个模型规模下必需，`block_swap_h2d_only` 也需要它。
 - **`compile`**（默认开启）：用 torch.compile 编译 28 个主 block；量化层和换出的 block 会自动排除。最初几步用于编译。
+- **`attn_mode`**（默认 `auto`）：已安装 flash-attn 时使用 FlashAttention，否则使用 PyTorch 的 SDPA。在 Krea 2 上
+  FlashAttention 让每步快约五分之一，结果相同，建议安装（见 [flash-attn](../README-zh.md#flash-attn可选)）。
+  不提供 SageAttention：它没有反向传播，无法用于训练。
 - 显存放不下时，Windows 会借用系统内存，训练变得极慢（每步数分钟）而不是报错：请调高 `blocks_to_swap`。
 
 ## 训练设置

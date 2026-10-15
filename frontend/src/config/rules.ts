@@ -58,6 +58,9 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
   // Krea 2: int8 and fp8 base weights are alternatives
   if (edited === "convrot_int8" && checked(values, edited)) setField(values, "fp8_base", false);
   if (edited === "fp8_base" && checked(values, edited)) setField(values, "convrot_int8", false);
+  // Krea 2: musubi refuses H2D-only block swap without gradient checkpointing
+  if (edited === "gradient_checkpointing" && !checked(values, edited)) setField(values, "block_swap_h2d_only", false);
+  if (edited === "block_swap_h2d_only" && checked(values, edited)) setField(values, "gradient_checkpointing", true);
 
   // activation_memory_budget spends VRAM for speed, the others save VRAM: the last edited one wins
   if (edited === "activation_memory_budget" && budgetOn(values)) {

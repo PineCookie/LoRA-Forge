@@ -272,6 +272,8 @@ function normalizeConstraintCombinations(config: TrainingConfig) {
   }
   // Krea 2: an imported config with both keeps int8 (config.py does the same)
   if (config.convrot_int8) delete config.fp8_base;
+  // Krea 2: H2D-only block swap needs gradient checkpointing (musubi refuses it otherwise)
+  if (!config.gradient_checkpointing) delete config.block_swap_h2d_only;
 
   // the VRAM-saving options win over activation_memory_budget (config.py ignores it with them)
   if (config.blocks_to_swap || config.cpu_offload_checkpointing || config.unsloth_offload_checkpointing) {

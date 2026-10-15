@@ -117,7 +117,7 @@ Each page keeps what you entered while the browser tab is open, also when you sw
 
 ### flash-attn (optional)
 
-[flash-attn](https://github.com/Dao-AILab/flash-attention) is a faster attention implementation; on the Anima page you choose it with `attn_mode = flash` (the default, `torch`, needs nothing extra). It is not installed by default. To install it, run this once in the LoRA Forge folder (Windows, or Linux on x86_64 or ARM):
+[flash-attn](https://github.com/Dao-AILab/flash-attention) is a faster attention implementation; on the Anima page you choose it with `attn_mode = flash` (the default, `torch`, needs nothing extra), and the Krea 2 page uses it automatically when it is installed. It is not installed by default. To install it, run this once in the LoRA Forge folder (Windows, or Linux on x86_64 or ARM):
 
 ```sh
 uv sync --extra flash-attn

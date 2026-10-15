@@ -117,7 +117,7 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
 
 ### flash-attn（可选）
 
-[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现；在 Anima 页面中通过 `attn_mode = flash` 选择（默认的 `torch` 不需要额外安装）。它默认不会安装。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
+[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现；在 Anima 页面中通过 `attn_mode = flash` 选择（默认的 `torch` 不需要额外安装），Krea 2 页面在已安装时会自动使用它。它默认不会安装。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
 
 ```sh
 uv sync --extra flash-attn

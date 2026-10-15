@@ -6,6 +6,7 @@ and text-encoder outputs are cached by two separate scripts before training. run
 those two scripts (`--skip_existing`) in the training process from the environment set here.
 """
 
+import importlib.util
 import json
 import os
 from typing import Optional
@@ -31,13 +32,14 @@ DROPPED_KEYS = (
     "cache_text_encoder_outputs_to_disk", "network_train_unet_only", "network_train_text_encoder_only", "unet_lr",
     "text_encoder_lr", "save_model_as", "loss_type", "noise_offset", "multires_noise_iterations",
     "multires_noise_discount", "clip_skip", "lowram", "cuda_allow_tf32", "cuda_cudnn_benchmark", "compile_dynamic",
-    "compile_dynamic_seq", "activation_memory_budget", "qwen3", "llm_adapter_path", "attn_mode", "fp8_base_unet",
+    "compile_dynamic_seq", "activation_memory_budget", "qwen3", "llm_adapter_path", "fp8_base_unet",
     "vae_chunk_size", "vae_disable_cache", "qwen_image_vae_2d", "text_encoder_batch_size", "max_token_length",
     "weighted_captions", "full_precision", "persistent_data_loader_workers", "save_model_as",
+    "sage_attn",  # SageAttention has no backward pass, so it cannot train
 )
 # GUI attn_mode -> musubi's attention flag (one of them is required)
 ATTENTION_FLAGS = {"sdpa": "sdpa", "torch": "sdpa", "flash": "flash_attn", "flash_attn": "flash_attn", "flash3": "flash3",
-                   "sage_attn": "sage_attn", "xformers": "xformers"}
+                   "xformers": "xformers"}
 
 
 class Krea2ConfigError(ValueError):
@@ -96,13 +98,19 @@ def prepare_config(config: dict, dataset_config_path: str, environment: dict) ->
         config.pop(key, None)
     config.setdefault("network_module", "networks.lora_krea2")
     config.setdefault("mixed_precision", "bf16")
-    attention = ATTENTION_FLAGS.get(str(config.pop("attn_mode", "") or "").strip().lower())
-    if attention is None and not any(config.get(flag) for flag in set(ATTENTION_FLAGS.values())):
-        attention = "sdpa"
+    attn_mode = str(config.pop("attn_mode", "") or "").strip().lower()
+    attention = ATTENTION_FLAGS.get(attn_mode)
+    if attention is None and (attn_mode == "auto" or not any(config.get(flag) for flag in set(ATTENTION_FLAGS.values()))):
+        # flash-attn is markedly faster on Krea 2; the GUI and the trainer share one venv
+        attention = "flash_attn" if importlib.util.find_spec("flash_attn") else "sdpa"
     if attention:
         for flag in set(ATTENTION_FLAGS.values()):
             config.pop(flag, None)
         config[attention] = True
+    if not config.get("gradient_checkpointing"):
+        config.pop("block_swap_h2d_only", None)  # musubi refuses it without checkpointing
+    if config.get("xformers"):
+        config["split_attn"] = True  # musubi's xformers path needs it for Krea 2's grouped heads
     # ConvRot int8 and fp8 are alternatives; both need their pair of flags
     if config.get("convrot_int8"):
         config.pop("fp8_base", None)

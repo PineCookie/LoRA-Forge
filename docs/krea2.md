@@ -43,12 +43,22 @@ single-GPU training is offered (untested upstream with several GPUs).
 - **`convrot_int8`** (default on): the frozen base weights stay in int8 and run a real int8
   matmul through Triton, which LoRA Forge installs. Half the VRAM of bf16, and faster than fp8 on
   Krea 2, whose fp8 path dequantizes on every forward. The LoRA itself trains in full precision.
-- **`blocks_to_swap`** (default 10): blocks kept in system RAM and moved to the GPU when used.
-  With int8 weights, 10 fits a 16 GB card at 1024x1024, batch 1, with the step time barely
-  changed. More blocks for less VRAM; 0 keeps the whole model on the GPU.
-- **`gradient_checkpointing`** (default on) is needed at this model size.
+- **`blocks_to_swap`** (default 18): blocks kept in system RAM and moved to the GPU when used.
+  With `use_pinned_memory_for_block_swap` and `block_swap_h2d_only` (both on by default) the
+  copies run alongside the computation, so swapping costs almost no time even with all 26
+  swappable blocks. The default leaves a 16 GB card plenty of VRAM at 1024x1024; raise it for
+  larger images or batches. 0 keeps the whole model on the GPU.
+- **Pinned RAM** (`use_pinned_memory_for_block_swap`) cannot be paged out: about 0.5 GB per
+  swapped block, so 9 GB at the default. Windows' Task Manager shows it as shared GPU memory,
+  which is not a sign that the model spills. On a PC with little RAM, swap fewer blocks.
+- **`gradient_checkpointing`** (default on) is needed at this model size, and
+  `block_swap_h2d_only` requires it.
 - **`compile`** (default on): torch.compile of the 28 main blocks; the quantized layers and the
   swapped blocks stay out automatically. The first steps compile.
+- **`attn_mode`** (default `auto`): FlashAttention when flash-attn is installed, otherwise
+  PyTorch's SDPA. FlashAttention makes each step about a fifth faster on Krea 2 with the same
+  results, so install it if you can (see [flash-attn](../README.md#flash-attn-optional)).
+  SageAttention is not offered: it has no backward pass, so it cannot train.
 - A run that does not fit spills into system RAM on Windows and becomes very slow (minutes per
   step) rather than failing: raise `blocks_to_swap`.
 
