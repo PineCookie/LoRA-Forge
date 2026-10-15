@@ -221,6 +221,19 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh": "Krea 2 训练只支持单卡：请只选择一个 GPU。",
         "ja": "Krea 2 の学習は 1 GPU のみ対応です。GPU を 1 つだけ選んでください。",
     },
+    "run.krea2TurboBoth": {
+        "en": "Set only one of turbo_dit and turbo_lora: both are sources for the Turbo previews.",
+        "zh": "turbo_dit 和 turbo_lora 只能设置一个：两者都是 Turbo 预览图的来源。",
+        "ja": "turbo_dit と turbo_lora はどちらか一方だけ設定してください。どちらも Turbo プレビューの元になります。",
+    },
+    "run.krea2TurboDit": {
+        "en": "turbo_dit does not work with blocks_to_swap or convrot_int8. Use turbo_lora for Turbo previews "
+              "instead, or clear turbo_dit to preview with RAW.",
+        "zh": "turbo_dit 不能与 blocks_to_swap 或 convrot_int8 同时使用。请改用 turbo_lora 生成 Turbo 预览图，"
+              "或清空 turbo_dit 用 RAW 预览。",
+        "ja": "turbo_dit は blocks_to_swap や convrot_int8 と併用できません。Turbo プレビューには turbo_lora を使うか、"
+              "turbo_dit を空にして RAW でプレビューしてください。",
+    },
     # --- sd-scripts compatibility ------------------------------------------------------------
     "sdScripts.missing": {
         "en": "The installed sd-scripts ({ref}) does not support: {features}. sd-scripts would silently ignore "

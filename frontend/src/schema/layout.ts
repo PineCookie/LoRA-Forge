@@ -22,7 +22,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     tone: "model",
     merged: "model",
     fields: [
-      "model_train_type", "model_type", "pretrained_model_name_or_path", "qwen3", "vae", "text_encoder", "turbo_dit", "ae", "clip_l",
+      "model_train_type", "model_type", "pretrained_model_name_or_path", "qwen3", "vae", "text_encoder", "turbo_dit", "turbo_lora", "ae", "clip_l",
       "clip_g", "t5xxl", "llm_adapter_path", "t5_tokenizer_path", "v2", "v_parameterization", "scale_v_pred_loss_like_noise_pred",
       "clip_skip", "apply_t5_attn_mask",
     ],

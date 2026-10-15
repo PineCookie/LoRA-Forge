@@ -51,6 +51,7 @@ ANSI_ENV = "LORA_FORGE_ANSI"
 MEMORY_BUDGET_ENV = "LORA_FORGE_ACTIVATION_MEMORY_BUDGET"
 # Krea 2 (musubi-tuner): JSON with the caching scripts' arguments, see run_krea2_caching
 KREA2_CACHE_ENV = "LORA_FORGE_KREA2_CACHE"
+KREA2_TURBO_LORA_ENV = "LORA_FORGE_KREA2_TURBO_LORA"
 PROGRESS_INTERVAL = 1.0
 
 
@@ -592,6 +593,9 @@ def main():
     if budget and os.path.basename(trainer) == "anima_train_network.py":
         install_memory_budget(budget)
 
+    if os.environ.get(KREA2_TURBO_LORA_ENV):
+        install_turbo_lora_conversion(os.environ[KREA2_TURBO_LORA_ENV])
+
     try:
         if os.environ.get(KREA2_CACHE_ENV):
             run_krea2_caching(trainer, json.loads(os.environ[KREA2_CACHE_ENV]))
@@ -633,6 +637,27 @@ def run_krea2_caching(trainer: str, cache: dict):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     sys.argv = trainer_argv
+
+
+def install_turbo_lora_conversion(path: str):
+    """ComfyUI's Krea 2 Turbo LoRA (`krea2_turbo_lora_rank_64_bf16`) names its weights
+    `diffusion_model.<module>.lora_down.weight` without alphas; musubi-tuner only reads its own
+    `lora_unet_<module>` names. That one file is converted with musubi-tuner's own converter as it
+    is loaded (musubi-tuner imports load_file after this runs, so it gets the wrapper)."""
+    import safetensors.torch
+
+    original = safetensors.torch.load_file
+    target = os.path.normcase(os.path.abspath(path))
+
+    def load_file(filename, *args, **kwargs):
+        weights = original(filename, *args, **kwargs)
+        if os.path.normcase(os.path.abspath(str(filename))) == target and any(key.startswith("diffusion_model.") for key in weights):
+            from musubi_tuner.convert_lora import convert_from_diffusers
+
+            weights = convert_from_diffusers("lora_unet_", weights)
+        return weights
+
+    safetensors.torch.load_file = load_file
 
 
 def is_out_of_memory(error: BaseException) -> bool:

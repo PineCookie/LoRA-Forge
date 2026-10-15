@@ -18,7 +18,8 @@ Krea 2 是 12.9B 的文生图模型，使用 Qwen3-VL-4B 文本编码器和 Qwen
 | `pretrained_model_name_or_path` | `krea2_raw_int8_convrot.safetensors`（13.5 GB） | RAW 模型，已预先量化；配合 `convrot_int8`（默认）可直接训练。`fp8_base` 或 bf16 训练需要 `krea2_raw_bf16`（26 GB） |
 | `vae` | `qwen_image_vae.safetensors` | **必填** |
 | `text_encoder` | `text_encoders/qwen3vl_4b_bf16.safetensors` | **必填**：训练前用它编码标注；生成预览图也需要 |
-| `turbo_dit` | `krea2_turbo_*.safetensors` | 可选，只用于预览图；目前不能与 `convrot_int8` 同用 |
+| `turbo_lora` | `loras/krea2_turbo_lora_rank_64_bf16.safetensors` | 可选，用于 Turbo 预览图；任何显存设置下都能用 |
+| `turbo_dit` | `krea2_turbo_*.safetensors` | 可选，代替 `turbo_lora` 生成 Turbo 预览图；只能在不使用 `blocks_to_swap` 和 `convrot_int8` 时使用，所以 16 GB 显卡用不了 |
 
 **用 RAW 训练，LoRA 用在 Turbo 上。** Turbo 是蒸馏出的少步数、无 CFG 的模型，在它上面训练会与蒸馏相冲突；
 musubi-tuner 只在 RAW 上训练。训练出的 LoRA 在 ComfyUI 中两个模型都能加载。
@@ -58,8 +59,9 @@ musubi-tuner 的数据集 TOML。只支持单卡训练（上游未测试多卡�
 
 ## 预览图
 
-预览图需要 `text_encoder`。默认用 RAW 模型生成（28 步、CFG 5.5）；设置了 `turbo_dit` 时改用 Turbo 模型（8 步、无 CFG），
-这也是 LoRA 通常的使用方式。
+预览图需要 `text_encoder`。默认用 RAW 模型生成（28 步、CFG 5.5，未设置时使用空的反向提示词）。设置了 `turbo_lora` 或
+`turbo_dit` 时改用 Turbo 生成：8 步、无 CFG，快好几倍，也更接近 LoRA 通常的使用方式。`turbo_lora` 是一个让 RAW 近似 Turbo
+的 LoRA，因此也能与 block 交换一起用；`turbo_dit` 会替换底模权重，所以整个模型必须放在显卡上，且不能是 int8。
 
 ## 更新 musubi-tuner
 

@@ -19,7 +19,8 @@ and [Comfy-Org/Qwen3-VL](https://huggingface.co/Comfy-Org/Qwen3-VL):
 | `pretrained_model_name_or_path` | `krea2_raw_int8_convrot.safetensors` (13.5 GB) | the RAW model, pre-quantized; trains as it is with `convrot_int8` (the default). `krea2_raw_bf16` (26 GB) is needed for `fp8_base` or bf16 training |
 | `vae` | `qwen_image_vae.safetensors` | **required** |
 | `text_encoder` | `text_encoders/qwen3vl_4b_bf16.safetensors` | **required**: the captions are encoded with it before training; also used for preview images |
-| `turbo_dit` | `krea2_turbo_*.safetensors` | optional, preview images only; not with `convrot_int8` yet |
+| `turbo_lora` | `loras/krea2_turbo_lora_rank_64_bf16.safetensors` | optional, Turbo preview images; works with every memory setting |
+| `turbo_dit` | `krea2_turbo_*.safetensors` | optional, Turbo preview images instead of `turbo_lora`; only without `blocks_to_swap` and `convrot_int8`, so not on 16 GB cards |
 
 **Train on RAW, use the LoRA on Turbo.** Turbo is a distilled few-step model without CFG, so
 training on it would work against the distillation; musubi-tuner only trains on RAW. The LoRA
@@ -73,9 +74,11 @@ docs). Optimal settings are not established yet upstream.
 
 ## Preview images
 
-Previews need `text_encoder`. They are generated with the RAW model (28 steps, CFG 5.5 by
-default); with `turbo_dit` set, with the Turbo model instead (8 steps, no CFG), which is what the
-LoRA is mostly used with.
+Previews need `text_encoder`. By default they come from the RAW model (28 steps, CFG 5.5, an
+empty negative prompt unless you set one). With `turbo_lora` or `turbo_dit` set they come from
+Turbo instead: 8 steps, no CFG, several times faster and closer to how the LoRA is mostly used.
+`turbo_lora` is a LoRA that turns RAW into an approximation of Turbo, so it also works with block
+swap; `turbo_dit` replaces the base weights, so it needs the whole model on the GPU, and not as int8.
 
 ## Updating musubi-tuner
 

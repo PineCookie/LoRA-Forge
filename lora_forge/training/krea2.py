@@ -19,6 +19,8 @@ from lora_forge.training.dataset import subset_folders
 MODEL_TRAIN_TYPE = "krea2-lora"
 # JSON for run_entry.py: the caching scripts' arguments
 CACHE_ENV = "LORA_FORGE_KREA2_CACHE"
+# for run_entry.py: the Turbo LoRA, converted from ComfyUI's key names as musubi-tuner loads it
+TURBO_LORA_ENV = "LORA_FORGE_KREA2_TURBO_LORA"
 
 # GUI keys that become the dataset TOML rather than training arguments
 DATASET_KEYS = ("resolution", "caption_extension", "train_batch_size", "enable_bucket", "bucket_no_upscale")
@@ -37,6 +39,8 @@ DROPPED_KEYS = (
     "weighted_captions", "full_precision", "persistent_data_loader_workers", "save_model_as",
     "sage_attn",  # SageAttention has no backward pass, so it cannot train
 )
+RAW_SAMPLE_STEPS = 28
+TURBO_SAMPLE_STEPS = 8
 # GUI attn_mode -> musubi's attention flag (one of them is required)
 ATTENTION_FLAGS = {"sdpa": "sdpa", "torch": "sdpa", "flash": "flash_attn", "flash_attn": "flash_attn", "flash3": "flash3",
                    "xformers": "xformers"}
@@ -89,6 +93,7 @@ def prepare_config(config: dict, dataset_config_path: str, environment: dict) ->
     if not text_encoder:
         # caching needs it; samples during training too
         raise Krea2ConfigError(t("model.animaPathMissing", label=t("model.textEncoder")))
+    _check_turbo(config)
 
     config["dataset_config"] = write_dataset_config(config, train_data_dir, dataset_config_path)
     for old, new in RENAMED_KEYS.items():
@@ -123,24 +128,50 @@ def prepare_config(config: dict, dataset_config_path: str, environment: dict) ->
         "vae": config["vae"],
         "text_encoder": text_encoder,
     })
+    if config.get("turbo_lora"):
+        environment[TURBO_LORA_ENV] = config["turbo_lora"]
+
+
+def _check_turbo(config: dict) -> None:
+    """The Turbo files only serve the previews: dropped without them; otherwise what musubi-tuner
+    would refuse at startup is reported here."""
+    for key in ("turbo_dit", "turbo_lora"):
+        value = str(config.get(key) or "").strip()
+        if not value or not config.get("sample_prompts"):
+            config.pop(key, None)
+        elif not os.path.isfile(value):
+            raise Krea2ConfigError(t("model.animaPathNotFound", label=key, path=value))
+    if config.get("turbo_dit") and config.get("turbo_lora"):
+        raise Krea2ConfigError(t("run.krea2TurboBoth"))
+    if config.get("turbo_dit") and (int(config.get("blocks_to_swap") or 0) > 0 or config.get("convrot_int8")):
+        raise Krea2ConfigError(t("run.krea2TurboDit"))
+
+
+def _turbo_source(config: dict) -> bool:
+    return any(str(config.get(key) or "").strip() for key in ("turbo_dit", "turbo_lora"))
 
 
 def sample_prompts(config: dict) -> Optional[str]:
     """musubi-tuner's prompt file line from the GUI's preview fields (pops them); None without a
-    prompt. Krea 2 RAW previews use CFG 5.5 and 28 steps."""
+    prompt. RAW previews use CFG (5.5, 28 steps); Turbo previews (turbo_dit / turbo_lora) run
+    without CFG in a few steps."""
     positive = config.pop("positive_prompts", None)
     negative = str(config.pop("negative_prompts", "") or "").strip()
     width = config.pop("sample_width", 1024)
     height = config.pop("sample_height", 1024)
     cfg = float(config.pop("sample_cfg", 5.5) or 1)
     seed = config.pop("sample_seed", 2333)
-    steps = config.pop("sample_steps", 28)
+    steps = int(config.pop("sample_steps", RAW_SAMPLE_STEPS) or RAW_SAMPLE_STEPS)
     config.pop("randomly_choice_prompt", None)
     config.pop("sample_sampler", None)
     if not positive or not str(positive).strip():
         return None
     line = str(positive).strip()
-    if cfg > 1:
+    if _turbo_source(config):
+        # the distilled Turbo model runs without CFG; the RAW step count is far more than it needs
+        steps = TURBO_SAMPLE_STEPS if steps == RAW_SAMPLE_STEPS else steps
+        cfg = 1.0
+    elif cfg > 1:
         # musubi's CFG is `--l` and only runs with a negative prompt. Krea 2's own default is an
         # empty one, which a prompt line cannot hold: a single space stands in for it (`--n` comes
         # first, as the line's trailing whitespace is stripped when musubi reads it)
