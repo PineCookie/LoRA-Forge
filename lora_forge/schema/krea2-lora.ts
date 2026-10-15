@@ -44,7 +44,7 @@ Schema.intersect([
     Schema.object({
         max_train_epochs: Schema.number().min(1).step(1).default(16).description("Maximum training epochs"),
         train_batch_size: Schema.number().min(1).step(1).default(1).description("Batch size; higher uses more VRAM"),
-        gradient_checkpointing: Schema.boolean().default(true).description("Gradient checkpointing"),
+        gradient_checkpointing: Schema.boolean().default(true).description("Gradient checkpointing. **Keep it on** unless the GPU has about 48 GB of VRAM: without it the run does not stop on a smaller card, it spills into system RAM, becomes extremely slow and can fill the RAM. block_swap_h2d_only needs it"),
         gradient_accumulation_steps: Schema.number().min(1).step(1).default(1).description("Gradient accumulation steps"),
     }),
 

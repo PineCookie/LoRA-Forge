@@ -41,7 +41,8 @@ musubi-tuner 的数据集 TOML。只支持单卡训练（上游未测试多卡�
   默认值让 16 GB 显卡在 1024x1024 下留有充足显存；训练更大的图片或批次时可调高。0 表示整个模型都在显存里。
 - **锁页内存**（`use_pinned_memory_for_block_swap`）不能被换页：每个换出的 block 约 0.5 GB，默认约 9 GB。
   Windows 任务管理器会把它显示为共享 GPU 内存，这并不表示模型溢出了显存。内存较少的电脑请减少换出的 block。
-- **`gradient_checkpointing`**（默认开启）：这个模型规模下必需，`block_swap_h2d_only` 也需要它。
+- **`gradient_checkpointing`**（默认开启）：这个模型规模下必需，`block_swap_h2d_only` 也需要它。关闭后 Krea 2 需要约 48 GB 显存；
+  显存更小的显卡上训练不会报错，而是溢出到系统内存。
 - **`compile`**（默认开启）：用 torch.compile 编译 28 个主 block；量化层和换出的 block 会自动排除。最初几步用于编译。
 - **`attn_mode`**（默认 `auto`）：已安装 flash-attn 时使用 FlashAttention，否则使用 PyTorch 的 SDPA。在 Krea 2 上
   FlashAttention 让每步快约五分之一，结果相同，建议安装（见 [flash-attn](../README-zh.md#flash-attn可选)）。

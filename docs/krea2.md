@@ -52,7 +52,8 @@ single-GPU training is offered (untested upstream with several GPUs).
   swapped block, so 9 GB at the default. Windows' Task Manager shows it as shared GPU memory,
   which is not a sign that the model spills. On a PC with little RAM, swap fewer blocks.
 - **`gradient_checkpointing`** (default on) is needed at this model size, and
-  `block_swap_h2d_only` requires it.
+  `block_swap_h2d_only` requires it. Without it Krea 2 needs about 48 GB of VRAM; on a smaller
+  card the run spills into system RAM instead of failing.
 - **`compile`** (default on): torch.compile of the 28 main blocks; the quantized layers and the
   swapped blocks stay out automatically. The first steps compile.
 - **`attn_mode`** (default `auto`): FlashAttention when flash-attn is installed, otherwise

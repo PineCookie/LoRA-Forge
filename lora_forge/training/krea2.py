@@ -127,22 +127,25 @@ def prepare_config(config: dict, dataset_config_path: str, environment: dict) ->
 
 def sample_prompts(config: dict) -> Optional[str]:
     """musubi-tuner's prompt file line from the GUI's preview fields (pops them); None without a
-    prompt. Krea 2 RAW samples with CFG (`--g`), 28 steps and guidance 5.5 are its defaults."""
+    prompt. Krea 2 RAW previews use CFG 5.5 and 28 steps."""
     positive = config.pop("positive_prompts", None)
-    negative = config.pop("negative_prompts", "")
+    negative = str(config.pop("negative_prompts", "") or "").strip()
     width = config.pop("sample_width", 1024)
     height = config.pop("sample_height", 1024)
-    cfg = config.pop("sample_cfg", 5.5)
+    cfg = float(config.pop("sample_cfg", 5.5) or 1)
     seed = config.pop("sample_seed", 2333)
     steps = config.pop("sample_steps", 28)
     config.pop("randomly_choice_prompt", None)
     config.pop("sample_sampler", None)
     if not positive or not str(positive).strip():
         return None
-    line = f"{str(positive).strip()} --w {width} --h {height} --d {seed} --s {steps} --g {cfg}"
-    if negative and str(negative).strip():
-        line += f" --n {str(negative).strip()}"
-    return line + "\n"
+    line = str(positive).strip()
+    if cfg > 1:
+        # musubi's CFG is `--l` and only runs with a negative prompt. Krea 2's own default is an
+        # empty one, which a prompt line cannot hold: a single space stands in for it (`--n` comes
+        # first, as the line's trailing whitespace is stripped when musubi reads it)
+        line += f" --n {negative or ' '}"
+    return f"{line} --w {width} --h {height} --d {seed} --s {steps} --l {cfg:g}\n"
 
 
 def musubi_pythonpath(src_dir: str, current: Optional[str]) -> str:
