@@ -221,6 +221,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh": "Krea 2 训练只支持单卡：请只选择一个 GPU。",
         "ja": "Krea 2 の学習は 1 GPU のみ対応です。GPU を 1 つだけ選んでください。",
     },
+    "run.krea2PinnedRam": {
+        "en": "Swapping {blocks} blocks in pinned RAM needs about {need} GB of free RAM, but {free} GB is free. "
+              "Pinned RAM cannot be paged out, so this could freeze the PC. Lower blocks_to_swap, turn off "
+              "use_pinned_memory_for_block_swap, or close other programs.",
+        "zh": "在锁页内存中换出 {blocks} 个 block 需要约 {need} GB 可用内存，但目前只有 {free} GB。锁页内存不能被换页，"
+              "可能导致电脑卡死。请调低 blocks_to_swap、关闭 use_pinned_memory_for_block_swap，或关闭其他程序。",
+        "ja": "ピン留めメモリで {blocks} ブロックをスワップするには約 {need} GB の空き RAM が必要ですが、空きは {free} GB です。"
+              "ピン留めメモリはページアウトできないため、PC が固まるおそれがあります。blocks_to_swap を下げるか、"
+              "use_pinned_memory_for_block_swap をオフにするか、ほかのプログラムを閉じてください。",
+    },
     "run.krea2TurboBoth": {
         "en": "Set only one of turbo_dit and turbo_lora: both are sources for the Turbo previews.",
         "zh": "turbo_dit 和 turbo_lora 只能设置一个：两者都是 Turbo 预览图的来源。",

@@ -39,6 +39,10 @@ DROPPED_KEYS = (
     "weighted_captions", "full_precision", "persistent_data_loader_workers", "save_model_as",
     "sage_attn",  # SageAttention has no backward pass, so it cannot train
 )
+# Pinned block swap: the swapped blocks sit in page-locked RAM, which Windows cannot page out, so a
+# run that pins more than is free can freeze the PC. The trainer needs about 2 GB on top of them.
+MAIN_BLOCKS = 28
+PINNED_RAM_HEADROOM_GB = 3.5
 RAW_SAMPLE_STEPS = 28
 TURBO_SAMPLE_STEPS = 8
 # GUI attn_mode -> musubi's attention flag (one of them is required)
@@ -94,6 +98,7 @@ def prepare_config(config: dict, dataset_config_path: str, environment: dict) ->
         # caching needs it; samples during training too
         raise Krea2ConfigError(t("model.animaPathMissing", label=t("model.textEncoder")))
     _check_turbo(config)
+    _check_pinned_ram(config)
 
     config["dataset_config"] = write_dataset_config(config, train_data_dir, dataset_config_path)
     for old, new in RENAMED_KEYS.items():
@@ -130,6 +135,27 @@ def prepare_config(config: dict, dataset_config_path: str, environment: dict) ->
     })
     if config.get("turbo_lora"):
         environment[TURBO_LORA_ENV] = config["turbo_lora"]
+
+
+def pinned_block_gb(dit_file: str, quantized: bool) -> float:
+    """RAM one swapped block takes: the main blocks hold almost all of the DiT file. The RAW bf16
+    file (26 GB) is quantized to half when it loads with convrot_int8 or fp8; the pre-quantized
+    files are about 13 GB already."""
+    size_gb = os.path.getsize(dit_file) / 1024 ** 3
+    return size_gb / MAIN_BLOCKS * (0.5 if quantized and size_gb > 20 else 1)
+
+
+def _check_pinned_ram(config: dict) -> None:
+    blocks = int(config.get("blocks_to_swap") or 0)
+    if not blocks or not config.get("use_pinned_memory_for_block_swap"):
+        return
+    import psutil
+
+    quantized = bool(config.get("convrot_int8") or config.get("fp8_base"))
+    pinned = blocks * pinned_block_gb(config["pretrained_model_name_or_path"], quantized)
+    free = psutil.virtual_memory().available / 1024 ** 3
+    if pinned + PINNED_RAM_HEADROOM_GB > free:
+        raise Krea2ConfigError(t("run.krea2PinnedRam", blocks=blocks, need=f"{pinned + PINNED_RAM_HEADROOM_GB:.0f}", free=f"{free:.0f}"))
 
 
 def _check_turbo(config: dict) -> None:

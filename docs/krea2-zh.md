@@ -41,7 +41,8 @@ musubi-tuner 的数据集 TOML。只支持单卡训练（上游未测试多卡�
   和 `block_swap_h2d_only`（默认都开启）时，复制与计算同时进行，即使换出全部 26 个可换出的 block 也几乎不耗时。
   默认值让 16 GB 显卡在 1024x1024 下留有充足显存；训练更大的图片或批次时可调高。0 表示整个模型都在显存里。
 - **锁页内存**（`use_pinned_memory_for_block_swap`）不能被换页：每个换出的 block 约 0.5 GB，默认约 9 GB。
-  Windows 任务管理器会把它显示为共享 GPU 内存，这并不表示模型溢出了显存。内存较少的电脑请减少换出的 block。
+  Windows 任务管理器会把它显示为共享 GPU 内存，这并不表示模型溢出了显存。训练开始前 LoRA Forge 会检查锁页的 block
+  能否放进可用内存，放不下时会提示你减少换出的 block、关闭锁页内存或关闭其他程序。
 - **`gradient_checkpointing`**（默认开启）：这个模型规模下必需，`block_swap_h2d_only` 也需要它。关闭后 Krea 2 需要约 48 GB 显存；
   显存更小的显卡上训练不会报错，而是溢出到系统内存。
 - **`compile`**（默认开启）：用 torch.compile 编译 28 个主 block；量化层和换出的 block 会自动排除。最初几步用于编译。

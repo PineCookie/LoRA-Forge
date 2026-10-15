@@ -51,7 +51,9 @@ single-GPU training is offered (untested upstream with several GPUs).
   larger images or batches. 0 keeps the whole model on the GPU.
 - **Pinned RAM** (`use_pinned_memory_for_block_swap`) cannot be paged out: about 0.5 GB per
   swapped block, so 9 GB at the default. Windows' Task Manager shows it as shared GPU memory,
-  which is not a sign that the model spills. On a PC with little RAM, swap fewer blocks.
+  which is not a sign that the model spills. Before a run starts, LoRA Forge checks that the
+  pinned blocks fit in the free RAM and otherwise asks you to swap fewer blocks, turn pinned RAM
+  off or close other programs.
 - **`gradient_checkpointing`** (default on) is needed at this model size, and
   `block_swap_h2d_only` requires it. Without it Krea 2 needs about 48 GB of VRAM; on a smaller
   card the run spills into system RAM instead of failing.
