@@ -5,6 +5,7 @@
 #   bash run_gui.sh                                  start the GUI (the first start installs PyTorch etc.)
 #   bash run_gui.sh --cn                             use mirrors for mainland China (PyPI: TUNA, Hugging Face: hf-mirror)
 #   bash run_gui.sh update-sd-scripts [--branch X]   update scripts/sd-scripts
+#   bash run_gui.sh update-musubi-tuner [--branch X] update scripts/musubi-tuner (Krea 2)
 #
 # Any other arguments go to main.py (see README "Program arguments").
 

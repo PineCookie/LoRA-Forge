@@ -4,6 +4,7 @@
 #   .\run_gui.ps1                                  start the GUI (the first start installs PyTorch etc.)
 #   .\run_gui.ps1 --cn                             use mirrors for mainland China (PyPI: TUNA, Hugging Face: hf-mirror)
 #   .\run_gui.ps1 update-sd-scripts [--branch X]   update scripts/sd-scripts
+#   .\run_gui.ps1 update-musubi-tuner [--branch X] update scripts/musubi-tuner (Krea 2)
 #
 # Any other arguments go to main.py (see README "Program arguments").
 
@@ -17,7 +18,7 @@ if ($args -contains "--cn") {
     $Env:HF_ENDPOINT = "https://hf-mirror.com"
     Write-Host -ForegroundColor Cyan "Using mirrors in China (PyPI: TUNA, Hugging Face: hf-mirror). PyTorch still comes from the index set in pyproject.toml."
 }
-$isGui = -not ($forwarded.Count -gt 0 -and $forwarded[0] -eq "update-sd-scripts")
+$isGui = -not ($forwarded.Count -gt 0 -and $forwarded[0] -in @("update-sd-scripts", "update-musubi-tuner"))
 
 function Exit-WithError([string]$Message) {
     Write-Host -ForegroundColor Red $Message

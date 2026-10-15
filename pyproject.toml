@@ -25,6 +25,9 @@ dependencies = [
     "schedulefree>=1.4.1",
     "safetensors>=0.8.0",
     "transformers==5.17.0",
+    # musubi-tuner (Krea 2) imports these in its dataset / Wan code paths
+    "av>=17.1.0",
+    "easydict>=1.13",
     # Scientific/image utilities
     "einops",
     "ftfy",

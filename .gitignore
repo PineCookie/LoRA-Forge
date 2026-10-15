@@ -12,7 +12,7 @@ wheelhouse/
 python
 git
 
-# kohya-ss/sd-scripts clone created by the launcher (see README); not part of this repo.
+# kohya-ss/sd-scripts and musubi-tuner clones created by the launcher (see README); not part of this repo.
 # The leading slash keeps nested scripts directories unaffected.
 /scripts/
 

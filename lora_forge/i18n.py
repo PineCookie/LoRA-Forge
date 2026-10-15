@@ -206,6 +206,21 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh": "Qwen-Image VAE（vae）",
         "ja": "Qwen-Image VAE（vae）",
     },
+    "model.dit": {
+        "en": "Krea 2 DiT (base model)",
+        "zh": "Krea 2 DiT（底模）",
+        "ja": "Krea 2 DiT（ベースモデル）",
+    },
+    "model.textEncoder": {
+        "en": "Qwen3-VL-4B text encoder (text_encoder)",
+        "zh": "Qwen3-VL-4B 文本编码器（text_encoder）",
+        "ja": "Qwen3-VL-4B テキストエンコーダー（text_encoder）",
+    },
+    "run.krea2SingleGpu": {
+        "en": "Krea 2 training runs on one GPU: pick a single GPU.",
+        "zh": "Krea 2 训练只支持单卡：请只选择一个 GPU。",
+        "ja": "Krea 2 の学習は 1 GPU のみ対応です。GPU を 1 つだけ選んでください。",
+    },
     # --- sd-scripts compatibility ------------------------------------------------------------
     "sdScripts.missing": {
         "en": "The installed sd-scripts ({ref}) does not support: {features}. sd-scripts would silently ignore "

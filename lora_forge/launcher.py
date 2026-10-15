@@ -41,26 +41,31 @@ def prepare_git():
         return False
 
 
+# The two kohya-ss trainers the GUI drives, cloned under scripts/ on first start (git-ignored):
+# sd-scripts for SD / SDXL / FLUX / SD3 / Anima, musubi-tuner for Krea 2.
 SD_SCRIPTS_REMOTE = "https://github.com/kohya-ss/sd-scripts.git"
+MUSUBI_TUNER_REMOTE = "https://github.com/kohya-ss/musubi-tuner.git"
 
 
 def sd_scripts_path() -> Path:
     return base_dir_path() / "scripts" / "sd-scripts"
 
 
-def ensure_sd_scripts(ref: str = "main"):
-    """Clone kohya-ss/sd-scripts at `ref` (branch or tag) if it is missing.
+def musubi_tuner_path() -> Path:
+    return base_dir_path() / "scripts" / "musubi-tuner"
 
-    An existing checkout is left exactly as it is: updating is explicit (`main.py
-    update-sd-scripts`), so starting the GUI never moves sd-scripts away from a tested version.
+
+def ensure_checkout(name: str, remote: str, path: Path, ref: str):
+    """Clone `remote` at `ref` (branch or tag) to `path` if it is missing.
+
+    An existing checkout is left exactly as it is: updating is explicit (`main.py update-*`), so
+    starting the GUI never moves a trainer away from a tested version.
     """
-    path = sd_scripts_path()
-
     if (path / ".git").exists():
         return
 
     if path.exists() and any(path.iterdir()):
-        log.warning(f"sd-scripts path already exists and is not empty: {path}")
+        log.warning(f"{name} path already exists and is not empty: {path}")
         return
 
     if not prepare_git():
@@ -68,31 +73,46 @@ def ensure_sd_scripts(ref: str = "main"):
         sys.exit(1)
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    log.info(f"Cloning kohya-ss/sd-scripts ({ref}) to {path}...")
-    result = subprocess.run(["git", "clone", "--branch", ref, SD_SCRIPTS_REMOTE, str(path)])
+    log.info(f"Cloning {name} ({ref}) to {path}...")
+    result = subprocess.run(["git", "clone", "--branch", ref, remote, str(path)])
     if result.returncode != 0:
         # Fallback: clone then checkout the ref (handles tags that aren't branches)
         log.info("Branch clone failed, trying full clone + checkout...")
-        result = subprocess.run(["git", "clone", SD_SCRIPTS_REMOTE, str(path)])
+        result = subprocess.run(["git", "clone", remote, str(path)])
         if result.returncode != 0:
-            raise RuntimeError(f"Failed to clone kohya-ss/sd-scripts")
+            raise RuntimeError(f"Failed to clone {name}")
         subprocess.run(
             ["git", "-C", str(path), "checkout", ref],
             check=True
         )
 
 
+def ensure_sd_scripts(ref: str = "main"):
+    ensure_checkout("kohya-ss/sd-scripts", SD_SCRIPTS_REMOTE, sd_scripts_path(), ref)
+
+
+def ensure_musubi_tuner(ref: str = "main"):
+    ensure_checkout("kohya-ss/musubi-tuner", MUSUBI_TUNER_REMOTE, musubi_tuner_path(), ref)
+
+
 def update_sd_scripts(ref: str = "main", remote: str = SD_SCRIPTS_REMOTE):
-    """Update scripts/sd-scripts: fast-forward to the latest commit of branch `ref`, or switch to
+    update_checkout("sd-scripts", remote, sd_scripts_path(), ref)
+
+
+def update_musubi_tuner(ref: str = "main", remote: str = MUSUBI_TUNER_REMOTE):
+    update_checkout("musubi-tuner", remote, musubi_tuner_path(), ref)
+
+
+def update_checkout(name: str, remote: str, path: Path, ref: str):
+    """Update a trainer checkout: fast-forward to the latest commit of branch `ref`, or switch to
     tag `ref`. Clones it when missing. Stops (non-zero exit) instead of overwriting local changes."""
-    path = sd_scripts_path()
     if not (path / ".git").exists():
         if path.exists() and any(path.iterdir()):
             raise SystemExit(f"{path} exists but is not a Git checkout.")
-        ensure_sd_scripts(ref)
+        ensure_checkout(name, remote, path, ref)
         return
     if not prepare_git():
-        raise SystemExit("git was not found on PATH. Install Git before updating sd-scripts.")
+        raise SystemExit(f"git was not found on PATH. Install Git before updating {name}.")
 
     def git(*args: str, quiet: bool = False) -> subprocess.CompletedProcess:
         result = subprocess.run(["git", "-C", str(path), *args], capture_output=quiet, text=True)
@@ -115,7 +135,7 @@ def update_sd_scripts(ref: str = "main", remote: str = SD_SCRIPTS_REMOTE):
         git("pull", "--ff-only", "origin", ref)
 
     head = git("rev-parse", "--short", "HEAD", quiet=True).stdout.strip()
-    log.info(f"sd-scripts is now at {git_tag(str(path))} ({head})")
+    log.info(f"{name} is now at {git_tag(str(path))} ({head})")
 
 
 def git_tag(path: str) -> str:

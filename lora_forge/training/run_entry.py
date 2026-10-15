@@ -49,6 +49,8 @@ DYNAMIC_SEQ_ENV = "LORA_FORGE_COMPILE_DYNAMIC_SEQ"
 ANSI_ENV = "LORA_FORGE_ANSI"
 # GUI option activation_memory_budget (Anima with compile), in place of gradient checkpointing
 MEMORY_BUDGET_ENV = "LORA_FORGE_ACTIVATION_MEMORY_BUDGET"
+# Krea 2 (musubi-tuner): JSON with the caching scripts' arguments, see run_krea2_caching
+KREA2_CACHE_ENV = "LORA_FORGE_KREA2_CACHE"
 PROGRESS_INTERVAL = 1.0
 
 
@@ -591,11 +593,46 @@ def main():
         install_memory_budget(budget)
 
     try:
+        if os.environ.get(KREA2_CACHE_ENV):
+            run_krea2_caching(trainer, json.loads(os.environ[KREA2_CACHE_ENV]))
         runpy.run_path(trainer, run_name="__main__")
     except Exception as error:
         if notify is not None and is_out_of_memory(error):
             notify("notice", code="out_of_memory", budget=applied_budget, text=str(error).strip().splitlines()[0][:300])
         raise
+
+
+def run_krea2_caching(trainer: str, cache: dict):
+    """musubi-tuner caches latents and text-encoder outputs with two scripts before training
+    (`--skip_existing`: a second run on the same dataset only encodes new images). They run here, in
+    the training process, so the Runs page shows them as part of the run."""
+    import gc
+
+    import torch
+
+    scripts = (
+        ("krea2_cache_latents.py", ["--vae", cache["vae"]]),
+        ("krea2_cache_text_encoder_outputs.py", ["--text_encoder", cache["text_encoder"]]),
+    )
+    folder = os.path.dirname(trainer)
+    trainer_argv = list(sys.argv)
+    for name, args in scripts:
+        if os.environ.get("RANK", "0") != "0":
+            break
+        print(f"LoRA-Forge: caching with {name}", flush=True)
+        # the scripts' own bars have no total, so they report nothing: one bar per script for the Runs page
+        desc = "caching latents" if "latents" in name else "caching text encoder outputs"
+        if notify is not None:
+            notify("progress", desc=desc, n=0, total=1, rate=None, elapsed=0, done=False)
+        sys.argv = [os.path.join(folder, name), "--dataset_config", cache["dataset_config"], "--skip_existing", *args]
+        runpy.run_path(sys.argv[0], run_name="__main__")
+        if notify is not None:
+            notify("progress", desc=desc, n=1, total=1, rate=None, elapsed=0, done=True)
+        # the script's models are module locals of that run; give their VRAM back before the DiT loads
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    sys.argv = trainer_argv
 
 
 def is_out_of_memory(error: BaseException) -> bool:

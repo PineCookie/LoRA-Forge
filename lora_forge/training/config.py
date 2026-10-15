@@ -9,10 +9,10 @@ from typing import Optional, Tuple
 
 import toml
 
-from lora_forge import sd_scripts
+from lora_forge import musubi_tuner, sd_scripts
 from lora_forge.i18n import join_list, t
 from lora_forge.log import log
-from lora_forge.training import validation
+from lora_forge.training import krea2, validation
 from lora_forge.training.dataset import count_images, subset_folders
 
 TRAINERS = {
@@ -26,6 +26,9 @@ TRAINERS = {
     "flux-lora": "./scripts/sd-scripts/flux_train_network.py",
 
     "anima-lora": "./scripts/sd-scripts/anima_train_network.py",
+
+    # kohya-ss/musubi-tuner (see lora_forge/training/krea2.py)
+    "krea2-lora": "./scripts/musubi-tuner/src/musubi_tuner/krea2_train_network.py",
 }
 
 # Keys moved into the generated dataset_config; only used when a subset has a non-zero
@@ -285,6 +288,9 @@ def prepare_training(config: dict) -> PreparedRun:
         log.info("include_patterns with compile_shapes = bounded: inductor mix-order reduction is off")
     apply_activation_memory_budget(config, model_train_type, environment, gpu_count=len(gpu_ids or []))
 
+    if model_train_type == krea2.MODEL_TRAIN_TYPE:
+        return _prepare_krea2(config, timestamp, autosave_dir, toml_file, trainer_file, gpu_ids, environment)
+
     resolve_dataloader_workers(config)
 
     train_data_dir = config.get("train_data_dir", "")
@@ -352,5 +358,50 @@ def prepare_training(config: dict) -> PreparedRun:
         config=config,
         # sd-scripts only prints the timestep distribution and exits
         preview=bool(config.get("show_timesteps")),
+        environment=environment,
+    )
+
+
+def _prepare_krea2(config: dict, timestamp: str, autosave_dir: str, toml_file: str, trainer_file: str, gpu_ids, environment: dict) -> PreparedRun:
+    """Krea 2 through musubi-tuner: its dataset TOML, its prompt format, its `src` on PYTHONPATH."""
+    if gpu_ids and len(gpu_ids) > 1:
+        raise TrainingConfigError(t("run.krea2SingleGpu"))
+    train_data_dir = config.get("train_data_dir", "")
+    validated, message = validation.validate_data_dir(train_data_dir)
+    if not validated:
+        raise TrainingConfigError(message)
+    cpu_threads = 8 if count_images(train_data_dir) > 200 else 2
+
+    prompt_file = str(config.pop("prompt_file", "")).strip()
+    if prompt_file:
+        if not os.path.exists(prompt_file):
+            raise TrainingConfigError(t("run.promptFileMissing", path=prompt_file))
+        config["sample_prompts"] = prompt_file
+    else:
+        prompts = krea2.sample_prompts(config)
+        if prompts and config.pop("enable_preview", True):
+            sample_prompts_file = os.path.join(autosave_dir, f"{timestamp}-prompt.txt")
+            with open(sample_prompts_file, "w", encoding="utf-8") as f:
+                f.write(prompts)
+            config["sample_prompts"] = sample_prompts_file
+    config.pop("enable_preview", None)
+
+    try:
+        krea2.prepare_config(config, os.path.join(autosave_dir, f"{timestamp}-dataset.toml"), environment)
+    except krea2.Krea2ConfigError as error:
+        raise TrainingConfigError(str(error)) from error
+    environment["PYTHONPATH"] = krea2.musubi_pythonpath(str(musubi_tuner.src_dir()), os.environ.get("PYTHONPATH"))
+
+    with open(toml_file, "w", encoding="utf-8") as f:
+        f.write(toml.dumps(config))
+    return PreparedRun(
+        toml_file=toml_file,
+        trainer_file=trainer_file,
+        gpu_ids=gpu_ids,
+        cpu_threads=cpu_threads,
+        run_id=timestamp,
+        model_train_type=krea2.MODEL_TRAIN_TYPE,
+        config=config,
+        preview=False,
         environment=environment,
     )
