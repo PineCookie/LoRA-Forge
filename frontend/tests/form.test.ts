@@ -128,6 +128,28 @@ describe("rules", () => {
     expect(values.activation_memory_budget).toBe("off");
   });
 
+  it("keeps Krea 2's base quantization, Turbo source and H2D-only block swap consistent", () => {
+    const groups = loadGroups("krea2-lora");
+    const values = initialFormValues(groups);
+    expect([values.convrot_int8, values.fp8_base, values.block_swap_h2d_only, values.gradient_checkpointing]).toEqual([true, false, true, true]);
+    values.fp8_base = true;
+    applyExclusiveRules(values, "fp8_base");
+    expect(values.convrot_int8).toBe(false);
+    values.turbo_lora = "./sd-models/turbo_lora.safetensors";
+    applyExclusiveRules(values, "turbo_lora");
+    values.turbo_dit = "./sd-models/turbo.safetensors";
+    applyExclusiveRules(values, "turbo_dit");
+    expect([values.turbo_dit, values.turbo_lora]).toEqual(["./sd-models/turbo.safetensors", ""]);
+    values.gradient_checkpointing = false;
+    applyExclusiveRules(values, "gradient_checkpointing");
+    expect(values.block_swap_h2d_only).toBe(false);
+    values.block_swap_h2d_only = true;
+    applyExclusiveRules(values, "block_swap_h2d_only");
+    expect(values.gradient_checkpointing).toBe(true);
+    // an imported combination, which skips the live rules
+    expect(readForm({ ...values, gradient_checkpointing: false }, groups)).not.toHaveProperty("block_swap_h2d_only");
+  });
+
   it("sends activation_memory_budget only when on, with compile, and not with an offload option", () => {
     const groups = loadGroups("anima-lora");
     const values = initialFormValues(groups);

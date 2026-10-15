@@ -105,7 +105,7 @@ Schema.intersect([
         Schema.union([
             Schema.object({
                 enable_preview: Schema.const(true).required(),
-                prompt_file: Schema.string().role('textarea').description("Preview prompt file. When set, the prompts in the file are used and the options below are ignored."),
+                prompt_file: Schema.string().role('textarea').description("Preview prompt file, one prompt per line in musubi-tuner's format, e.g. `a cat --n blurry --l 5.5 --s 28 --w 1024 --h 1024 --d 42`. CFG (`--l`) only runs with a negative prompt (`--n`). When set, the options below are ignored"),
                 positive_prompts: Schema.string().role('textarea').default("a photo of a cat sitting on a windowsill, soft morning light").description("Prompt"),
                 negative_prompts: Schema.string().role('textarea').default("").description("Negative Prompt"),
                 sample_width: Schema.number().min(64).step(16).default(1024).description("Preview width"),
