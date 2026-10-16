@@ -34,7 +34,9 @@ Schema.intersect([
 
     // Saving
     Schema.intersect([
-        Schema.object(SHARED_SCHEMAS.RAW.SAVE_FIELDS),
+        Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.SAVE_FIELDS, {
+            save_precision: Schema.union(["fp16", "bf16", "float"]).default("fp16").description("Save precision of the LoRA file. `fp16` keeps a little more detail than `bf16` (LoRA weights stay far inside fp16's range); `float` is fp32, twice the size"),
+        })),
         Schema.union([
             Schema.object({
                 save_state: Schema.const(true).required(),

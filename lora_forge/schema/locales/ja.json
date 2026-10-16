@@ -63,6 +63,7 @@
   "FLUX model type (Chroma is supported)": "FLUX モデルの種類（Chroma に対応）",
   "Full BF16 precision": "完全 BF16 精度",
   "Full FP16 precision": "完全 FP16 精度",
+  "Save precision of the LoRA file. `fp16` keeps a little more detail than `bf16` (LoRA weights stay far inside fp16's range); `float` is fp32, twice the size": "LoRA ファイルの保存精度。`fp16` は `bf16` より少し多くの精度を保ちます（LoRA の重みは fp16 の範囲に十分収まります）。`float` は fp32 で、サイズは 2 倍です",
   "Full precision mode: the trained weights in fp16 or bf16 too. full_fp16 works only with AdamW8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit or AdaFactor; other optimizers stop learning or turn the weights into NaN": "完全精度モード：学習する重みも fp16 または bf16 にします。full_fp16 は AdamW8bit、PagedAdamW8bit、Lion8bit、PagedLion8bit、AdaFactor でのみ使えます。他のオプティマイザーでは学習が止まるか、重みが NaN になります",
   "Full-graph compile mode. Checking it turns off split_attn": "フルグラフコンパイルモード。オンにすると split_attn は自動でオフになります",
   "Generate preview images during training": "学習中にプレビュー画像を生成",

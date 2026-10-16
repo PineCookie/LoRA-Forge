@@ -35,6 +35,8 @@ describe("anima defaults", () => {
     expect(config.resolution).toBe("1024,1024");
     expect(config.full_bf16).toBe(true);
     expect(config.mixed_precision).toBe("bf16");
+    // fp16 keeps more of the LoRA weights' precision than bf16
+    expect(config.save_precision).toBe("fp16");
     expect(config.network_train_unet_only).toBe(true);
     expect(config.qwen_image_vae_2d).toBe(true);
   });
