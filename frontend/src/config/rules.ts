@@ -13,6 +13,8 @@ function checked(values: FormValues, name: string) {
 }
 
 const SD15_TYPES = ["sd-lora", "sd-dreambooth"];
+const SDXL_TYPES = ["sdxl-lora", "sdxl-finetune"];
+const FP16_PRECISIONS = ["fp16", "full-fp16"];
 
 function budgetOn(values: FormValues) {
   return !["", "off"].includes(String(values.activation_memory_budget ?? ""));
@@ -116,4 +118,6 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
   // sd-scripts requires mixed_precision to match full_fp16 / full_bf16
   if (values.full_precision === "full_fp16") setField(values, "mixed_precision", "fp16");
   else if (values.full_precision === "full_bf16") setField(values, "mixed_precision", "bf16");
+  // the SDXL VAE gives NaN in fp16: with the fp16 training precisions it stays in fp32
+  if (SDXL_TYPES.includes(trainType) && FP16_PRECISIONS.includes(String(values.training_precision))) setField(values, "no_half_vae", true);
 }

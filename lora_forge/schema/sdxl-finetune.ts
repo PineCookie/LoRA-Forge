@@ -191,11 +191,8 @@ Schema.intersect([
     }),
 
     Schema.object({
-        full_precision: Schema.union(["none", "full_fp16", "full_bf16"]).default("none").description("Full precision mode: the trained weights in fp16 or bf16 too. full_fp16 works only with AdamW8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit or AdaFactor; other optimizers stop learning or turn the weights into NaN"),
-    }),
-
-    Schema.object({
-        mixed_precision: Schema.union(["no", "fp16", "bf16"]).default("bf16").description("Mixed precision"),
+        ...SHARED_SCHEMAS.RAW.TRAINING_PRECISION,
+        no_half_vae: Schema.boolean().description("Keep the VAE in full precision (fp32). Always on with the `fp16` and `full-fp16` training precisions: the SDXL VAE gives NaN in fp16"),
         xformers: Schema.boolean().default(false).description("Enable xformers"),
         sdpa: Schema.boolean().description("Enable SDPA"),
         lowram: Schema.boolean().default(false).description("Low-RAM mode: loads the U-Net, text encoder and VAE directly into VRAM"),

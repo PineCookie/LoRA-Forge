@@ -116,7 +116,7 @@ export function compileShapesOf(config: TrainingConfig): string | undefined {
   return "compile_dynamic_seq" in config ? "static" : "bounded";
 }
 
-// Anima's training_precision (one choice) as sd-scripts' keys. Its fp16 choices also take
+// training_precision (Anima, SD1.5, SDXL: one choice) as sd-scripts' keys. Its fp16 choices also take
 // LoRA-Forge's fp16_accumulation (a field of its own, applied by run_entry.py). Most optimizers fail
 // with full-fp16's fp16 LoRA weights (config.py refuses those).
 const TRAINING_PRECISION: Record<string, TrainingConfig> = {
@@ -314,6 +314,8 @@ function normalizeConstraintCombinations(config: TrainingConfig) {
   else if (config.full_bf16) config.mixed_precision = "bf16";
   // fp16 accumulation only changes fp16 matrix multiplies (kept as false too, so an import restores it)
   if (config.mixed_precision !== "fp16") delete config.fp16_accumulation;
+  // the SDXL VAE gives NaN in fp16 (it encodes the latents in the mixed precision otherwise)
+  if (["sdxl-lora", "sdxl-finetune"].includes(config.model_train_type) && config.mixed_precision === "fp16") config.no_half_vae = true;
 }
 
 const SECRET_KEYS = ["wandb_api_key", "huggingface_token", "hf_token"];

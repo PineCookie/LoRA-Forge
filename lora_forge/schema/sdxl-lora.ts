@@ -110,14 +110,13 @@ Schema.intersect([
         seed: Schema.number().min(0).step(1).default(1337).description("Random seed"),
     }),
 
-    // Full precision
-    SHARED_SCHEMAS.FULL_PRECISION_MODE,
-
     // Speed and memory
     Schema.object(
         UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, {
+            ...SHARED_SCHEMAS.RAW.TRAINING_PRECISION,
+            no_half_vae: Schema.boolean().description("Keep the VAE in full precision (fp32). Always on with the `fp16` and `full-fp16` training precisions: the SDXL VAE gives NaN in fp16"),
             cache_text_encoder_outputs: Schema.boolean().default(true).description("Cache text encoder outputs to save VRAM. Needs shuffle_caption off; turns on network_train_unet_only (the text encoder cannot be trained at the same time)"),
-        }, ["full_fp16", "full_bf16"])
+        }, ["mixed_precision", "full_fp16", "full_bf16"])
     ),
 
     // Distributed training

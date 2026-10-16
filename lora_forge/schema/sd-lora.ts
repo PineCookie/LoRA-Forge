@@ -73,11 +73,9 @@ Schema.intersect([
     // Other options (seed, clip_skip)
     SHARED_SCHEMAS.OTHER,
 
-    // Full precision
-    SHARED_SCHEMAS.FULL_PRECISION_MODE,
-
     // Speed and memory; text encoder output caching is SDXL-only in sd-scripts' LoRA trainers
-    Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, {}, ["full_fp16", "full_bf16", "cache_text_encoder_outputs", "cache_text_encoder_outputs_to_disk"])),
+    Schema.object(UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, SHARED_SCHEMAS.RAW.TRAINING_PRECISION,
+        ["mixed_precision", "full_fp16", "full_bf16", "cache_text_encoder_outputs", "cache_text_encoder_outputs_to_disk"])),
 
     // Distributed training
     SHARED_SCHEMAS.DISTRIBUTED_TRAINING

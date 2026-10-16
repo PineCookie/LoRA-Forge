@@ -39,6 +39,13 @@
                 max_data_loader_n_workers: Schema.number().min(0).step(1).description("Processes that prepare the batches. Empty: chosen when training starts, none when the latents are cached (a batch is then a few small file reads) and 2 otherwise. Each one takes seconds to start; sd-scripts' own default is 8"),
                 vae_batch_size: Schema.number().min(1).description("VAE encoding batch size"),
             },
+            // the SD1.5 / SDXL pages' precision: one choice in place of mixed_precision + full_fp16/full_bf16
+            // (normalize.ts expands it), and LoRA-Forge's fp16_accumulation (run_entry.py) for the fp16 choices.
+            // A getter: each page gets its own nodes, so a page can change the default (.default() edits in place)
+            get TRAINING_PRECISION() { return {
+                training_precision: Schema.union(["bf16", "full-bf16", "fp16", "full-fp16", "fp32"]).default("bf16").description("Precision of the training math and of the trained weights while they train (the saved file uses save_precision).<br>`bf16`: math in bf16, trained weights in fp32. The standard, for RTX 30 series and newer.<br>`full-bf16`: math and trained weights in bf16 (sd-scripts' full_bf16): less VRAM, mostly for full fine-tunes.<br>`fp16`: math in fp16, trained weights in fp32. For GPUs without bf16, or with fp16_accumulation for speed.<br>`full-fp16`: math and trained weights in fp16 (sd-scripts' full_fp16): less VRAM. Only with AdamW8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit or AdaFactor: other optimizers stop learning or turn the weights into NaN.<br>`fp32`: everything in fp32. Slowest, for debugging"),
+                fp16_accumulation: Schema.boolean().default(true).description("Let fp16 matrix multiplies add up in fp16 too: faster on GeForce RTX cards (no gain on data-center or RTX PRO cards), still about as precise as bf16. Convolutions and attention do not change, so U-Net models gain less than Anima"),
+            }; },
             SAVE_FIELDS: {
                 output_name: Schema.string().default("model_name").description("Output name"),
                 output_dir: Schema.string().role('filepicker', { type: "folder" }).default("./output").description("Output folder"),

@@ -48,7 +48,7 @@ const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = 
   compile_fullgraph: ["compile", true],
   compile_cache_size_limit: ["compile", true],
   activation_memory_budget: ["compile", true],
-  // Anima: fp16 accumulation only changes fp16 matrix multiplies
+  // fp16 accumulation only changes fp16 matrix multiplies
   fp16_accumulation: ["training_precision", ["fp16", "full-fp16"]],
   // Krea 2 (musubi-tuner)
   convrot_int8_bwd: ["convrot_int8", true],

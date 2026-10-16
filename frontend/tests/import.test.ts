@@ -71,7 +71,17 @@ describe("config import round-trip", () => {
   });
 });
 
-describe("Anima training_precision", () => {
+describe("training_precision", () => {
+  it("round-trips an SDXL fp16 config with its fp32 VAE", () => {
+    for (const choice of ["fp16", "full-fp16", "bf16"]) {
+      const form = { model_train_type: "sdxl-lora", training_precision: choice, fp16_accumulation: true, no_half_vae: false };
+      const { exported, reloaded } = roundTrip(form);
+      expect(exported.no_half_vae, choice).toBe(choice !== "bf16");
+      expect(reloaded.training_precision, choice).toBe(choice);
+      expect(loose(submit(reloaded)), choice).toEqual(loose(exported));
+    }
+  });
+
   it("round-trips every choice, with and without fp16 accumulation", () => {
     for (const choice of ["bf16", "full-bf16", "fp16", "full-fp16", "fp32"]) {
       for (const accumulation of [true, false]) {

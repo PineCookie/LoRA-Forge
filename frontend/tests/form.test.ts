@@ -218,11 +218,45 @@ describe("rules", () => {
   });
 
   it("syncs mixed_precision with full_precision", () => {
-    // Anima has one training_precision choice instead (import.test.ts)
-    const values = initialFormValues(loadGroups("sdxl-finetune"));
+    // Anima, SD1.5 and SDXL have one training_precision choice instead (import.test.ts)
+    const values = initialFormValues(loadGroups("flux-lora"));
     values.full_precision = "full_fp16";
     applyExclusiveRules(values, "full_precision");
     expect(values.mixed_precision).toBe("fp16");
+  });
+
+  it("gives the SD1.5 and SDXL pages training_precision with their old defaults", () => {
+    const precision = (schema: string) => {
+      const groups = loadGroups(schema);
+      const config = readForm(initialFormValues(groups), groups);
+      return [config.mixed_precision, config.full_bf16, config.full_fp16, config.fp16_accumulation];
+    };
+    // what mixed_precision + full_precision "none" sent before
+    expect(precision("sdxl-lora")).toEqual(["bf16", false, false, undefined]);
+    expect(precision("sdxl-finetune")).toEqual(["bf16", false, false, undefined]);
+    expect(precision("sd-lora")).toEqual(["bf16", false, false, undefined]);
+    expect(precision("sd-dreambooth")).toEqual(["fp16", false, false, true]);
+    for (const schema of ["sdxl-lora", "sdxl-finetune", "sd-lora", "sd-dreambooth"]) {
+      expect(["mixed_precision", "full_precision"].filter((name) => name in initialFormValues(loadGroups(schema))), schema).toEqual([]);
+    }
+  });
+
+  it("keeps the SDXL VAE in fp32 with the fp16 training precisions", () => {
+    for (const schema of ["sdxl-lora", "sdxl-finetune"]) {
+      const groups = loadGroups(schema);
+      const values = initialFormValues(groups);
+      values.no_half_vae = false;
+      values.training_precision = "fp16";
+      applyExclusiveRules(values, "training_precision");
+      expect(values.no_half_vae, schema).toBe(true);
+      // also for a config that skipped the form (an import submitted as it is)
+      values.no_half_vae = false;
+      expect(readForm(values, groups).no_half_vae, schema).toBe(true);
+    }
+    const groups = loadGroups("sdxl-lora");
+    const values = initialFormValues(groups);
+    applyExclusiveRules(values, null);
+    expect(readForm(values, groups).no_half_vae).not.toBe(true);
   });
 });
 

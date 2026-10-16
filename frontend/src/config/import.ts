@@ -29,7 +29,7 @@ function splitArg(arg: unknown): [text: string, name: string, value: string] {
  * expandImportedArgs(), or set by the page itself (show_timesteps, by "Preview timesteps"). */
 export const EXPANDED_KEYS = new Set([
   "network_args", "optimizer_args", "full_fp16", "full_bf16", "show_timesteps", "compile_dynamic", "compile_dynamic_seq",
-  // Anima's training_precision (other pages have mixed_precision itself)
+  // training_precision (FLUX / SD3 / Krea 2 have mixed_precision itself)
   "mixed_precision",
 ]);
 
@@ -81,7 +81,7 @@ export function expandImportedArgs(config: TrainingConfig): TrainingConfig {
     result.full_precision = config.full_fp16 ? "full_fp16" : config.full_bf16 ? "full_bf16" : "none";
   }
 
-  // training_precision (Anima) is a form-only field that normalizeTrainingConfig() turns into these keys
+  // training_precision is a form-only field that normalizeTrainingConfig() turns into these keys
   const precision = trainingPrecisionOf(config);
   if (precision) result.training_precision = precision;
 
