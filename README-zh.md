@@ -38,7 +38,7 @@ LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scr
 - **模型**：Anima、Krea 2、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
 - **简洁的表单**：*常用* 视图只显示大多数人会改的选项，全部选项一键切换，支持搜索，配置可导入/导出为 JSON 或 TOML。
 - **运行记录页面**：进度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件和控制台输出，以往的训练也能查看。不需要 TensorBoard。
-- **更快的 Anima 训练**：`torch.compile` 默认开启，并经过调整，只编译一次，而不是每种图像尺寸各编译一次（[详情](docs/anima-zh.md)）。
+- **更快的训练**：LoRA Forge 会在 sd-scripts 较慢的地方打补丁，例如 Anima 的所有图像尺寸共用一个编译图、SDXL 的逐 block 编译和 flash-attn，以及快得多的 ProdigyPlus 优化器步骤。SDXL LoRA 的训练速度约为原版 sd-scripts 的两倍（[详情](#训练速度)）。
 - **16 GB 显卡也能训练 Krea 2**：默认使用 int8 底模权重和 block 交换（[详情](docs/krea2-zh.md)）。
 - 界面支持 English、中文、日本語，以及浅色和深色模式。
 
@@ -97,6 +97,25 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
 
 在浏览器标签页打开期间，每个页面都会保留已填写的内容，切换到「运行记录」或其他模型再回来也不会丢失，但刷新页面后会恢复默认。要保存配置，请用 **导出 JSON** 或 **导出 TOML**，再用 **导入配置…** 重新载入。每次开始训练时，配置也会保存到 `config/autosave/`，同样可以导入。
 
+## 训练速度
+
+LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开始时给它们较慢的地方打补丁。下表中标为「开启」的项目无需任何操作。如果想原样运行 sd-scripts（例如做对比），请设置环境变量 `LORA_FORGE_PATCHES=0`。
+
+| 内容 | 模型 | 默认 | 每步提升 |
+|---|---|---|---|
+| 所有分桶尺寸和批大小共用一个编译图（`compile_shapes = bounded`），而不是每种尺寸各编译一次 | Anima | 开启 | 编译图从约 28 个降到 2 个：一个 epoch 快 11%，编译缓存为空时快 55% |
+| 逐 block 的 `torch.compile`（transformer 和 resnet block），所有分桶尺寸共用编译结果 | SDXL | 开启 | −21% |
+| 注意力使用 flash-attn（Windows 版 PyTorch 没有 flash 内核） | SDXL | 安装 [flash-attn](#flash-attn可选) 后开启 | −17% |
+| 默认使用 SDPA 注意力（关闭时 sd-scripts 会用普通注意力） | SDXL、SD1.5 | 开启 | 约快 2 倍，显存也更少 |
+| ProdigyPlusScheduleFree 把形状相同的张量放在一起更新，而不是逐个更新（计算相同） | 全部 | 开启 | Anima −7%，SDXL −23% |
+| fp16 训练配合 fp16 累加（`training_precision = fp16`），精度与 bf16 相当 | Anima、SDXL、SD1.5 | 可选 | Anima −24%，SDXL −8% |
+| 用 `activation_memory_budget` 代替梯度检查点：显存放得下的激活直接保留，不再重算 | Anima | 可选（`auto`） | −8% 到 −11%，会用掉大部分显存 |
+| 注意力使用 flash-attn | Krea 2 | 安装后开启 | −22% |
+| 锁页内存的单向 block 交换：交换几乎没有开销，可腾出约 6 GB 显存 | Krea 2 | 开启 | 交换更多 block 而速度不变 |
+| 缓存 latent 时不启动 DataLoader 工作进程 | 全部 | 开启 | Windows 上第一步约 7 秒后开始，而不是 80 秒 |
+
+合计：SDXL LoRA 每步从 1.51 秒（启用 SDPA 的 sd-scripts）降到 0.81 秒，使用 fp16 时为 0.72 秒；Anima LoRA 每步（已编译）在使用 fp16 和 `activation_memory_budget = auto` 时从 1.73 秒降到 1.17 秒。每项改动都与原版对比过，loss 一致。测试环境为 Windows 下的 RTX 5070 Ti（16 GB），rank 32 的 LoRA，批大小 2，约 100 万像素；其他显卡的提升会不同，fp16 累加在数据中心卡和 RTX PRO 卡上没有提升。各选项的说明见 [Anima 指南](docs/anima-zh.md) 和 [Krea 2 指南](docs/krea2-zh.md)。
+
 ## 更新
 
 - **LoRA Forge**：下载新版本解压覆盖旧文件夹（或解压到新文件夹，再把 `train/`、`output/` 和 `config/` 复制过去）；如果是克隆的仓库，执行 `git pull`。
@@ -117,7 +136,7 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
 
 ### flash-attn（可选）
 
-[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现；在 Anima 页面中通过 `attn_mode = flash` 选择（默认的 `torch` 不需要额外安装），Krea 2 页面在已安装时会自动使用它。它默认不会安装。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
+[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现；在 Anima 页面中通过 `attn_mode = flash` 选择（默认的 `torch` 不需要额外安装），Krea 2 和 SDXL 页面在已安装时会自动使用它（SDXL 需开启 `sdpa`，这是默认设置）。它默认不会安装。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
 
 ```sh
 uv sync --extra flash-attn
@@ -163,6 +182,7 @@ uv sync --extra flash-attn
 | 训练失败 | 在运行记录页面打开它：控制台输出中有错误信息 |
 | 某个选项似乎不起作用 | 查看首页 **系统信息** 面板中的 *sd-scripts 兼容性* |
 | Anima：编译报错或最初几步很慢 | 见 [Anima 训练说明](docs/anima-zh.md) |
+| SDXL：编译报错 | 在 SDXL LoRA 页面关闭 `compile`，训练会以未编译的方式运行 |
 | Krea 2：每步要几分钟 | 模型放不进显存；请调高 `blocks_to_swap`（见 [Krea 2 训练说明](docs/krea2-zh.md)） |
 
 ## 开发者
