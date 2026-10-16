@@ -218,7 +218,9 @@ async function resetAll() {
 
   <template v-else>
     <PageHeader :title="labelText(route.meta.title)">
-      <a v-if="guide" class="button guide" :href="guideUrl(guide, locale)" target="_blank" rel="noopener">{{ t("trainer.guide") }} ↗</a>
+      <template v-if="guide" #title>
+        <a class="guide" :href="guideUrl(guide, locale)" target="_blank" rel="noopener">{{ t("trainer.guide") }} ↗</a>
+      </template>
       <div class="config-actions">
         <label class="button">
           {{ t("trainer.import") }}
@@ -379,6 +381,13 @@ async function resetAll() {
 
 .guide {
   color: var(--primary-text);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.guide:hover {
+  text-decoration: underline;
 }
 
 .config-actions {

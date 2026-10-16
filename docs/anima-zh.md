@@ -22,11 +22,13 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 
 ## 模型文件
 
+三个文件都在 [circlestone-labs/Anima](https://huggingface.co/circlestone-labs/Anima) 的 `split_files/` 下。页面上的 **模型文件** 面板给出每个文件的下载链接，并检查你填写的路径：文件是否存在、是否是正确的文件（例如不是 Qwen-Image 2.1 VAE）。
+
 | 选项 | 文件 | 备注 |
 |---|---|---|
-| `pretrained_model_name_or_path` | Anima DiT（`.safetensors`） | ComfyUI 的文件（`net.` 前缀）也可以 |
-| `qwen3` | Qwen3-0.6B 文本编码器 | 文件、文件夹或 Hugging Face repo id；**必填** |
-| `vae` | Qwen-Image VAE | **必填** |
+| `pretrained_model_name_or_path` | `diffusion_models/anima-base-v1.0.safetensors`（4.2 GB） | 请在 Anima-Base 上训练；ComfyUI 的文件（`net.` 前缀）也可以 |
+| `qwen3` | `text_encoders/qwen_3_06b_base.safetensors`（1.2 GB），Qwen3-0.6B | 文件、文件夹或 Hugging Face repo id；**必填** |
+| `vae` | `vae/qwen_image_vae.safetensors`（254 MB），Qwen-Image VAE | **必填**；不是 Qwen-Image 2.1 VAE |
 | `llm_adapter_path` | 单独的 LLM Adapter | 不填时从 DiT 文件中读取 |
 
 ## 有限制的选项

@@ -154,9 +154,12 @@ describe("rules", () => {
     expect(readForm(values, groups)).toMatchObject({ mixed_precision: "fp16", fp16_accumulation: true });
   });
 
-  it("lists MOSS-Image's model files for fields the page has, with guide and download links", () => {
-    const names = new Set(loadGroups("moss-image-lora").flatMap((group) => group.fields.map((field) => field.name)));
-    expect(MODEL_FILES["moss-image-lora"].map((spec) => spec.field).every((field) => names.has(field))).toBe(true);
+  it("lists model files for fields the page has, with guide and download links", () => {
+    for (const [schema, specs] of Object.entries(MODEL_FILES)) {
+      const names = new Set(loadGroups(schema).flatMap((group) => group.fields.map((field) => field.name)));
+      expect(specs.map((spec) => spec.field).filter((field) => !names.has(field)), schema).toEqual([]);
+    }
+    expect(Object.keys(MODEL_FILES).sort()).toEqual(["anima-lora", "moss-image-lora"]);
     expect(guideUrl("moss-image", "zh")).toBe("https://github.com/PineCookie/lora-forge/blob/main/docs/moss-image-zh.md");
     expect(guideUrl("moss-image", "ja")).toBe("https://github.com/PineCookie/lora-forge/blob/main/docs/moss-image.md");
     expect(huggingFaceFileUrl("https://hf-mirror.com/", "Comfy-Org/Qwen3.5", "text_encoders/qwen3.5_9b_bf16.safetensors")).toBe(

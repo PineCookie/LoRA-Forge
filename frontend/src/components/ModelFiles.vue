@@ -166,6 +166,12 @@ li + li {
   color: var(--success);
 }
 
+.state.repo {
+  border-color: var(--info-border);
+  background: var(--info-soft);
+  color: var(--info);
+}
+
 .state.missing,
 .state.wrong,
 .state.quantized {

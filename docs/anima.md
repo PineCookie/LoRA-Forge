@@ -23,11 +23,15 @@ for another branch or tag) and run `uv sync` afterwards; starting the GUI never 
 
 ## Model files
 
+All three are in [circlestone-labs/Anima](https://huggingface.co/circlestone-labs/Anima) under
+`split_files/`. The page's **Model files** panel links each one and checks the path you enter:
+whether the file exists and is the right one (for example not the Qwen-Image 2.1 VAE).
+
 | Option | File | Notes |
 |---|---|---|
-| `pretrained_model_name_or_path` | Anima DiT (`.safetensors`) | ComfyUI's file (`net.` prefix) works too |
-| `qwen3` | Qwen3-0.6B text encoder | a file, a folder or a Hugging Face repo id; **required** |
-| `vae` | Qwen-Image VAE | **required** |
+| `pretrained_model_name_or_path` | `diffusion_models/anima-base-v1.0.safetensors` (4.2 GB) | train on Anima-Base; ComfyUI's file (`net.` prefix) works too |
+| `qwen3` | `text_encoders/qwen_3_06b_base.safetensors` (1.2 GB), Qwen3-0.6B | a file, a folder or a Hugging Face repo id; **required** |
+| `vae` | `vae/qwen_image_vae.safetensors` (254 MB), the Qwen-Image VAE | **required**; not the Qwen-Image 2.1 VAE |
 | `llm_adapter_path` | separate LLM adapter | read from the DiT file when empty |
 
 ## Options with limits

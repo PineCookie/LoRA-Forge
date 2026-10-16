@@ -16,7 +16,7 @@ from lora_forge.devices import printable_devices
 from lora_forge.file_dialogs import open_directory_selector, open_file_selector
 from lora_forge.i18n import t
 from lora_forge.log import log
-from lora_forge.training import moss_image, runner, runs
+from lora_forge.training import model_files, runner, runs
 from lora_forge.training.config import TrainingConfigError, prepare_training, redact_config
 from lora_forge.training.dataset import count_images, subset_folders
 from lora_forge.training.tasks import TaskStatus, tm
@@ -282,10 +282,8 @@ async def get_runtime() -> APIResponse:
 
 @router.get("/model_file")
 async def get_model_file_state(model: str, field: str, path: str = "") -> APIResponse:
-    """Whether a model file a trainer page asks for is there and is the right one (MOSS-Image)."""
-    if model != moss_image.MODEL_TRAIN_TYPE:
-        return APIResponseSuccess(data={"state": "unknown"})
-    return APIResponseSuccess(data={"state": await asyncio.to_thread(moss_image.check_model_file, field, path)})
+    """Whether a model file a trainer page asks for is there and is the right one."""
+    return APIResponseSuccess(data={"state": await asyncio.to_thread(model_files.check, model, field, path)})
 
 
 @router.get("/schemas/all")

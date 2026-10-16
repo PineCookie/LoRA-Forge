@@ -4,7 +4,10 @@ defineProps<{ title: string }>();
 
 <template>
   <header class="page-header">
-    <h1>{{ title }}</h1>
+    <div class="heading">
+      <h1>{{ title }}</h1>
+      <slot name="title" />
+    </div>
     <div v-if="$slots.default" class="actions">
       <slot />
     </div>
@@ -26,6 +29,12 @@ defineProps<{ title: string }>();
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(8px);
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 h1 {

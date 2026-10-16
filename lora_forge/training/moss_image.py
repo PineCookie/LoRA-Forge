@@ -5,12 +5,11 @@ so this only checks the model files, writes the preview prompt file and drops th
 trainer has no use for.
 """
 
-import json
 import os
-import struct
 from typing import Optional
 
 from lora_forge.i18n import t
+from lora_forge.training import model_files
 
 MODEL_TRAIN_TYPE = "moss-image-lora"
 TRAINER = "./lora_forge/trainers/moss_image/moss_train_network.py"
@@ -22,64 +21,10 @@ DROPPED_KEYS = (
     "save_model_as", "save_state", "resume", "max_data_loader_n_workers", "persistent_data_loader_workers",
     "randomly_choice_prompt", "sample_sampler", "enable_preview",
 )
-# dtypes of quantized checkpoints (ComfyUI's int8_convrot / fp8 files), which the trainer cannot load
-QUANTIZED_DTYPES = {"I8", "U8", "F8_E4M3", "F8_E5M2"}
 
 
 class MossConfigError(ValueError):
     """A problem the user has to fix; the message is shown in the UI as is."""
-
-
-def _headers(path: str) -> dict:
-    """The tensor entries (name -> dtype / shape) of a safetensors file or of all files in a folder,
-    read from the headers only, so even the 19 GB text encoder takes milliseconds."""
-    files = [os.path.join(path, name) for name in os.listdir(path) if name.endswith(".safetensors")] if os.path.isdir(path) else [path]
-    entries = {}
-    for file in files:
-        try:
-            with open(file, "rb") as f:
-                size = struct.unpack("<Q", f.read(8))[0]
-                header = json.loads(f.read(size))
-        except (OSError, ValueError, struct.error, MemoryError):
-            continue
-        entries.update({key: value for key, value in header.items() if isinstance(value, dict)})
-    return entries
-
-
-def _quantized(path: str) -> bool:
-    return any(entry.get("dtype") in QUANTIZED_DTYPES for entry in _headers(path).values())
-
-
-def _shape(entries: dict, *names: str):
-    for name in names:
-        if name in entries:
-            return entries[name].get("shape")
-    return None
-
-
-# What each model file of the page must contain, judged from its tensor names and shapes
-EXPECTED_FILES = {
-    "pretrained_model_name_or_path": lambda e: _shape(e, "shared_block_modulation.weight", "diffusion_model.shared_block_modulation.weight") is not None
-    and _shape(e, "layers.0.proj.ffn_up_gate.weight", "diffusion_model.layers.0.proj.ffn_up_gate.weight") is not None,
-    # Qwen3.5-9B: hidden size 4096 (the 2B / 4B files are a different size)
-    "text_encoder": lambda e: (_shape(e, "model.language_model.embed_tokens.weight", "language_model.embed_tokens.weight") or [0, 0])[-1] == 4096,
-    # FLUX.2's VAE: 128 batch-norm channels (the patchified latent)
-    "vae": lambda e: _shape(e, "bn.running_mean") == [128] and _shape(e, "encoder.conv_in.weight") is not None,
-}
-
-
-def check_model_file(field: str, path: str) -> str:
-    """The state of a model file the page asks for: `empty`, `missing`, `quantized`, `wrong` or `ok`."""
-    path = str(path or "").strip()
-    if not path:
-        return "empty"
-    if not os.path.exists(path):
-        return "missing"
-    entries = _headers(path)
-    if any(entry.get("dtype") in QUANTIZED_DTYPES for entry in entries.values()):
-        return "quantized"
-    expected = EXPECTED_FILES.get(field)
-    return "ok" if expected is None or (entries and expected(entries)) else "wrong"
 
 
 def check_model_files(config: dict) -> None:
@@ -90,7 +35,7 @@ def check_model_files(config: dict) -> None:
             raise MossConfigError(t("model.animaPathMissing", label=label))
         if not os.path.exists(value):
             raise MossConfigError(t("model.animaPathNotFound", label=label, path=value))
-        if key != "vae" and _quantized(value):
+        if key != "vae" and model_files.is_quantized(value):
             raise MossConfigError(t("run.mossQuantized", label=label, path=value))
         config[key] = value
 
