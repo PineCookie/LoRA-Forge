@@ -69,6 +69,10 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
     与 `blocks_to_swap` 或 offload 选项同时使用时不生效。
   - 不能与旧的 `torch_compile` 选项同时使用。
 - **`cuda_allow_tf32`、`cuda_cudnn_benchmark`**：与 `compile` 无关，可单独开启（Ampere 及更新的显卡）。
+- **ProdigyPlusScheduleFree**：LoRA-Forge 以批量方式执行它的优化器步骤，把形状相同的 LoRA 张量放在一起更新，而不是逐个更新。
+  计算相同，保存的状态也相同；每步耗时约少 7%，与 AdamW8bit 差不多快。使用它的 `use_bias_correction`、`use_adopt`、
+  `use_cautious`、`use_grams`、`use_orthograd`、`use_focus` 或 `use_speed` 选项时，仍走原来的步骤。
+  `LORA_FORGE_PATCHES=0` 会连同 LoRA-Forge 的其他补丁一起关闭它。
 - **省显存**：`blocks_to_swap`、`gradient_checkpointing`、`unsloth_offload_checkpointing`、`cpu_offload_checkpointing`。
   `blocks_to_swap` 与两种 offload 选项互斥；打开其中一个时，GUI 会自动清掉冲突的选项。
 - **精度**（`training_precision`）：同时决定两件事：训练计算的精度（sd-scripts 的 `mixed_precision`）和训练中

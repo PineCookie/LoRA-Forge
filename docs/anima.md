@@ -84,6 +84,11 @@ for another branch or tag) and run `uv sync` afterwards; starting the GUI never 
     offload options.
   - Not with the older `torch_compile` option.
 - **`cuda_allow_tf32`, `cuda_cudnn_benchmark`**: independent of `compile` (Ampere or newer).
+- **ProdigyPlusScheduleFree**: LoRA-Forge runs its optimizer step batched, updating all LoRA tensors
+  of the same shape together instead of one by one. Same math and same saved state; about 7% less
+  time per step, which makes it about as fast as AdamW8bit. Its options `use_bias_correction`,
+  `use_adopt`, `use_cautious`, `use_grams`, `use_orthograd`, `use_focus` and `use_speed` keep the
+  original step. `LORA_FORGE_PATCHES=0` turns this off with LoRA-Forge's other patches.
 - **Less VRAM**: `blocks_to_swap`, `gradient_checkpointing`, `unsloth_offload_checkpointing`,
   `cpu_offload_checkpointing`. `blocks_to_swap` and the two offload options exclude each other;
   the GUI clears the conflicting one when you turn one on.
