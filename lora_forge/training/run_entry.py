@@ -541,9 +541,30 @@ def install_console_output():
 PER_MODULE_LINE = re.compile(r"^Module \S+ matched (?:with )?regex '(.*)' -> (LR|dim:) (.*)$")
 
 
+def install_rich_logging():
+    """musubi-tuner's modules call logging.basicConfig, which prints plain `INFO:name:message`
+    lines; sd-scripts logs through rich. A rich handler on the root logger first turns those calls
+    into no-ops, so Krea 2 runs look like the others (same handler as sd-scripts' setup_logging)."""
+    import logging
+
+    if logging.root.handlers:
+        return
+    try:
+        from rich.console import Console
+        from rich.logging import RichHandler
+    except ImportError:
+        return
+    handler = RichHandler(console=Console(stderr=True))
+    handler.setFormatter(logging.Formatter(fmt="%(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logging.root.setLevel(logging.INFO)
+    logging.root.addHandler(handler)
+
+
 def install_log_filter():
     import logging
 
+    # httpx logs every Hugging Face request at INFO (the tokenizers are checked on each load)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     seen = set()
     handle = logging.Logger.handle
 
@@ -584,6 +605,8 @@ def main():
         install_progress(events, compile_monitor)
 
     install_console_output()
+    if "musubi_tuner" in trainer.replace("\\", "/").split("/"):
+        install_rich_logging()
     install_log_filter()
 
     if os.path.basename(trainer) == "anima_train_network.py" and os.environ.get(PATCHES_ENV, "1") != "0":
