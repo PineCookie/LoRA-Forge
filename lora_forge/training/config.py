@@ -251,6 +251,44 @@ def apply_activation_memory_budget(config: dict, model_train_type: str, environm
         environment["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 
+FP16_ACCUMULATION_ENV = "LORA_FORGE_FP16_ACCUMULATION"
+
+# full_fp16 keeps the trained weights, their gradients and most optimizers' state in fp16. Measured with
+# sd-scripts' get_optimizer on real LoRA weights (fp16 vs fp32 weights, same gradients): these turn the
+# weights into NaN (AdamW, RAdamScheduleFree, CAME: an epsilon below fp16's range) or stop learning
+# (Prodigy / ProdigyPlus / DAdaptation: their step size estimate rounds away).
+FULL_FP16_BROKEN = {
+    "adamw", "radamschedulefree", "pytorch_optimizer.came", "prodigy", "prodigyplus.prodigyplusschedulefree",
+    "dadaptation", "dadaptadam", "dadaptadagrad", "dadaptadanip", "dadaptlion", "dadaptsgd",
+}
+# these train, but lose small updates in fp16 weights
+FULL_FP16_DEGRADED = {"lion", "sgdnesterov", "sgdnesterov8bit"}
+FULL_FP16_WORKS = "AdamW8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit, AdaFactor"
+
+
+def check_full_fp16_optimizer(config: dict) -> None:
+    if not config.get("full_fp16"):
+        return
+    optimizer = str(config.get("optimizer_type") or "AdamW")
+    if optimizer.lower() in FULL_FP16_BROKEN:
+        raise TrainingConfigError(t("run.fullFp16Optimizer", optimizer=optimizer, works=FULL_FP16_WORKS))
+    if optimizer.lower() in FULL_FP16_DEGRADED:
+        log.warning(f"full_fp16 with {optimizer}: small updates are lost in fp16 weights; {FULL_FP16_WORKS} do not have this problem")
+
+
+def apply_fp16_accumulation(config: dict, environment: dict) -> None:
+    """fp16_accumulation (Anima, with training_precision fp16 / full-fp16): fp16 matrix multiplies also add up
+    in fp16, which GeForce cards run at about twice the rate of fp32 accumulation. run_entry.py turns
+    it on; sd-scripts never sees the key."""
+    if not config.pop("fp16_accumulation", False):
+        return
+    if config.get("mixed_precision") != "fp16":
+        log.info("fp16_accumulation is only used with mixed_precision = fp16; ignored")
+        return
+    environment[FP16_ACCUMULATION_ENV] = "1"
+    log.info("fp16_accumulation: fp16 matrix multiplies accumulate in fp16")
+
+
 def prepare_training(config: dict) -> PreparedRun:
     """Validate a submitted config and write the TOML (and prompt / dataset files) for sd-scripts.
 
@@ -287,6 +325,7 @@ def prepare_training(config: dict) -> PreparedRun:
         environment["TORCHINDUCTOR_MIX_ORDER_REDUCTION"] = "0"
         log.info("include_patterns with compile_shapes = bounded: inductor mix-order reduction is off")
     apply_activation_memory_budget(config, model_train_type, environment, gpu_count=len(gpu_ids or []))
+    apply_fp16_accumulation(config, environment)
 
     if model_train_type == krea2.MODEL_TRAIN_TYPE:
         return _prepare_krea2(config, timestamp, autosave_dir, toml_file, trainer_file, gpu_ids, environment)
@@ -317,6 +356,8 @@ def prepare_training(config: dict) -> PreparedRun:
     # Anima / FLUX / SD3 have no weighted tokenization (their strategy does not implement it)
     if model_train_type in {"anima-lora", "flux-lora", "sd3-lora"} and config.get("weighted_captions"):
         raise TrainingConfigError(t("run.weightedCaptions"))
+
+    check_full_fp16_optimizer(config)
 
     # sd-scripts ignores unknown config keys, so an outdated checkout would accept these
     # options and do nothing; refuse them instead of running a silent no-op.

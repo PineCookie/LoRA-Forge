@@ -71,6 +71,36 @@ describe("config import round-trip", () => {
   });
 });
 
+describe("Anima training_precision", () => {
+  it("round-trips every choice, with and without fp16 accumulation", () => {
+    for (const choice of ["bf16", "full-bf16", "fp16", "full-fp16", "fp32"]) {
+      for (const accumulation of [true, false]) {
+        const { exported, reloaded } = roundTrip({ training_precision: choice, fp16_accumulation: accumulation });
+        expect(reloaded.training_precision, choice).toBe(choice);
+        if (choice.endsWith("fp16")) expect(reloaded.fp16_accumulation, choice).toBe(accumulation);
+        expect(loose(submit(reloaded)), `${choice} ${accumulation}`).toEqual(loose(exported));
+      }
+    }
+  });
+
+  it("exports sd-scripts' keys, and fp16_accumulation only for the fp16 choices", () => {
+    expect(submit({ training_precision: "full-bf16", fp16_accumulation: true })).toEqual({ mixed_precision: "bf16", full_bf16: true, full_fp16: false });
+    expect(submit({ training_precision: "bf16" })).toEqual({ mixed_precision: "bf16", full_bf16: false, full_fp16: false });
+    expect(submit({ training_precision: "fp16", fp16_accumulation: true })).toEqual({ mixed_precision: "fp16", full_bf16: false, full_fp16: false, fp16_accumulation: true });
+    expect(submit({ training_precision: "full-fp16", fp16_accumulation: false })).toEqual({ mixed_precision: "fp16", full_bf16: false, full_fp16: true, fp16_accumulation: false });
+    expect(submit({ training_precision: "fp32", fp16_accumulation: true })).toEqual({ mixed_precision: "no", full_bf16: false, full_fp16: false });
+  });
+
+  it("imports sd-scripts' precision keys into the matching choice", () => {
+    expect(expandImportedArgs({ mixed_precision: "fp16", full_fp16: true }).training_precision).toBe("full-fp16");
+    expect(expandImportedArgs({ mixed_precision: "fp16" }).training_precision).toBe("fp16");
+    expect(expandImportedArgs({ mixed_precision: "bf16", full_bf16: true }).training_precision).toBe("full-bf16");
+    expect(expandImportedArgs({ mixed_precision: "bf16" }).training_precision).toBe("bf16");
+    expect(expandImportedArgs({ full_bf16: true }).training_precision).toBe("full-bf16");
+    expect(expandImportedArgs({ mixed_precision: "no" }).training_precision).toBe("fp32");
+  });
+});
+
 describe("toml", () => {
   it("keeps strings with quotes, # and = intact", () => {
     const config = { output_name: 'a "b" #c = d', network_args: ["x=1", "y=a,b"], seed: 42, cache_latents: true };

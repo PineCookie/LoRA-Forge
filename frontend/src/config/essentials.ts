@@ -42,6 +42,7 @@ const ESSENTIAL_FIELDS = new Set([
   "shuffle_caption",
   "keep_tokens",
   // speed and memory
+  "training_precision",
   "mixed_precision",
   "blocks_to_swap",
   "fp8_base",

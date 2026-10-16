@@ -116,6 +116,26 @@ export function compileShapesOf(config: TrainingConfig): string | undefined {
   return "compile_dynamic_seq" in config ? "static" : "bounded";
 }
 
+// Anima's training_precision (one choice) as sd-scripts' keys. Its fp16 choices also take
+// LoRA-Forge's fp16_accumulation (a field of its own, applied by run_entry.py). Most optimizers fail
+// with full-fp16's fp16 LoRA weights (config.py refuses those).
+const TRAINING_PRECISION: Record<string, TrainingConfig> = {
+  bf16: { mixed_precision: "bf16", full_bf16: false, full_fp16: false },
+  "full-bf16": { mixed_precision: "bf16", full_bf16: true, full_fp16: false },
+  fp16: { mixed_precision: "fp16", full_bf16: false, full_fp16: false },
+  "full-fp16": { mixed_precision: "fp16", full_bf16: false, full_fp16: true },
+  fp32: { mixed_precision: "no", full_bf16: false, full_fp16: false },
+};
+
+/** training_precision for imported precision keys (the inverse of TRAINING_PRECISION). */
+export function trainingPrecisionOf(config: TrainingConfig): string | undefined {
+  const mixed = config.mixed_precision ?? (config.full_fp16 ? "fp16" : config.full_bf16 ? "bf16" : undefined);
+  if (mixed === undefined) return undefined;
+  if (mixed === "no") return "fp32";
+  if (mixed === "fp16") return config.full_fp16 ? "full-fp16" : "fp16";
+  return config.full_bf16 ? "full-bf16" : "bf16";
+}
+
 function appendNetworkArg(config: TrainingConfig, name: string) {
   const value = typeof config[name] === "string" ? config[name].trim() : config[name];
   if (value !== undefined && value !== "") config.network_args.push(`${name}=${value}`);
@@ -231,6 +251,10 @@ export function normalizeTrainingConfig(config: TrainingConfig) {
     config.full_bf16 = false;
   }
   delete config.full_precision;
+  if (config.training_precision !== undefined) {
+    Object.assign(config, TRAINING_PRECISION[config.training_precision] ?? {});
+    delete config.training_precision;
+  }
 
   if (!config.enable_preview) for (const key of PREVIEW_KEYS) delete config[key];
 
@@ -288,6 +312,8 @@ function normalizeConstraintCombinations(config: TrainingConfig) {
   // full_precision became full_fp16/full_bf16 above; sd-scripts requires matching mixed_precision
   if (config.full_fp16) config.mixed_precision = "fp16";
   else if (config.full_bf16) config.mixed_precision = "bf16";
+  // fp16 accumulation only changes fp16 matrix multiplies (kept as false too, so an import restores it)
+  if (config.mixed_precision !== "fp16") delete config.fp16_accumulation;
 }
 
 const SECRET_KEYS = ["wandb_api_key", "huggingface_token", "hf_token"];

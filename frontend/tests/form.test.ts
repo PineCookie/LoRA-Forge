@@ -40,7 +40,8 @@ describe("anima defaults", () => {
   });
 
   it("drops preview-only and form-only keys", () => {
-    for (const key of ["enable_preview", "positive_prompts", "full_precision", "network_reg_dims", "optimizer_args_custom"]) {
+    // fp16_accumulation: the default full-bf16 has no fp16 matrix multiplies
+    for (const key of ["enable_preview", "positive_prompts", "full_precision", "training_precision", "fp16_accumulation", "network_reg_dims", "optimizer_args_custom"]) {
       expect(config, key).not.toHaveProperty(key);
     }
   });
@@ -215,7 +216,8 @@ describe("rules", () => {
   });
 
   it("syncs mixed_precision with full_precision", () => {
-    const values = initialFormValues(loadGroups("anima-lora"));
+    // Anima has one training_precision choice instead (import.test.ts)
+    const values = initialFormValues(loadGroups("sdxl-finetune"));
     values.full_precision = "full_fp16";
     applyExclusiveRules(values, "full_precision");
     expect(values.mixed_precision).toBe("fp16");

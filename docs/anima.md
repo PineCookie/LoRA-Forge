@@ -87,7 +87,24 @@ for another branch or tag) and run `uv sync` afterwards; starting the GUI never 
 - **Less VRAM**: `blocks_to_swap`, `gradient_checkpointing`, `unsloth_offload_checkpointing`,
   `cpu_offload_checkpointing`. `blocks_to_swap` and the two offload options exclude each other;
   the GUI clears the conflicting one when you turn one on.
-- **Precision**: `bf16` with `full_bf16` is the recommended pair.
+- **Precision** (`training_precision`): sets two things at once, the precision of the training
+  math (sd-scripts' `mixed_precision`) and of the LoRA weights while they train (`full_bf16` /
+  `full_fp16`, else fp32). The saved file uses `save_precision`, independent of this.
+
+  | Choice | Math | LoRA weights | Use |
+  |---|---|---|---|
+  | `bf16` | bf16 | fp32 | |
+  | `full-bf16` (default) | bf16 | bf16 (sd-scripts' `full_bf16`) | The standard (RTX 30 series and newer) |
+  | `fp16` | fp16 | fp32 | GPUs without bf16, or for speed with `fp16_accumulation`; a little more VRAM than bf16 |
+  | `full-fp16` | fp16 | fp16 (sd-scripts' `full_fp16`) | A little less VRAM than `fp16`; only with AdamW8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit or AdaFactor |
+  | `fp32` | fp32 | fp32 | Slowest; debugging |
+
+  With `fp16` and `full-fp16`, **`fp16_accumulation`** (on by default) lets the matrix multiplies add
+  up in fp16 too: much faster on GeForce RTX cards (no gain on data-center or RTX PRO cards), still
+  about as precise as bf16. It is LoRA-Forge's own key in the exported TOML; sd-scripts never sees it.
+  With fp16 weights (`full_fp16`, on every page) the other optimizers fail: AdamW, RAdamScheduleFree
+  and CAME turn the weights into NaN, Prodigy, ProdigyPlus and DAdaptation stop learning, so the GUI
+  refuses to start those pairs. Lion and SGDNesterov train but lose small updates (a console warning).
 
 ## Per-subfolder timestep offsets
 

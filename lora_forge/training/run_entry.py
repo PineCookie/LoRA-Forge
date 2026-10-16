@@ -49,6 +49,8 @@ DYNAMIC_SEQ_ENV = "LORA_FORGE_COMPILE_DYNAMIC_SEQ"
 ANSI_ENV = "LORA_FORGE_ANSI"
 # GUI option activation_memory_budget (Anima with compile), in place of gradient checkpointing
 MEMORY_BUDGET_ENV = "LORA_FORGE_ACTIVATION_MEMORY_BUDGET"
+# GUI option fp16_accumulation (Anima, fp16 training precisions): fp16 matrix multiplies accumulate in fp16
+FP16_ACCUMULATION_ENV = "LORA_FORGE_FP16_ACCUMULATION"
 # Krea 2 (musubi-tuner): JSON with the caching scripts' arguments, see run_krea2_caching
 KREA2_CACHE_ENV = "LORA_FORGE_KREA2_CACHE"
 KREA2_TURBO_LORA_ENV = "LORA_FORGE_KREA2_TURBO_LORA"
@@ -584,6 +586,20 @@ def install_log_filter():
     logging.Logger.handle = filtered_handle
 
 
+def install_fp16_accumulation():
+    """fp16_accumulation: fp16 matrix multiplies add up in fp16 instead of fp32, which
+    GeForce tensor cores run at about twice the rate (data-center cards gain nothing). Measured on
+    Anima: about a quarter less time per step, and gradients at least as close to fp32 as bf16's."""
+    import torch
+
+    matmul = torch.backends.cuda.matmul
+    if not hasattr(matmul, "allow_fp16_accumulation"):
+        print("LoRA-Forge: this PyTorch has no fp16 accumulation (needs 2.7 or newer); training without it", flush=True)
+        return
+    matmul.allow_fp16_accumulation = True
+    print("LoRA-Forge: fp16_accumulation is on: fp16 matrix multiplies accumulate in fp16", flush=True)
+
+
 def main():
     if len(sys.argv) < 2:
         raise SystemExit("usage: run_entry.py <trainer.py> [trainer args...]")
@@ -615,6 +631,9 @@ def main():
     budget = os.environ.get(MEMORY_BUDGET_ENV)
     if budget and os.path.basename(trainer) == "anima_train_network.py":
         install_memory_budget(budget)
+
+    if os.environ.get(FP16_ACCUMULATION_ENV) == "1":
+        install_fp16_accumulation()
 
     if os.environ.get(KREA2_TURBO_LORA_ENV):
         install_turbo_lora_conversion(os.environ[KREA2_TURBO_LORA_ENV])

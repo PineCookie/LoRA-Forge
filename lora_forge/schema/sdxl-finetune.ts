@@ -191,7 +191,7 @@ Schema.intersect([
     }),
 
     Schema.object({
-        full_precision: Schema.union(["none", "full_fp16", "full_bf16"]).default("none").description("Full precision mode. full_fp16 and full_bf16 cannot both be enabled"),
+        full_precision: Schema.union(["none", "full_fp16", "full_bf16"]).default("none").description("Full precision mode: the trained weights in fp16 or bf16 too. full_fp16 works only with AdamW8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit or AdaFactor; other optimizers stop learning or turn the weights into NaN"),
     }),
 
     Schema.object({

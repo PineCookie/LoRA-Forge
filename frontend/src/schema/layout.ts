@@ -111,7 +111,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     title: "Precision",
     tone: "performance",
     merged: "speed",
-    fields: ["mixed_precision", "full_precision", "convrot_int8", "convrot_int8_bwd", "fp8_base", "fp8_base_unet", "no_half_vae"],
+    fields: ["training_precision", "fp16_accumulation", "mixed_precision", "full_precision", "convrot_int8", "convrot_int8_bwd", "fp8_base", "fp8_base_unet", "no_half_vae"],
   },
   {
     title: "Caching and VAE",

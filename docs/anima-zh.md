@@ -71,7 +71,22 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 - **`cuda_allow_tf32`、`cuda_cudnn_benchmark`**：与 `compile` 无关，可单独开启（Ampere 及更新的显卡）。
 - **省显存**：`blocks_to_swap`、`gradient_checkpointing`、`unsloth_offload_checkpointing`、`cpu_offload_checkpointing`。
   `blocks_to_swap` 与两种 offload 选项互斥；打开其中一个时，GUI 会自动清掉冲突的选项。
-- **精度**：推荐 `bf16` 搭配 `full_bf16`。
+- **精度**（`training_precision`）：同时决定两件事：训练计算的精度（sd-scripts 的 `mixed_precision`）和训练中
+  LoRA 权重的精度（`full_bf16` / `full_fp16`，否则为 fp32）。保存的文件按 `save_precision`，与此无关。
+
+  | 选项 | 计算 | LoRA 权重 | 用途 |
+  |---|---|---|---|
+  | `bf16` | bf16 | fp32 | |
+  | `full-bf16`（默认） | bf16 | bf16（sd-scripts 的 `full_bf16`） | 标准选项（RTX 30 系及更新） |
+  | `fp16` | fp16 | fp32 | 不支持 bf16 的显卡，或配合 `fp16_accumulation` 提速；显存比 bf16 略多 |
+  | `full-fp16` | fp16 | fp16（sd-scripts 的 `full_fp16`） | 显存比 `fp16` 略少；仅适用于 AdamW8bit、PagedAdamW8bit、Lion8bit、PagedLion8bit 或 AdaFactor |
+  | `fp32` | fp32 | fp32 | 最慢，仅用于调试 |
+
+  选 `fp16` 或 `full-fp16` 时，**`fp16_accumulation`**（默认开启）让矩阵乘法也用 fp16 累加：在 GeForce RTX 显卡上
+  明显更快（数据中心卡和 RTX PRO 卡没有提升），精度仍与 bf16 相当。它是 LoRA-Forge 自己写入导出 TOML 的键，sd-scripts
+  不会读到。权重为 fp16 时（所有页面的
+  `full_fp16`）其他优化器会出问题：AdamW、RAdamScheduleFree、CAME 会让权重变成 NaN，Prodigy、ProdigyPlus、
+  DAdaptation 会停止学习，因此 GUI 拒绝启动这些组合。Lion 和 SGDNesterov 能训练，但会丢失较小的更新（控制台会警告）。
 
 ## 子文件夹时间步偏移
 

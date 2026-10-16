@@ -129,8 +129,10 @@ Schema.intersect([
     // Speed and memory
     Schema.object(
         UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, {
-            mixed_precision: Schema.union(["no", "fp16", "bf16"]).default("bf16").description("Mixed precision; `bf16` works on RTX 30 series and newer. Full precision mode adjusts this automatically"),
-            full_precision: Schema.union(["none", "full_fp16", "full_bf16"]).default("full_bf16").description("Full precision mode; sets mixed precision to the matching fp16/bf16 (sd-scripts requires both to agree)"),
+            // one choice in place of mixed_precision + full_fp16/full_bf16; normalize.ts expands it
+            training_precision: Schema.union(["bf16", "full-bf16", "fp16", "full-fp16", "fp32"]).default("full-bf16").description("Precision of the training math and of the LoRA weights while they train (the saved file uses save_precision).<br>`bf16`: math in bf16, LoRA weights in fp32.<br>`full-bf16`: math and LoRA weights in bf16 (sd-scripts' full_bf16). The standard, for RTX 30 series and newer.<br>`fp16`: math in fp16, LoRA weights in fp32. For GPUs without bf16, or with fp16_accumulation for speed; a little more VRAM than the bf16 choices.<br>`full-fp16`: math and LoRA weights in fp16 (sd-scripts' full_fp16), a little less VRAM than `fp16`. Only with AdamW8bit, PagedAdamW8bit, Lion8bit, PagedLion8bit or AdaFactor: other optimizers stop learning or turn the weights into NaN.<br>`fp32`: everything in fp32. Slowest, for debugging"),
+            // LoRA-Forge's own option (run_entry.py), shown for the fp16 choices
+            fp16_accumulation: Schema.boolean().default(true).description("Let fp16 matrix multiplies add up in fp16 too: much faster on GeForce RTX cards (no gain on data-center or RTX PRO cards), still about as precise as bf16"),
             cache_text_encoder_outputs: Schema.boolean().default(true).description("Cache text encoder outputs to save VRAM. Needs shuffle_caption off; turns on network_train_unet_only (the text encoder cannot be trained at the same time)"),
             cache_text_encoder_outputs_to_disk: Schema.boolean().default(true).description("Cache text encoder outputs to disk"),
             cache_latents: Schema.boolean().default(true).description("Cache image latents (VAE outputs) to save VRAM"),
@@ -145,7 +147,7 @@ Schema.intersect([
             vae_disable_cache: Schema.boolean().default(false).description("Disable the VAE's internal cache to save VRAM. No effect with qwen_image_vae_2d, which has no temporal cache"),
             qwen_image_vae_2d: Schema.boolean().default(true).description("Image-only 2D Qwen-Image VAE (Conv3d→Conv2d): about 2× faster with about 1/3 of the peak VRAM; best combined with cache_latents. ⚠ Needs sd-scripts v0.11.1+"),
             text_encoder_batch_size: Schema.number().min(1).step(1).description("Batch size for caching text encoder outputs; empty uses the dataset batch size"),
-        }, ["fp8_base", "fp8_base_unet", "no_half_vae", "lowram", "full_fp16", "full_bf16", "xformers", "sdpa"])
+        }, ["mixed_precision", "fp8_base", "fp8_base_unet", "no_half_vae", "lowram", "full_fp16", "full_bf16", "xformers", "sdpa"])
     ),
 
     // torch.compile (Anima compiles block by block)

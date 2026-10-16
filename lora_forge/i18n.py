@@ -92,6 +92,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh": "activation_memory_budget 必须是 off、auto，或大于 0 且不超过 1 的数。",
         "ja": "activation_memory_budget は off、auto、または 0 より大きく 1 以下の数値にしてください。",
     },
+    "run.fullFp16Optimizer": {
+        "en": "full_fp16 does not work with {optimizer}: with fp16 weights it stops learning or turns the weights "
+              "into NaN. Use {works}, or turn full_fp16 off (with mixed precision fp16 the weights then train in "
+              "fp32; on the Anima page: training_precision fp16).",
+        "zh": "full_fp16 与 {optimizer} 不兼容：权重为 fp16 时它会停止学习，或让权重变成 NaN。请改用 {works}，"
+              "或关闭 full_fp16（混合精度为 fp16 时权重会以 fp32 训练；Anima 页面请把 training_precision 选为 fp16）。",
+        "ja": "full_fp16 は {optimizer} と組み合わせられません。重みが fp16 だと学習が止まるか、重みが NaN になります。"
+              "{works} を使うか、full_fp16 をオフにしてください（混合精度が fp16 なら重みは fp32 で学習します。"
+              "Anima のページでは training_precision を fp16 に）。",
+    },
     "run.weightedCaptions": {
         "en": "This training type does not support weighted_captions: only SD / SDXL implement weighted "
               "tokenization, and Anima / FLUX / SD3 ignore it or fail. Turn the option off and try again.",

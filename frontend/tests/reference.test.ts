@@ -78,7 +78,7 @@ describe("typical Anima config", () => {
 
   it("imports into the form", () => {
     expect(values.gpu_ids).toEqual(["GPU 0: A (24 GB)"]);
-    expect(values.full_precision).toBe("full_bf16");
+    expect(values.training_precision).toBe("full-bf16");
     expect(values.prodigyplus_prodigy_steps).toBe("1073");
     expect(values.network_reg_lrs).toBe(".*self_attn.*=1.0,.*cross_attn.*=1.0,.*mlp.*=1.0");
     // compile_dynamic = "false" from before compile_dynamic_seq existed
