@@ -22,8 +22,9 @@ for all bucket sizes: only the token count is dynamic (see bounded_block_call). 
 Anima set (20 buckets, batch 2) that is 2 graphs instead of 28 with matching loss, and it avoids
 pytorch#193194, which only hits when every dimension may become dynamic.
 With LORA_FORGE_ACTIVATION_MEMORY_BUDGET (GUI option activation_memory_budget, a fraction or `auto`)
-torch.compile's recompute planner replaces gradient checkpointing (install_memory_budget). A run
-that fails for lack of VRAM gets an out_of_memory notice.
+torch.compile's recompute planner replaces gradient checkpointing (install_memory_budget), with
+flash-attn's forward made visible to that planner (plan_flash_attention). A run that fails for lack of
+VRAM gets an out_of_memory notice.
 For every trainer, ProdigyPlusScheduleFree gets a batched step with the same math
 (batched_ppsf.py); LORA_FORGE_PATCHES=0 turns that off too.
 
@@ -455,11 +456,47 @@ def install_memory_budget(setting: str):
         else:
             budget = float(setting)
         functorch_config.activation_memory_budget = budget
+        plan_flash_attention()
         global applied_budget
         applied_budget = f"{budget:g}"
         for block in checkpointed:
             block.disable_gradient_checkpointing()
         print(f"LoRA-Forge: activation_memory_budget = {budget:g} in place of gradient checkpointing", flush=True)
+
+
+def plan_flash_attention():
+    """Lets the activation_memory_budget planner weigh flash-attn's forward like any other costly op. Without
+    this torch 2.14 recomputes it under every budget below 1: ops from outside aten are only considered with
+    is_non_builtin_to_include, and the planner's cost estimate (FLOPs) has no formula for them. With both,
+    Anima at budget 0.3 kept half of its attention outputs and stepped about 3% faster at slightly lower peak
+    memory. sdpa needs nothing: aten's attention ops are already counted."""
+    try:
+        import flash_attn.flash_attn_interface  # noqa: F401  (registers torch.ops.flash_attn.*)
+    except ImportError:
+        return
+    import torch
+    import torch._functorch.config as functorch_config
+    from torch.utils.flop_counter import flop_registry, register_flop_formula
+
+    ops = torch.ops.flash_attn
+    if not hasattr(functorch_config, "is_non_builtin_to_include") or not hasattr(ops, "_flash_attn_forward"):
+        return
+
+    # q / k are shapes here: (batch, length, heads, head_dim) and, for varlen, (tokens, heads, head_dim)
+    def forward_flops(q, k, v, *args, out_shape=None, **kwargs):
+        batch, length_q, heads, head_dim = q
+        return 4 * batch * heads * length_q * k[1] * head_dim
+
+    def varlen_forward_flops(q, k, v, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, max_seqlen_k, *args, out_shape=None, **kwargs):
+        tokens_q, heads, head_dim = q
+        return 4 * tokens_q * heads * max_seqlen_k * head_dim
+
+    # a later torch or flash-attn may bring its own formula (registering twice raises)
+    if ops._flash_attn_forward not in flop_registry:
+        register_flop_formula(ops._flash_attn_forward)(forward_flops)
+    if hasattr(ops, "_flash_attn_varlen_forward") and ops._flash_attn_varlen_forward not in flop_registry:
+        register_flop_formula(ops._flash_attn_varlen_forward)(varlen_forward_flops)
+    functorch_config.is_non_builtin_to_include = True
 
 
 def install_progress(events: EventWriter, compile_monitor: "CompileMonitor"):
