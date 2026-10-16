@@ -143,6 +143,13 @@ describe("rules", () => {
     // the trainer runs at batch 1 and needs no network module
     expect(config).not.toHaveProperty("train_batch_size");
     expect(config).not.toHaveProperty("network_module");
+    // bf16 by default; fp16 brings fp16_accumulation along
+    expect(config.mixed_precision).toBe("bf16");
+    expect(config).not.toHaveProperty("fp16_accumulation");
+    expect(isFieldVisible("fp16_accumulation", values)).toBe(false);
+    values.training_precision = "fp16";
+    expect(isFieldVisible("fp16_accumulation", values)).toBe(true);
+    expect(readForm(values, groups)).toMatchObject({ mixed_precision: "fp16", fp16_accumulation: true });
   });
 
   it("keeps Krea 2's base quantization, Turbo source and H2D-only block swap consistent", () => {

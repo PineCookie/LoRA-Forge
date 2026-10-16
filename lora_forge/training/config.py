@@ -354,7 +354,8 @@ def prepare_training(config: dict) -> PreparedRun:
         environment["TORCHINDUCTOR_MIX_ORDER_REDUCTION"] = "0"
         log.info("include_patterns with compile_shapes = bounded: inductor mix-order reduction is off")
     apply_activation_memory_budget(config, model_train_type, environment, gpu_count=len(gpu_ids or []))
-    apply_fp16_accumulation(config, environment)
+    if model_train_type != moss_image.MODEL_TRAIN_TYPE:  # LoRA Forge's MOSS-Image trainer reads it itself
+        apply_fp16_accumulation(config, environment)
     apply_sdxl_speed(config, model_train_type, environment)
 
     if model_train_type == krea2.MODEL_TRAIN_TYPE:

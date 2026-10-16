@@ -18,7 +18,7 @@ SAMPLE_STEPS = 30
 SAMPLE_CFG = 3.0
 # form keys the trainer does not read (other pages' options an imported config may carry)
 DROPPED_KEYS = (
-    "network_module", "network_args", "train_batch_size", "mixed_precision", "full_precision", "full_bf16", "full_fp16",
+    "network_module", "network_args", "train_batch_size", "full_precision", "full_bf16", "full_fp16",
     "save_model_as", "save_state", "resume", "max_data_loader_n_workers", "persistent_data_loader_workers",
     "randomly_choice_prompt", "sample_sampler", "enable_preview",
 )

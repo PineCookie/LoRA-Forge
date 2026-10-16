@@ -111,9 +111,9 @@ LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开�
 | 注意力使用 flash-attn（Windows 版 PyTorch 没有 flash 内核） | SDXL | 安装 [flash-attn](#flash-attn可选) 后开启 | −17% |
 | 默认使用 SDPA 注意力（关闭时 sd-scripts 会用普通注意力） | SDXL、SD1.5 | 开启 | 约快 2 倍，显存也更少 |
 | ProdigyPlusScheduleFree 把形状相同的张量放在一起更新，而不是逐个更新（计算相同） | 全部 | 开启 | Anima −7%，SDXL −23% |
-| fp16 训练配合 fp16 累加（`training_precision = fp16`），精度与 bf16 相当 | Anima、SDXL、SD1.5 | 可选 | Anima −24%，SDXL −8% |
+| fp16 训练配合 fp16 累加（`training_precision = fp16`），精度与 bf16 相当 | Anima、MOSS-Image、SDXL、SD1.5 | 可选 | Anima −24%，MOSS-Image −27%，SDXL −8% |
 | 用 `activation_memory_budget` 代替梯度检查点：显存放得下的激活直接保留，不再重算 | Anima | 可选（`auto`） | −8% 到 −11%，会用掉大部分显存 |
-| 注意力使用 flash-attn | Krea 2 | 安装后开启 | −22% |
+| 注意力使用 flash-attn | Krea 2、MOSS-Image | 安装后开启 | Krea 2 −22%，MOSS-Image −29% |
 | 锁页内存的单向 block 交换：交换几乎没有开销，可腾出约 6 GB 显存 | Krea 2 | 开启 | 交换更多 block 而速度不变 |
 | 逐 block 的 `torch.compile`，所有分桶尺寸只需少数几个图 | MOSS-Image | 开启 | −29% |
 | 缓存 latent 时不启动 DataLoader 工作进程 | 全部 | 开启 | Windows 上第一步约 7 秒后开始，而不是 80 秒 |

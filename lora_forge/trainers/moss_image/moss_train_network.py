@@ -22,6 +22,7 @@ import time
 
 import toml
 import torch
+import torch._dynamo
 from torch.nn import functional as F
 
 import moss_data
@@ -61,6 +62,9 @@ DEFAULTS = {
     "lr_scheduler_power": 1.0,
     "max_grad_norm": 1.0,
     "gradient_checkpointing": True,
+    # "fp16": the block Linears compute in fp16 with loss scaling; fp16_accumulation lets them add up in fp16
+    "mixed_precision": "bf16",
+    "fp16_accumulation": False,
     "compile": True,
     "compile_cache_size_limit": 64,
     "attn_mode": "auto",
@@ -236,6 +240,18 @@ class Trainer:
         moss_model.ATTENTION["mode"] = attn_mode
         print(f"LoRA-Forge: loading the MOSS-Image DiT, attention {attn_mode}", flush=True)
         model = moss_model.load_dit(config["pretrained_model_name_or_path"], self.device)
+        self.scaler = None
+        precision = str(config["mixed_precision"] or "bf16")
+        if precision == "fp16":
+            moss_model.use_fp16_linears(model, moss_lora.TARGETS)
+            self.scaler = torch.amp.GradScaler("cuda")
+            matmul = torch.backends.cuda.matmul
+            if config["fp16_accumulation"] and hasattr(matmul, "allow_fp16_accumulation"):
+                matmul.allow_fp16_accumulation = True
+            accumulation = "fp16" if config["fp16_accumulation"] and hasattr(matmul, "allow_fp16_accumulation") else "fp32"
+            print(f"LoRA-Forge: the block matrix multiplies run in fp16 (accumulating in {accumulation}) with loss scaling", flush=True)
+        elif precision != "bf16":
+            print(f"LoRA-Forge: mixed_precision {precision} is not used for MOSS-Image; training in bf16", flush=True)
         self.network = moss_lora.LoRANetwork(model, int(config["network_dim"]), float(config["network_alpha"] or config["network_dim"]),
                                              float(config["network_dropout"] or 0))
         if config["network_weights"]:
@@ -243,8 +259,6 @@ class Trainer:
             print(f"LoRA-Forge: continuing from {config['network_weights']}", flush=True)
         model.gradient_checkpointing = bool(config["gradient_checkpointing"])
         if config["compile"]:
-            import torch._dynamo
-
             torch._dynamo.config.recompile_limit = int(config["compile_cache_size_limit"] or 64)
             model.block_fn = torch.compile(moss_model.Block.forward)
         self.model = model
@@ -300,7 +314,8 @@ class Trainer:
             "ss_resolution": json.dumps(list(resolution_of(config["resolution"]))),
             "ss_gradient_checkpointing": bool(config["gradient_checkpointing"]),
             "ss_gradient_accumulation_steps": self.accumulation,
-            "ss_mixed_precision": "bf16",
+            "ss_mixed_precision": "fp16" if self.scaler else "bf16",
+            "ss_fp16_accumulation": bool(self.scaler and config["fp16_accumulation"]),
             "ss_seed": config["seed"],
             "ss_timestep_sampling": "moss_logit_normal",
             "ss_logit_mean": config["logit_mean"],
@@ -379,6 +394,7 @@ class Trainer:
         sample_epochs = int(config["sample_every_n_epochs"] or 0)
         mean, std = float(config["logit_mean"]), float(config["logit_std"])
         step = 0
+        skipped_steps = 0
         for epoch in range(1, self.epochs + 1):
             self.accelerator.print(f"\nepoch {epoch}/{self.epochs}")
             order = list(epoch_samples)
@@ -393,13 +409,22 @@ class Trainer:
                 noise = torch.randn(x0.shape, generator=self.generator).to(self.device)
                 prediction = self.model((1 - sigma) * x0 + sigma * noise, sigma * moss_sampling.TRAIN_STEPS, context)
                 loss = F.mse_loss(prediction.float(), noise - x0)
-                (loss / self.accumulation).backward()
+                scaled = loss / self.accumulation
+                (self.scaler.scale(scaled) if self.scaler else scaled).backward()
                 accumulated += loss.item() / self.accumulation
                 if (index + 1) % self.accumulation and index + 1 != len(order):
                     continue
+                if self.scaler:
+                    self.scaler.unscale_(self.optimizer)
                 if max_norm > 0:
                     torch.nn.utils.clip_grad_norm_(self.params, max_norm)
-                self.optimizer.step()
+                if self.scaler:
+                    scale = self.scaler.get_scale()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+                    skipped_steps += self.scaler.get_scale() < scale  # inf / NaN gradients: the step was skipped
+                else:
+                    self.optimizer.step()
                 scheduler.step()
                 self.optimizer.zero_grad(set_to_none=True)
                 step += 1
@@ -431,6 +456,8 @@ class Trainer:
         if (sample_epochs or sample_steps) and not sampled_last_step:
             self.sample(epoch=self.epochs)
         self.accelerator.end_training()
+        if self.scaler:
+            print(f"LoRA-Forge: loss scaling skipped {skipped_steps} of {step} steps (inf / NaN gradients)", flush=True)
         print(f"LoRA-Forge: training finished, peak VRAM {torch.cuda.max_memory_allocated() / 1024 ** 3:.2f} GiB", flush=True)
 
     def step_logs(self, loss: float, average: float, scheduler) -> dict:

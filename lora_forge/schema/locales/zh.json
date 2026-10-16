@@ -269,5 +269,6 @@
   "Sampling steps: 30 is enough for previews (OpenMOSS's default is 50)": "采样步数：预览图 30 步就够（OpenMOSS 默认 50 步）",
   "Attention implementation. auto = flash_attn when flash-attn is installed (faster), otherwise sdpa (PyTorch)": "注意力实现。auto = 安装了 flash-attn 时用 flash_attn（更快），否则用 sdpa（PyTorch）",
   "Speed up MOSS-Image with per-block torch.compile (about 30% faster per step; needs Triton, which LoRA Forge installs). The first steps of a run are slower while it compiles; turn it off if compiling fails": "用逐 block 的 torch.compile 加速 MOSS-Image（每步约快 30%；需要 Triton，LoRA Forge 已安装）。编译期间最初几步较慢；如果编译失败请关闭",
-  "Most graphs torch.compile builds per block before it stops compiling new shapes (they then run uncompiled, slower). MOSS-Image needs only a few for all bucket sizes": "torch.compile 每个 block 最多构建的图数量，超过后新形状不再编译（以未编译方式运行，更慢）。MOSS-Image 对所有分桶尺寸只需要少数几个"
+  "Most graphs torch.compile builds per block before it stops compiling new shapes (they then run uncompiled, slower). MOSS-Image needs only a few for all bucket sizes": "torch.compile 每个 block 最多构建的图数量，超过后新形状不再编译（以未编译方式运行，更慢）。MOSS-Image 对所有分桶尺寸只需要少数几个",
+  "Precision of the DiT's matrix multiplies (the LoRA weights always train in fp32).<br>`bf16`: the standard.<br>`fp16`: the block matrix multiplies run in fp16 with loss scaling. With fp16_accumulation about a quarter faster per step on GeForce RTX cards, and as close to fp32 as bf16 in our tests": "DiT 矩阵乘法的精度（LoRA 权重始终以 fp32 训练）。<br>`bf16`：标准选项。<br>`fp16`：block 的矩阵乘法以 fp16 运行并使用损失缩放。配合 fp16_accumulation，在 GeForce RTX 显卡上每步约快四分之一。在测试中，精度与 bf16 相当"
 }

@@ -61,8 +61,14 @@ with images and `.txt` captions). Only single-GPU training is offered.
 ## Memory and speed
 
 On an RTX 5070 Ti (16 GB) at about 1 megapixel, rank 32: **2.1 s per step** with the defaults,
-2.9 s without `compile`. The run peaks at about 12-13 GB of VRAM.
+**1.5 s** with `training_precision = fp16`, 2.9 s without flash-attn. The run peaks at about
+12-13 GB of VRAM.
 
+- **`training_precision`** (default `bf16`): `fp16` runs the block matrix multiplies in fp16 with
+  loss scaling, and with `fp16_accumulation` (on by default for `fp16`) they also add up in fp16,
+  which GeForce RTX cards run about twice as fast: a quarter less time per step. Its gradients were
+  as close to an fp32 reference as bf16's, and no step was skipped for overflow in our runs. The LoRA
+  weights train in fp32 either way. Opt-in until more full trainings have compared it with bf16.
 - **`gradient_checkpointing`** (default on): keep it on with 16 GB; the DiT alone takes about 10 GB.
 - **`compile`** (default on): per-block torch.compile, about 30% faster. It builds a few graphs
   for all bucket sizes; the first steps are slower while it compiles.

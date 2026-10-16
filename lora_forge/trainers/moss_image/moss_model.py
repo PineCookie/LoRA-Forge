@@ -103,7 +103,8 @@ class Block(nn.Module):
     def forward(self, x, rope, modulation):
         shift_a, scale_a, gate_a, shift_f, scale_f, gate_f = modulation.unbind(1)
         y = self.norm1(x) * (1 + scale_a[:, None]) + shift_a[:, None]
-        dtype = self.proj["q"].weight.dtype
+        # the model's dtype (the Linears may compute in fp16, see Fp16Linear)
+        dtype = self.norm1.weight.dtype
         y = y.to(dtype)
         q = self.q_norm(self.proj["q"](y).unflatten(-1, (self.heads, -1))).flatten(2)
         k = self.k_norm(self.proj["k"](y).unflatten(-1, (self.heads, -1))).flatten(2)
@@ -111,6 +112,28 @@ class Block(nn.Module):
         y = self.norm2(x) * (1 + scale_f[:, None]) + shift_f[:, None]
         hidden, gate = self.proj["ffn_up_gate"](y.to(dtype)).chunk(2, -1)
         return x + self.proj["ffn_down"](situ(hidden, gate)) * gate_f[:, None]
+
+
+class Fp16Linear(nn.Module):
+    """A frozen block Linear computed in fp16 (with fp16 accumulation when it is enabled, about twice the
+    matmul rate of bf16 on GeForce cards). Its inputs are normalized or capped (SiTU-GLU), so they stay far
+    inside fp16's range; bf16 weights convert to fp16 exactly. The output goes back to the model's dtype.
+    The gradients need loss scaling, or they underflow in fp16."""
+
+    def __init__(self, base: nn.Linear):
+        super().__init__()
+        self.out_dtype = base.weight.dtype
+        self.register_buffer("weight", base.weight.detach().to(torch.float16))
+        self.in_features, self.out_features = base.in_features, base.out_features
+
+    def forward(self, x):
+        return F.linear(x.to(torch.float16), self.weight).to(self.out_dtype)
+
+
+def use_fp16_linears(model, names):
+    for layer in model.layers:
+        for name in names:
+            layer.proj[name] = Fp16Linear(layer.proj[name])
 
 
 def rope_table(height, width, text_length, device, head_dim=128, base=10000.0):

@@ -111,9 +111,9 @@ LoRA Forge runs sd-scripts and musubi-tuner unchanged, but patches them when a t
 | flash-attn for the attention (PyTorch's Windows builds have no flash kernels) | SDXL | on, when [flash-attn](#flash-attn-optional) is installed | −17% |
 | SDPA attention by default (sd-scripts' plain attention ran when it was off) | SDXL, SD1.5 | on | about 2× faster, and less VRAM |
 | ProdigyPlusScheduleFree updates tensors of the same shape together instead of one by one (same math) | all | on | −7% on Anima, −23% on SDXL |
-| fp16 training with fp16 accumulation (`training_precision = fp16`), as precise as bf16 | Anima, SDXL, SD1.5 | opt-in | −24% on Anima, −8% on SDXL |
+| fp16 training with fp16 accumulation (`training_precision = fp16`), as precise as bf16 | Anima, MOSS-Image, SDXL, SD1.5 | opt-in | −24% on Anima, −27% on MOSS-Image, −8% on SDXL |
 | `activation_memory_budget` in place of gradient checkpointing: keeps what fits in VRAM instead of recomputing it | Anima | opt-in (`auto`) | −8% to −11%, uses most of the VRAM |
-| flash-attn for the attention | Krea 2 | on, when installed | −22% |
+| flash-attn for the attention | Krea 2, MOSS-Image | on, when installed | −22% on Krea 2, −29% on MOSS-Image |
 | Pinned, one-way block swap: swapping costs almost nothing and frees about 6 GB | Krea 2 | on | same speed with far more blocks swapped |
 | Per-block `torch.compile`, a few graphs for all bucket sizes | MOSS-Image | on | −29% |
 | No DataLoader worker processes when the latents are cached | all | on | the first step after about 7 s instead of 80 s on Windows |
