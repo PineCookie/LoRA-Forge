@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { initialFormValues, readForm, toFormValue } from "../src/config/form";
+import { MODEL_FILES } from "../src/config/modelFiles";
 import { compileShapesOf } from "../src/config/normalize";
+import { guideUrl, huggingFaceFileUrl } from "../src/links";
 import { applyDependentValues, applyExclusiveRules } from "../src/config/rules";
 import { isFieldVisible } from "../src/config/visibility";
 import { loadGroups, SCHEMA_NAMES } from "./helpers";
@@ -150,6 +152,16 @@ describe("rules", () => {
     values.training_precision = "fp16";
     expect(isFieldVisible("fp16_accumulation", values)).toBe(true);
     expect(readForm(values, groups)).toMatchObject({ mixed_precision: "fp16", fp16_accumulation: true });
+  });
+
+  it("lists MOSS-Image's model files for fields the page has, with guide and download links", () => {
+    const names = new Set(loadGroups("moss-image-lora").flatMap((group) => group.fields.map((field) => field.name)));
+    expect(MODEL_FILES["moss-image-lora"].map((spec) => spec.field).every((field) => names.has(field))).toBe(true);
+    expect(guideUrl("moss-image", "zh")).toBe("https://github.com/PineCookie/lora-forge/blob/main/docs/moss-image-zh.md");
+    expect(guideUrl("moss-image", "ja")).toBe("https://github.com/PineCookie/lora-forge/blob/main/docs/moss-image.md");
+    expect(huggingFaceFileUrl("https://hf-mirror.com/", "Comfy-Org/Qwen3.5", "text_encoders/qwen3.5_9b_bf16.safetensors")).toBe(
+      "https://hf-mirror.com/Comfy-Org/Qwen3.5/blob/main/text_encoders/qwen3.5_9b_bf16.safetensors",
+    );
   });
 
   it("keeps Krea 2's base quantization, Turbo source and H2D-only block swap consistent", () => {

@@ -4,6 +4,7 @@ import logoUrl from "../../../assets/logo.svg";
 import { useTasks } from "../composables/useTasks";
 import { setTheme, THEME_CHOICES, themeChoice, type ThemeChoice } from "../composables/useTheme";
 import { LOCALES, locale, setLocale, t, type Locale } from "../i18n";
+import { REPOSITORY } from "../links";
 import { labelText, navigation } from "../router";
 
 const { activeTask } = useTasks();
@@ -41,7 +42,7 @@ const { activeTask } = useTasks();
       </label>
       <!-- AGPL-3.0 section 13: users of the UI over a network must be offered the source -->
       <p class="source">
-        <a href="https://github.com/PineCookie/lora-forge" target="_blank" rel="noopener">{{ t("app.sourceCode") }}</a>
+        <a :href="REPOSITORY" target="_blank" rel="noopener">{{ t("app.sourceCode") }}</a>
         <span>AGPL-3.0</span>
       </p>
     </div>

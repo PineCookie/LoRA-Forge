@@ -6,7 +6,11 @@
 model with strong text rendering and layout control. No upstream trainer supports it yet, so LoRA
 Forge trains it with its own trainer (`lora_forge/trainers/moss_image`), which follows the recipe
 in the [MOSS-Image technical report](https://github.com/OpenMOSS/MOSS-Image/tree/main/paper): the
-same loss, the same timestep sampling, and the text encoder frozen.
+same loss, the same timestep sampling, and the text encoder frozen. How the trainer works inside is
+described in [moss-image-trainer.md](moss-image-trainer.md).
+
+The page's **Model files** panel lists the three files below with download links, and checks each
+path you enter: whether the file exists and is the right one (not the int8 text encoder, for example).
 
 ## Model files
 

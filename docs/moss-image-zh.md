@@ -2,7 +2,9 @@
 
 [English](moss-image.md)
 
-[MOSS-Image](https://github.com/OpenMOSS/MOSS-Image)（OpenMOSS，Apache-2.0）是一个 5B 的文生图模型，文字渲染和版式控制能力很强。目前还没有上游训练器支持它，所以 LoRA Forge 用自带的训练器（`lora_forge/trainers/moss_image`）训练。它遵循 [MOSS-Image 技术报告](https://github.com/OpenMOSS/MOSS-Image/tree/main/paper) 的做法：相同的损失、相同的时间步采样，文本编码器保持冻结。
+[MOSS-Image](https://github.com/OpenMOSS/MOSS-Image)（OpenMOSS，Apache-2.0）是一个 5B 的文生图模型，文字渲染和版式控制能力很强。目前还没有上游训练器支持它，所以 LoRA Forge 用自带的训练器（`lora_forge/trainers/moss_image`）训练。它遵循 [MOSS-Image 技术报告](https://github.com/OpenMOSS/MOSS-Image/tree/main/paper) 的做法：相同的损失、相同的时间步采样，文本编码器保持冻结。训练器的内部原理见 [moss-image-trainer.md](moss-image-trainer.md)（英文）。
+
+页面上的 **模型文件** 面板列出下面三个文件及其下载链接，并检查你填写的每个路径：文件是否存在、是否是正确的文件（例如不是 int8 文本编码器）。
 
 ## 模型文件
 

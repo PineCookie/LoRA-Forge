@@ -6,6 +6,8 @@ import { evaluateSchema, type SchemaNode } from "./schema/dsl";
 export interface Runtime {
   services: Record<string, boolean>;
   versions: Record<string, string>;
+  /** Hugging Face or the mirror the launcher set (--cn), for download links */
+  hf_endpoint?: string;
 }
 
 interface RawSchema {

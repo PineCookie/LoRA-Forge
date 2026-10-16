@@ -231,7 +231,7 @@ npm run typecheck
 | `lora_forge/` | Python 后端：网页服务与 API（`app/`）、训练配置/校验/运行（`training/`）、sd-scripts 兼容性检查 |
 | `lora_forge/schema/` | 训练表单定义，由网页界面读取 |
 | `frontend/` | Vue 3 + TypeScript 网页界面 |
-| `docs/` | 使用说明（Anima、Krea 2、MOSS-Image） |
+| `docs/` | 使用说明（Anima、Krea 2、MOSS-Image）以及 MOSS-Image 训练器的原理 |
 | `scripts/sd-scripts`、`scripts/musubi-tuner` | kohya-ss/sd-scripts 与 musubi-tuner，首次启动时克隆（不属于本仓库；请勿用 `git clean` 删除） |
 
 后端包在上游 lora-scripts 中名为 `mikazuki`，已于 2026 年 10 月改名为 `lora_forge`，环境变量也随之改为 `LORA_FORGE_*`（原 `MIKAZUKI_*`）。

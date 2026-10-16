@@ -231,7 +231,7 @@ GitHub Actions builds the releases: pushing a `v*` tag publishes a release with 
 | `lora_forge/` | Python backend: web server and API (`app/`), training config, validation and runs (`training/`), sd-scripts compatibility checks |
 | `lora_forge/schema/` | Training form definitions, read by the web UI |
 | `frontend/` | Vue 3 + TypeScript web UI |
-| `docs/` | User guides (Anima, Krea 2, MOSS-Image) |
+| `docs/` | User guides (Anima, Krea 2, MOSS-Image) and how the MOSS-Image trainer works |
 | `scripts/sd-scripts`, `scripts/musubi-tuner` | kohya-ss/sd-scripts and musubi-tuner checkouts, cloned on first start (not part of this repository; do not remove them with `git clean`) |
 
 The backend package was named `mikazuki` in upstream lora-scripts. It was renamed to `lora_forge` in October 2026, together with its environment variables (`MIKAZUKI_*` → `LORA_FORGE_*`).

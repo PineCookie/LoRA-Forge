@@ -6,6 +6,7 @@ import ConfigDrawer from "../components/ConfigDrawer.vue";
 import DatasetStats from "../components/DatasetStats.vue";
 import FormField from "../components/FormField.vue";
 import FormSection from "../components/FormSection.vue";
+import ModelFiles from "../components/ModelFiles.vue";
 import PageHeader from "../components/PageHeader.vue";
 import SectionIndex from "../components/SectionIndex.vue";
 import TaskStatus from "../components/TaskStatus.vue";
@@ -18,7 +19,9 @@ import { useTrainerForm } from "../composables/useTrainerForm";
 import { isEssential } from "../config/essentials";
 import { redactConfigForLog } from "../config/normalize";
 import { isFieldVisible } from "../config/visibility";
-import { t, tr } from "../i18n";
+import { locale, t, tr } from "../i18n";
+import { guideUrl } from "../links";
+import { TRAINER_PAGES } from "../pages";
 import { labelText } from "../router";
 import { groupTone, MERGED_SECTIONS, mergedSectionOf, type Field, type Group, type Tone } from "../schema/groups";
 import { store } from "../store";
@@ -34,6 +37,7 @@ const { activeTask, refresh: refreshTasks, terminate } = useTasks();
 const { active: activeSection, refresh: refreshSpy, pin: pinSection } = useScrollSpy("[data-section]");
 
 const supportsTimestepPreview = ["flux-lora", "anima-lora"].includes(props.schemaName);
+const guide = TRAINER_PAGES.find((page) => page.schemaName === props.schemaName)?.guide;
 const busy = ref(false);
 const drawerOpen = ref(false);
 const search = ref("");
@@ -85,6 +89,8 @@ interface DisplaySection {
   notes: string[];
   /** holds the dataset folder, so the dataset panel goes here */
   dataset: boolean;
+  /** holds the model files, so their download and check panel goes here */
+  modelFiles: boolean;
 }
 
 function sectionNote(group: Group) {
@@ -112,6 +118,7 @@ const sections = computed<DisplaySection[]>(() => {
       edited: form.editedCount(group),
       notes: notesOf([group]),
       dataset: group.title === "Dataset",
+      modelFiles: group.title === "Model",
     }));
   }
   return MERGED_SECTIONS.map(({ id, tone }) => {
@@ -124,6 +131,7 @@ const sections = computed<DisplaySection[]>(() => {
       edited: members.reduce((count, member) => count + form.editedCount(member.group), 0),
       notes: notesOf(members.map((member) => member.group)),
       dataset: members.some((member) => member.group.title === "Dataset"),
+      modelFiles: members.some((member) => member.group.title === "Model"),
     };
   }).filter((section) => section.fields.length);
 });
@@ -210,6 +218,7 @@ async function resetAll() {
 
   <template v-else>
     <PageHeader :title="labelText(route.meta.title)">
+      <a v-if="guide" class="button guide" :href="guideUrl(guide, locale)" target="_blank" rel="noopener">{{ t("trainer.guide") }} ↗</a>
       <div class="config-actions">
         <label class="button">
           {{ t("trainer.import") }}
@@ -283,6 +292,7 @@ async function resetAll() {
             @reset="form.resetField(field.name)"
             @pick="pickPath(field.name, $event)"
           />
+          <ModelFiles v-if="section.modelFiles" :schema-name="schemaName" :values="values" />
           <DatasetStats
             v-if="section.dataset"
             v-model:offsets="offsets"
@@ -365,6 +375,10 @@ async function resetAll() {
 .count {
   color: var(--muted);
   font-size: 13px;
+}
+
+.guide {
+  color: var(--primary-text);
 }
 
 .config-actions {
