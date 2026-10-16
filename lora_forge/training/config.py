@@ -13,7 +13,7 @@ import toml
 from lora_forge import musubi_tuner, sd_scripts
 from lora_forge.i18n import join_list, t
 from lora_forge.log import log
-from lora_forge.training import krea2, validation
+from lora_forge.training import krea2, moss_image, validation
 from lora_forge.training.dataset import count_images, subset_folders
 
 TRAINERS = {
@@ -30,6 +30,9 @@ TRAINERS = {
 
     # kohya-ss/musubi-tuner (see lora_forge/training/krea2.py)
     "krea2-lora": "./scripts/musubi-tuner/src/musubi_tuner/krea2_train_network.py",
+
+    # LoRA Forge's own trainer (see lora_forge/training/moss_image.py)
+    "moss-image-lora": moss_image.TRAINER,
 }
 
 # Keys moved into the generated dataset_config; only used when a subset has a non-zero
@@ -356,6 +359,8 @@ def prepare_training(config: dict) -> PreparedRun:
 
     if model_train_type == krea2.MODEL_TRAIN_TYPE:
         return _prepare_krea2(config, timestamp, autosave_dir, toml_file, trainer_file, gpu_ids, environment)
+    if model_train_type == moss_image.MODEL_TRAIN_TYPE:
+        return _prepare_moss_image(config, timestamp, autosave_dir, toml_file, trainer_file, gpu_ids, environment)
 
     resolve_dataloader_workers(config)
 
@@ -469,6 +474,34 @@ def _prepare_krea2(config: dict, timestamp: str, autosave_dir: str, toml_file: s
         cpu_threads=cpu_threads,
         run_id=timestamp,
         model_train_type=krea2.MODEL_TRAIN_TYPE,
+        config=config,
+        preview=False,
+        environment=environment,
+    )
+
+
+def _prepare_moss_image(config: dict, timestamp: str, autosave_dir: str, toml_file: str, trainer_file: str, gpu_ids, environment: dict) -> PreparedRun:
+    """MOSS-Image through LoRA Forge's own trainer (single GPU, batch 1)."""
+    if gpu_ids and len(gpu_ids) > 1:
+        raise TrainingConfigError(t("run.mossSingleGpu"))
+    train_data_dir = config.get("train_data_dir", "")
+    validated, message = validation.validate_data_dir(train_data_dir)
+    if not validated:
+        raise TrainingConfigError(message)
+    try:
+        moss_image.prepare_config(config, os.path.join(autosave_dir, f"{timestamp}-prompt.txt"))
+    except moss_image.MossConfigError as error:
+        raise TrainingConfigError(str(error)) from error
+
+    with open(toml_file, "w", encoding="utf-8") as f:
+        f.write(toml.dumps(config))
+    return PreparedRun(
+        toml_file=toml_file,
+        trainer_file=trainer_file,
+        gpu_ids=gpu_ids,
+        cpu_threads=2,
+        run_id=timestamp,
+        model_train_type=moss_image.MODEL_TRAIN_TYPE,
         config=config,
         preview=False,
         environment=environment,

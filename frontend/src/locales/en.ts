@@ -20,6 +20,7 @@ const en = {
   "home.intro": "Pick a training mode to configure it. Configs can be exported as JSON / TOML and imported again later.",
   "home.mode.anima": "Anima DiT LoRA, with per-block torch.compile and per-subfolder timestep offsets.",
   "home.mode.krea2": "Krea 2 LoRA with musubi-tuner: int8 base weights and block swap for 16 GB cards.",
+  "home.mode.moss": "MOSS-Image LoRA with LoRA Forge's own trainer: a 5B model with strong text rendering, fits 16 GB cards.",
   "home.mode.sdxl": "SDXL LoRA (Illustrious, NoobAI, Pony and other SDXL models).",
   "home.mode.sdxlFinetune": "SDXL full fine-tuning of the U-Net, optionally with the text encoders.",
   "home.mode.sd15": "SD1.5 / SD2 LoRA, for older models.",

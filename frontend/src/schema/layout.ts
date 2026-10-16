@@ -85,7 +85,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     tone: "optimize",
     merged: "training",
     fields: [
-      "timestep_sampling", "sigmoid_scale", "discrete_flow_shift", "model_prediction_type", "guidance_scale", "weighting_scheme",
+      "timestep_sampling", "logit_mean", "logit_std", "sigmoid_scale", "discrete_flow_shift", "model_prediction_type", "guidance_scale", "weighting_scheme",
       "min_timestep", "max_timestep", "loss_type", "huber_schedule", "huber_c", "min_snr_gamma", "debiased_estimation_loss",
       "show_timesteps_resolution", "show_timesteps_offset",
     ],

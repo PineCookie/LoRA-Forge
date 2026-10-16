@@ -30,16 +30,19 @@ _✨ Enjoy LoRA training! ✨_
   ·
   <a href="docs/krea2.md">Krea 2 guide</a>
   ·
+  <a href="docs/moss-image.md">MOSS-Image guide</a>
+  ·
   <a href="README-zh.md">中文</a>
 </p>
 
-LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) and, for Krea 2, [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner). You fill in a form in the browser, press Start, and follow the training on a live page; LoRA Forge sets up Python, PyTorch and the trainers for you. It continues [lora-scripts](https://github.com/Akegarasu/lora-scripts).
+LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) and, for Krea 2, [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner); MOSS-Image trains with LoRA Forge's own trainer. You fill in a form in the browser, press Start, and follow the training on a live page; LoRA Forge sets up Python, PyTorch and the trainers for you. It continues [lora-scripts](https://github.com/Akegarasu/lora-scripts).
 
-- **Models**: Anima, Krea 2, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
+- **Models**: Anima, Krea 2, MOSS-Image, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
 - **Easy forms**: an *Essentials* view with the options most people change, all options one click away, search, and import / export of configs as JSON or TOML.
 - **Runs page**: progress and time left, loss and learning rate charts, sample images, the saved LoRA files and the console output, also for past runs. No TensorBoard needed.
 - **Faster training**: LoRA Forge patches sd-scripts where it is slow, for example one compiled graph for all image sizes on Anima, per-block compile and flash-attn on SDXL, and a much faster ProdigyPlus optimizer step. An SDXL LoRA trains about twice as fast as with plain sd-scripts ([details](#speed)).
 - **Krea 2 on 16 GB cards**: int8 base weights and block swap by default ([details](docs/krea2.md)).
+- **MOSS-Image**: OpenMOSS's 5B model with strong text rendering, trained with LoRA Forge's own trainer on 16 GB cards ([details](docs/moss-image.md)).
 - English, 中文 and 日本語, light and dark mode.
 
 > [!NOTE]
@@ -89,7 +92,7 @@ train/my_character/          ← choose this folder in the GUI
 
 Images directly in the dataset folder are not used; the GUI tells you when no `<repeats>_<name>` subfolder is found.
 
-**2. Get the base model.** Download the model you want to train on (for Anima and Krea 2 also their text encoder and VAE). The model page shows which files it needs.
+**2. Get the base model.** Download the model you want to train on (for Anima, Krea 2 and MOSS-Image also their text encoder and VAE). The model page shows which files it needs.
 
 **3. Fill in the form.** Open the page for your model in the sidebar. In the *Essentials* view, set at least the base model file, the dataset folder and the output name; the other values are reasonable defaults. The step estimate next to the dataset folder shows how many steps the settings give.
 
@@ -112,9 +115,10 @@ LoRA Forge runs sd-scripts and musubi-tuner unchanged, but patches them when a t
 | `activation_memory_budget` in place of gradient checkpointing: keeps what fits in VRAM instead of recomputing it | Anima | opt-in (`auto`) | −8% to −11%, uses most of the VRAM |
 | flash-attn for the attention | Krea 2 | on, when installed | −22% |
 | Pinned, one-way block swap: swapping costs almost nothing and frees about 6 GB | Krea 2 | on | same speed with far more blocks swapped |
+| Per-block `torch.compile`, a few graphs for all bucket sizes | MOSS-Image | on | −29% |
 | No DataLoader worker processes when the latents are cached | all | on | the first step after about 7 s instead of 80 s on Windows |
 
-Together: an SDXL LoRA step went from 1.51 s (sd-scripts with SDPA) to 0.81 s, or 0.72 s with fp16; an Anima LoRA step (already compiled) from 1.73 s to 1.17 s with fp16 and `activation_memory_budget = auto`. Every change was checked against the original for the same losses. Measured on an RTX 5070 Ti (16 GB) under Windows with rank-32 LoRAs at batch 2 and about 1 megapixel; other cards gain differently, and fp16 accumulation gains nothing on data-center or RTX PRO cards. The [Anima guide](docs/anima.md) and [Krea 2 guide](docs/krea2.md) explain the options.
+Together: an SDXL LoRA step went from 1.51 s (sd-scripts with SDPA) to 0.81 s, or 0.72 s with fp16; an Anima LoRA step (already compiled) from 1.73 s to 1.17 s with fp16 and `activation_memory_budget = auto`. Every change was checked against the original for the same losses. Measured on an RTX 5070 Ti (16 GB) under Windows with rank-32 LoRAs at batch 2 and about 1 megapixel; other cards gain differently, and fp16 accumulation gains nothing on data-center or RTX PRO cards. The [Anima](docs/anima.md), [Krea 2](docs/krea2.md) and [MOSS-Image](docs/moss-image.md) guides explain the options.
 
 ## Updating
 
@@ -227,7 +231,7 @@ GitHub Actions builds the releases: pushing a `v*` tag publishes a release with 
 | `lora_forge/` | Python backend: web server and API (`app/`), training config, validation and runs (`training/`), sd-scripts compatibility checks |
 | `lora_forge/schema/` | Training form definitions, read by the web UI |
 | `frontend/` | Vue 3 + TypeScript web UI |
-| `docs/` | User guides (Anima, Krea 2) |
+| `docs/` | User guides (Anima, Krea 2, MOSS-Image) |
 | `scripts/sd-scripts`, `scripts/musubi-tuner` | kohya-ss/sd-scripts and musubi-tuner checkouts, cloned on first start (not part of this repository; do not remove them with `git clean`) |
 
 The backend package was named `mikazuki` in upstream lora-scripts. It was renamed to `lora_forge` in October 2026, together with its environment variables (`MIKAZUKI_*` → `LORA_FORGE_*`).
@@ -240,6 +244,7 @@ LoRA-Forge is a modified version of [lora-scripts](https://github.com/Akegarasu/
 
 - If you run a modified version as a network service (for example with `--listen`), AGPL section 13 requires offering its source code to the users. The web UI links to this repository for that; point the link at your own source if you host a modified version.
 - [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) and [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner) (Apache-2.0) are downloaded into `scripts/` on first start and are not distributed with this repository.
+- The MOSS-Image trainer's model code is ported from OpenMOSS's [MOSS-Image](https://github.com/OpenMOSS/MOSS-Image) pipeline (Apache-2.0); its model configs in `lora_forge/trainers/moss_image/configs` come from [MOSS-Image-Base](https://huggingface.co/OpenMOSS-Team/MOSS-Image-Base).
 - The built web UI bundles Vue and vue-router (MIT). Their license notices are in `frontend/dist/THIRD-PARTY-LICENSES.md`, which is included in the release zip.
 
 Thanks to Akegarasu and the original contributors for building the foundation.

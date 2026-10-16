@@ -56,11 +56,12 @@ def generate(model, positive, negative, width, height, steps=30, cfg=3.0, seed=0
     return latents
 
 
-OPTION = re.compile(r"\s--(\w+)\s+")
+OPTION = re.compile(r"\s+--(\w+)(?=\s|$)")
 
 
 def parse_prompt_line(line: str) -> dict:
-    """sd-scripts' prompt line: `text --n negative --w 1024 --h 1024 --d seed --s steps --l cfg`."""
+    """sd-scripts' prompt line: `text --n negative --w 1024 --h 1024 --d seed --s steps --l cfg`
+    (an empty `--n` is fine)."""
     parts = OPTION.split(" " + line.strip())
     prompt = {"prompt": parts[0].strip(), "negative": "", "width": 1024, "height": 1024, "seed": None, "steps": 30, "cfg": 3.0}
     names = {"n": "negative", "w": "width", "h": "height", "d": "seed", "s": "steps", "l": "cfg"}

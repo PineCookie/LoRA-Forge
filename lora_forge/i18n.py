@@ -254,6 +254,31 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ja": "turbo_dit は blocks_to_swap や convrot_int8 と併用できません。Turbo プレビューには turbo_lora を使うか、"
               "turbo_dit を空にして RAW でプレビューしてください。",
     },
+    "model.mossDit": {
+        "en": "MOSS-Image DiT (base model)",
+        "zh": "MOSS-Image DiT（底模）",
+        "ja": "MOSS-Image DiT（ベースモデル）",
+    },
+    "model.mossTextEncoder": {
+        "en": "Qwen3.5-9B text encoder (text_encoder)",
+        "zh": "Qwen3.5-9B 文本编码器（text_encoder）",
+        "ja": "Qwen3.5-9B テキストエンコーダー（text_encoder）",
+    },
+    "model.mossVae": {
+        "en": "FLUX.2 VAE (vae)",
+        "zh": "FLUX.2 VAE（vae）",
+        "ja": "FLUX.2 VAE（vae）",
+    },
+    "run.mossSingleGpu": {
+        "en": "MOSS-Image training runs on one GPU: pick a single GPU.",
+        "zh": "MOSS-Image 训练只支持单卡：请只选择一个 GPU。",
+        "ja": "MOSS-Image の学習は 1 GPU のみ対応です。GPU を 1 つだけ選んでください。",
+    },
+    "run.mossQuantized": {
+        "en": "{label} is a quantized file (int8 / fp8): {path}. MOSS-Image training needs the bf16 file.",
+        "zh": "{label} 是量化文件（int8 / fp8）：{path}。MOSS-Image 训练需要 bf16 文件。",
+        "ja": "{label} は量子化されたファイル（int8 / fp8）です：{path}。MOSS-Image の学習には bf16 のファイルが必要です。",
+    },
     # --- sd-scripts compatibility ------------------------------------------------------------
     "sdScripts.missing": {
         "en": "The installed sd-scripts ({ref}) does not support: {features}. sd-scripts would silently ignore "

@@ -19,6 +19,7 @@ const zh: Messages = {
   "home.intro": "选择一个训练模式开始配置参数。配置可以导出为 JSON / TOML，并随时导入继续编辑。",
   "home.mode.anima": "Anima DiT LoRA，支持逐 block torch.compile 与子文件夹时间步偏移。",
   "home.mode.krea2": "用 musubi-tuner 训练 Krea 2 LoRA：int8 底模权重与 block 交换，16 GB 显卡可用。",
+  "home.mode.moss": "用 LoRA Forge 自带的训练器训练 MOSS-Image LoRA：5B 模型，文字渲染出色，16 GB 显卡可用。",
   "home.mode.sdxl": "SDXL LoRA（Illustrious、NoobAI、Pony 等 SDXL 模型）。",
   "home.mode.sdxlFinetune": "SDXL 全量微调 U-Net，可选同时训练文本编码器。",
   "home.mode.sd15": "SD1.5 / SD2 LoRA，用于较旧的模型。",

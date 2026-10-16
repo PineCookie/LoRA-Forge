@@ -52,7 +52,7 @@ DEFAULTS = {
     "network_alpha": 32,
     "network_dropout": 0.0,
     "network_weights": "",
-    "optimizer_type": "AdamW8bit",
+    "optimizer_type": "AdamW",
     "learning_rate": 1e-4,
     "optimizer_args": [],
     "lr_scheduler": "constant",
@@ -322,6 +322,7 @@ class Trainer:
         if not self.prompts:
             return
         from PIL import Image
+        from tqdm import tqdm
 
         config = self.config
         folder = os.path.join(config["output_dir"], "sample")
@@ -329,7 +330,7 @@ class Trainer:
         set_optimizer_mode(self.optimizer, False)
         self.network.train(False)
         latents = []
-        for index, prompt in enumerate(self.prompts):
+        for index, prompt in enumerate(tqdm(self.prompts, desc="Sampling", leave=False)):
             seed = prompt["seed"] if prompt["seed"] is not None else int(config["seed"]) + index
             positive = self.prompt_embeddings[prompt["prompt"]][None].to(self.device)
             negative = self.prompt_embeddings[prompt["negative"]][None].to(self.device)

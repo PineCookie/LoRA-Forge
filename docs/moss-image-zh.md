@@ -1,0 +1,54 @@
+# MOSS-Image LoRA 训练
+
+[English](moss-image.md)
+
+[MOSS-Image](https://github.com/OpenMOSS/MOSS-Image)（OpenMOSS，Apache-2.0）是一个 5B 的文生图模型，文字渲染和版式控制能力很强。目前还没有上游训练器支持它，所以 LoRA Forge 用自带的训练器（`lora_forge/trainers/moss_image`）训练。它遵循 [MOSS-Image 技术报告](https://github.com/OpenMOSS/MOSS-Image/tree/main/paper) 的做法：相同的损失、相同的时间步采样，文本编码器保持冻结。
+
+## 模型文件
+
+| 选项 | 文件 | 说明 |
+|---|---|---|
+| `pretrained_model_name_or_path` | [Comfy-Org/MOSS-Image](https://huggingface.co/Comfy-Org/MOSS-Image) 的 `diffusion_models/moss_image_base_bf16.safetensors`（9.5 GB） | Base 模型；也可以用 [MOSS-Image-Base](https://huggingface.co/OpenMOSS-Team/MOSS-Image-Base) 中 OpenMOSS 的 `transformer` 文件夹。int8 文件无法用于训练 |
+| `text_encoder` | [Comfy-Org/Qwen3.5](https://huggingface.co/Comfy-Org/Qwen3.5) 的 `text_encoders/qwen3.5_9b_bf16.safetensors`（19.3 GB） | **必填**，需要 bf16 文件：训练前用它编码标注，预览图的提示词也用它 |
+| `vae` | [MOSS-Image-Base](https://huggingface.co/OpenMOSS-Team/MOSS-Image-Base/tree/main/vae) 的 `vae/diffusion_pytorch_model.safetensors`（250 MB） | **必填**。这是模型训练时用的 VAE。ComfyUI 的 `flux2-vae.safetensors` 也可以，latent 相差不到 1% |
+
+分词器（几 MB）会在第一次训练时从 Hugging Face（`Qwen/Qwen3.5-9B`）下载。
+
+**在 Base 上训练，生成时两者都可以用。** MOSS-Image-SFT 是在 Base 上做的轻量微调（权重相差约 1%），在 Base 上训练的 LoRA 两个模型都能用。OpenMOSS 的后训练建议也是针对 Base 写的。在我们的测试中，同一个 LoRA 用 SFT 生成的图更好看。
+
+## 标注
+
+MOSS-Image 是用自然语言描述训练的，所以请写句子，而不是标签列表。图中的文字会按标注里写的样子渲染。
+
+**标注文件的每一行是该图片的一条标注。** 每一步随机选用其中一条训练，就像 OpenMOSS 用同一张图的短、中、长三种标注训练一样。这一点对角色很重要：如果每条标注都把完整外观写出来，模型学到的是画出这段描述，单靠名字几乎唤不回外观。请再加一行简短的，只写角色名和这张图里会变化的内容：
+
+```
+An anime-style illustration of my_character from the chest up in her school uniform: a navy blazer over a white shirt with a striped tie, ... Plain white background.
+my_character in her school uniform, smiling at the viewer.
+```
+
+只有一行的标注文件照常训练。OpenMOSS 的[用户指南](https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE_ZH.md)里有他们推荐的视觉模型标注提示词（长、中、短三种标注）。
+
+## 训练流程
+
+1. **缓存。** 训练开始前先缓存 latent（VAE）和文本编码器输出，训练页面上显示为“缓存 latent”和“缓存文本编码器输出”。缓存文件写在图片旁边（`*_moss_latent.safetensors`、`*_moss_te.safetensors`），并记录它们由什么生成：图片、标注或模型文件改动后会重新编码。文本编码器需要约 20 GB 可用内存，显存放不下的部分在内存中运行。
+2. **训练**，批大小为 1：每张图保留自己的标注长度，与 OpenMOSS 的流程一致。想要更大的批次请用 `gradient_accumulation_steps`。每张图按自身宽高比得到一个分桶，像素数等于训练分辨率，边长为 16 的倍数。
+3. **预览图**使用 OpenMOSS 的采样方式：Euler、shift 5 加 CFG，负面推理跳过第 22 个 block。
+
+数据集文件夹的结构与其他模型相同（`<重复次数>_<名称>` 子文件夹，里面放图片和 `.txt` 标注）。只支持单卡训练。
+
+## 显存与速度
+
+在 RTX 5070 Ti（16 GB）上、约 100 万像素、rank 32：默认设置下**每步 2.1 秒**，关闭 `compile` 时 2.9 秒。显存峰值约 12-13 GB。
+
+- **`gradient_checkpointing`**（默认开启）：16 GB 显存请保持开启，仅 DiT 就占约 10 GB。
+- **`compile`**（默认开启）：逐 block 的 torch.compile，约快 30%。所有分桶尺寸只需要构建少数几个图；编译期间最初几步较慢。
+- **`attn_mode`**（默认 `auto`）：安装了 [flash-attn](../README-zh.md#flash-attn可选) 时用 FlashAttention，否则用 PyTorch 的 SDPA。
+
+## 训练设置
+
+默认：rank 和 alpha 为 32，覆盖全部 42 个 block 的注意力层和前馈层（约 7400 万参数），AdamW 学习率 1e-4，10 个 epoch，时间步采样使用报告中的值（`logit_mean` -1.09、`logit_std` 0.95）。一个角色测试 LoRA（28 张图、545 步）在第 2 个 epoch 就学会了服装细节。最佳设置尚未确定。
+
+## 在 ComfyUI 中使用 LoRA
+
+ComfyUI 原生支持 MOSS-Image（请先更新）；用 *LoraLoaderModelOnly* 加载 LoRA。OpenMOSS 的采样设置：50 步、CFG 3、euler / sgm_uniform、shift 5（ComfyUI 对 MOSS-Image 的默认值）、负面提示词留空，并在负面推理中跳过第 22 个 block：添加 *SkipLayerGuidanceDiTSimple*，`single_layers` 填 `22`，`double_layers` 留空。ComfyUI 自己的示例工作流用 25 步、CFG 2.5、er_sde / simple，只在前一半步数跳过（`end_percent` 0.5）。

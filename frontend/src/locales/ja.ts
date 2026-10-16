@@ -19,6 +19,7 @@ const ja: Messages = {
   "home.intro": "学習モードを選んで設定を始めます。設定は JSON / TOML で書き出し、後から読み込んで編集を続けられます。",
   "home.mode.anima": "Anima DiT LoRA。ブロック単位の torch.compile とサブフォルダ別のタイムステップオフセットに対応。",
   "home.mode.krea2": "musubi-tuner による Krea 2 LoRA。int8 のベース重みとブロックスワップで 16 GB の GPU でも学習できます。",
+  "home.mode.moss": "LoRA Forge 独自のトレーナーによる MOSS-Image LoRA。文字描写に強い 5B モデルで、16 GB の GPU でも学習できます。",
   "home.mode.sdxl": "SDXL LoRA（Illustrious、NoobAI、Pony などの SDXL モデル）。",
   "home.mode.sdxlFinetune": "SDXL の U-Net のフルファインチューニング。テキストエンコーダーも学習できます。",
   "home.mode.sd15": "SD1.5 / SD2 LoRA。古いモデル向け。",

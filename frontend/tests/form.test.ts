@@ -131,6 +131,20 @@ describe("rules", () => {
     expect(values.activation_memory_budget).toBe("off");
   });
 
+  it("submits MOSS-Image's own trainer options", () => {
+    const groups = loadGroups("moss-image-lora");
+    const values = initialFormValues(groups);
+    applyDependentValues(values);
+    const config = readForm(values, groups);
+    expect(config).toMatchObject({
+      model_train_type: "moss-image-lora", resolution: "1024,1024", optimizer_type: "AdamW", network_dim: 32,
+      logit_mean: -1.09, logit_std: 0.95, attn_mode: "auto", compile: true, gradient_checkpointing: true, save_precision: "fp16",
+    });
+    // the trainer runs at batch 1 and needs no network module
+    expect(config).not.toHaveProperty("train_batch_size");
+    expect(config).not.toHaveProperty("network_module");
+  });
+
   it("keeps Krea 2's base quantization, Turbo source and H2D-only block swap consistent", () => {
     const groups = loadGroups("krea2-lora");
     const values = initialFormValues(groups);

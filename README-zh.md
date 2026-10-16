@@ -30,16 +30,19 @@ _✨ 享受 LoRA 训练！ ✨_
   ·
   <a href="docs/krea2-zh.md">Krea 2 训练说明</a>
   ·
+  <a href="docs/moss-image-zh.md">MOSS-Image 训练说明</a>
+  ·
   <a href="README.md">English</a>
 </p>
 
-LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)（Krea 2 则用 [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)）训练 LoRA 的网页界面。在浏览器里填好表单、点击开始，就能在实时页面上跟踪训练；Python、PyTorch 和训练脚本都由 LoRA Forge 自动准备。本项目延续自 [lora-scripts](https://github.com/Akegarasu/lora-scripts)。
+LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)（Krea 2 则用 [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)，MOSS-Image 用 LoRA Forge 自带的训练器）训练 LoRA 的网页界面。在浏览器里填好表单、点击开始，就能在实时页面上跟踪训练；Python、PyTorch 和训练脚本都由 LoRA Forge 自动准备。本项目延续自 [lora-scripts](https://github.com/Akegarasu/lora-scripts)。
 
-- **模型**：Anima、Krea 2、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
+- **模型**：Anima、Krea 2、MOSS-Image、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
 - **简洁的表单**：*常用* 视图只显示大多数人会改的选项，全部选项一键切换，支持搜索，配置可导入/导出为 JSON 或 TOML。
 - **运行记录页面**：进度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件和控制台输出，以往的训练也能查看。不需要 TensorBoard。
 - **更快的训练**：LoRA Forge 会在 sd-scripts 较慢的地方打补丁，例如 Anima 的所有图像尺寸共用一个编译图、SDXL 的逐 block 编译和 flash-attn，以及快得多的 ProdigyPlus 优化器步骤。SDXL LoRA 的训练速度约为原版 sd-scripts 的两倍（[详情](#训练速度)）。
 - **16 GB 显卡也能训练 Krea 2**：默认使用 int8 底模权重和 block 交换（[详情](docs/krea2-zh.md)）。
+- **MOSS-Image**：OpenMOSS 的 5B 模型，文字渲染出色，用 LoRA Forge 自带的训练器在 16 GB 显卡上训练（[详情](docs/moss-image-zh.md)）。
 - 界面支持 English、中文、日本語，以及浅色和深色模式。
 
 > [!NOTE]
@@ -89,7 +92,7 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
 
 直接放在数据集文件夹里的图片不会被使用；找不到 `<重复次数>_<名称>` 子文件夹时，GUI 会给出提示。
 
-**2. 准备底模。** 下载要在其上训练的模型（Anima 和 Krea 2 还需要各自的文本编码器和 VAE）。模型页面会说明需要哪些文件。
+**2. 准备底模。** 下载要在其上训练的模型（Anima、Krea 2 和 MOSS-Image 还需要各自的文本编码器和 VAE）。模型页面会说明需要哪些文件。
 
 **3. 填写表单。** 在侧边栏打开对应模型的页面。在 *常用* 视图中至少填写底模文件、数据集文件夹和输出名称，其他值都有合理的默认值。数据集文件夹旁的 **步数预测** 会显示当前设置下的训练步数。
 
@@ -112,9 +115,10 @@ LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开�
 | 用 `activation_memory_budget` 代替梯度检查点：显存放得下的激活直接保留，不再重算 | Anima | 可选（`auto`） | −8% 到 −11%，会用掉大部分显存 |
 | 注意力使用 flash-attn | Krea 2 | 安装后开启 | −22% |
 | 锁页内存的单向 block 交换：交换几乎没有开销，可腾出约 6 GB 显存 | Krea 2 | 开启 | 交换更多 block 而速度不变 |
+| 逐 block 的 `torch.compile`，所有分桶尺寸只需少数几个图 | MOSS-Image | 开启 | −29% |
 | 缓存 latent 时不启动 DataLoader 工作进程 | 全部 | 开启 | Windows 上第一步约 7 秒后开始，而不是 80 秒 |
 
-合计：SDXL LoRA 每步从 1.51 秒（启用 SDPA 的 sd-scripts）降到 0.81 秒，使用 fp16 时为 0.72 秒；Anima LoRA 每步（已编译）在使用 fp16 和 `activation_memory_budget = auto` 时从 1.73 秒降到 1.17 秒。每项改动都与原版对比过，loss 一致。测试环境为 Windows 下的 RTX 5070 Ti（16 GB），rank 32 的 LoRA，批大小 2，约 100 万像素；其他显卡的提升会不同，fp16 累加在数据中心卡和 RTX PRO 卡上没有提升。各选项的说明见 [Anima 指南](docs/anima-zh.md) 和 [Krea 2 指南](docs/krea2-zh.md)。
+合计：SDXL LoRA 每步从 1.51 秒（启用 SDPA 的 sd-scripts）降到 0.81 秒，使用 fp16 时为 0.72 秒；Anima LoRA 每步（已编译）在使用 fp16 和 `activation_memory_budget = auto` 时从 1.73 秒降到 1.17 秒。每项改动都与原版对比过，loss 一致。测试环境为 Windows 下的 RTX 5070 Ti（16 GB），rank 32 的 LoRA，批大小 2，约 100 万像素；其他显卡的提升会不同，fp16 累加在数据中心卡和 RTX PRO 卡上没有提升。各选项的说明见 [Anima](docs/anima-zh.md)、[Krea 2](docs/krea2-zh.md) 和 [MOSS-Image](docs/moss-image-zh.md) 指南。
 
 ## 更新
 
@@ -227,7 +231,7 @@ npm run typecheck
 | `lora_forge/` | Python 后端：网页服务与 API（`app/`）、训练配置/校验/运行（`training/`）、sd-scripts 兼容性检查 |
 | `lora_forge/schema/` | 训练表单定义，由网页界面读取 |
 | `frontend/` | Vue 3 + TypeScript 网页界面 |
-| `docs/` | 使用说明（Anima、Krea 2） |
+| `docs/` | 使用说明（Anima、Krea 2、MOSS-Image） |
 | `scripts/sd-scripts`、`scripts/musubi-tuner` | kohya-ss/sd-scripts 与 musubi-tuner，首次启动时克隆（不属于本仓库；请勿用 `git clean` 删除） |
 
 后端包在上游 lora-scripts 中名为 `mikazuki`，已于 2026 年 10 月改名为 `lora_forge`，环境变量也随之改为 `LORA_FORGE_*`（原 `MIKAZUKI_*`）。
@@ -240,6 +244,7 @@ LoRA-Forge 是 Akegarasu 及贡献者的 [lora-scripts](https://github.com/Akega
 
 - 如果把修改后的版本作为网络服务运行（例如使用 `--listen`），AGPL 第 13 条要求向使用者提供源代码。网页界面为此链接到本仓库；托管修改版时请把链接改为你自己的源代码。
 - [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) 与 [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)（Apache-2.0）在首次启动时下载到 `scripts/`，不随本仓库分发。
+- MOSS-Image 训练器的模型代码移植自 OpenMOSS 的 [MOSS-Image](https://github.com/OpenMOSS/MOSS-Image) 推理流程（Apache-2.0）；`lora_forge/trainers/moss_image/configs` 中的模型配置来自 [MOSS-Image-Base](https://huggingface.co/OpenMOSS-Team/MOSS-Image-Base)。
 - 构建后的网页界面包含 Vue 和 vue-router（MIT），其许可声明位于 `frontend/dist/THIRD-PARTY-LICENSES.md`，并包含在发布压缩包中。
 
 感谢 Akegarasu 和原项目贡献者打下的基础。
