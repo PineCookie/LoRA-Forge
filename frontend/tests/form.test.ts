@@ -159,7 +159,7 @@ describe("rules", () => {
       const names = new Set(loadGroups(schema).flatMap((group) => group.fields.map((field) => field.name)));
       expect(specs.map((spec) => spec.field).filter((field) => !names.has(field)), schema).toEqual([]);
     }
-    expect(Object.keys(MODEL_FILES).sort()).toEqual(["anima-lora", "moss-image-lora"]);
+    expect(Object.keys(MODEL_FILES).sort()).toEqual(["anima-lora", "krea2-lora", "moss-image-lora"]);
     expect(guideUrl("moss-image", "zh")).toBe("https://github.com/PineCookie/lora-forge/blob/main/docs/moss-image-zh.md");
     expect(guideUrl("moss-image", "ja")).toBe("https://github.com/PineCookie/lora-forge/blob/main/docs/moss-image.md");
     expect(huggingFaceFileUrl("https://hf-mirror.com/", "Comfy-Org/Qwen3.5", "text_encoders/qwen3.5_9b_bf16.safetensors")).toBe(

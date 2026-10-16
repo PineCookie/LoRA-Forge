@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, reactive, watch } from "vue";
 import { api } from "../api";
 import type { FormValues } from "../config/form";
 import { MODEL_FILES, type ModelFileState } from "../config/modelFiles";
+import { isFieldVisible } from "../config/visibility";
 import { t } from "../i18n";
 import { huggingFaceFileUrl } from "../links";
 import { store } from "../store";
@@ -46,8 +47,9 @@ watch(
 );
 onBeforeUnmount(() => timers.forEach((timer) => clearTimeout(timer)));
 
+// a file whose field is hidden (Krea 2's Turbo LoRA without previews) is not offered either
 const rows = computed(() =>
-  specs.value.map((spec) => ({
+  specs.value.filter((spec) => isFieldVisible(spec.field, props.values)).map((spec) => ({
     ...spec,
     name: spec.path.split("/").pop() ?? spec.path,
     url: huggingFaceFileUrl(store.runtime?.hf_endpoint, spec.repo, spec.path),
@@ -172,8 +174,15 @@ li + li {
   color: var(--info);
 }
 
+.state.turbo {
+  border-color: var(--warning-border);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
 .state.missing,
 .state.wrong,
+.state.fp8,
 .state.quantized {
   border-color: var(--danger-border);
   background: var(--danger-soft);

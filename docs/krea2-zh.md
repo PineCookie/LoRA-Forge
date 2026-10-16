@@ -9,9 +9,8 @@ Krea 2 LoRA 由 [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner
 
 ## 模型文件
 
-Krea 2 是 12.9B 的文生图模型，使用 Qwen3-VL-4B 文本编码器和 Qwen-Image VAE（与 Anima 相同的 VAE）。从
-[Comfy-Org/Krea-2](https://huggingface.co/Comfy-Org/Krea-2) 和
-[Comfy-Org/Qwen3-VL](https://huggingface.co/Comfy-Org/Qwen3-VL) 下载：
+Krea 2 是 12.9B 的文生图模型，使用 Qwen3-VL-4B 文本编码器和 Qwen-Image VAE（与 Anima 相同的 VAE）。所有文件都可以从
+[Comfy-Org/Krea-2](https://huggingface.co/Comfy-Org/Krea-2) 下载。页面上的 **模型文件** 面板给出每个文件的链接，并检查你填写的路径：文件是否存在、是否适用（例如不是 Turbo DiT 或 8B 文本编码器）。
 
 | 选项 | 文件 | 备注 |
 |---|---|---|

@@ -38,7 +38,41 @@ export const MODEL_FILES: Record<string, ModelFileSpec[]> = {
       repo: "circlestone-labs/Anima",
       path: "split_files/vae/qwen_image_vae.safetensors",
       size: "254 MB",
-      note: "modelFiles.note.animaVae",
+      note: "modelFiles.note.qwenImageVae",
+    },
+  ],
+  "krea2-lora": [
+    {
+      field: "pretrained_model_name_or_path",
+      role: "modelFiles.role.dit",
+      repo: "Comfy-Org/Krea-2",
+      path: "diffusion_models/krea2_raw_int8_convrot.safetensors",
+      size: "13.5 GB",
+      note: "modelFiles.note.krea2Dit",
+    },
+    {
+      field: "text_encoder",
+      role: "modelFiles.role.textEncoder",
+      repo: "Comfy-Org/Krea-2",
+      path: "text_encoders/qwen3vl_4b_bf16.safetensors",
+      size: "8.88 GB",
+      note: "modelFiles.note.krea2TextEncoder",
+    },
+    {
+      field: "vae",
+      role: "modelFiles.role.vae",
+      repo: "Comfy-Org/Krea-2",
+      path: "vae/qwen_image_vae.safetensors",
+      size: "254 MB",
+      note: "modelFiles.note.qwenImageVae",
+    },
+    {
+      field: "turbo_lora",
+      role: "modelFiles.role.turboLora",
+      repo: "Comfy-Org/Krea-2",
+      path: "loras/krea2_turbo_lora_rank_64_bf16.safetensors",
+      size: "470 MB",
+      note: "modelFiles.note.krea2TurboLora",
     },
   ],
   "moss-image-lora": [
@@ -68,4 +102,4 @@ export const MODEL_FILES: Record<string, ModelFileSpec[]> = {
   ],
 };
 
-export type ModelFileState = "empty" | "missing" | "repo" | "quantized" | "wrong" | "ok" | "unknown";
+export type ModelFileState = "empty" | "missing" | "repo" | "quantized" | "fp8" | "wrong" | "turbo" | "ok" | "unknown";

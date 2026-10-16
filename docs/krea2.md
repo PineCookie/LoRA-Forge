@@ -11,8 +11,9 @@ support is marked experimental there.
 ## Model files
 
 Krea 2 is a 12.9B text-to-image model with the Qwen3-VL-4B text encoder and the Qwen-Image VAE
-(the same VAE Anima uses). Download from [Comfy-Org/Krea-2](https://huggingface.co/Comfy-Org/Krea-2)
-and [Comfy-Org/Qwen3-VL](https://huggingface.co/Comfy-Org/Qwen3-VL):
+(the same VAE Anima uses). Download from [Comfy-Org/Krea-2](https://huggingface.co/Comfy-Org/Krea-2),
+which has all of them. The page's **Model files** panel links each file and checks the path you
+enter: whether the file exists and fits (for example not the Turbo DiT or the 8B text encoder).
 
 | Option | File | Notes |
 |---|---|---|
