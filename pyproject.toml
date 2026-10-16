@@ -1,7 +1,7 @@
 [project]
 name = "lora-forge"
-version = "1.2.0"
-description = "Web UI for training LoRA models (Anima, FLUX, SD3.5, SDXL, SD1.5) with kohya-ss/sd-scripts"
+version = "1.3.0"
+description = "Web UI for training LoRA models (Anima, Krea 2, MOSS-Image, SDXL, FLUX, SD3.5, SD1.5) with kohya-ss/sd-scripts, musubi-tuner and its own MOSS-Image trainer"
 readme = "README.md"
 license-files = ["LICENSE"]
 requires-python = "==3.12.*"
