@@ -185,9 +185,11 @@ Schema.intersect([
     }),
 
     Schema.object({
-        // fp16 as before (this page's old mixed_precision default)
+        // fp16 as before (this page's old mixed_precision default); fp16 accumulation is untested on SD1.5
+        // full fine-tunes, so it stays off unless chosen
         ...UpdateSchema(SHARED_SCHEMAS.RAW.TRAINING_PRECISION, {
             training_precision: SHARED_SCHEMAS.RAW.TRAINING_PRECISION.training_precision.default("fp16"),
+            fp16_accumulation: SHARED_SCHEMAS.RAW.TRAINING_PRECISION.fp16_accumulation.default(false),
         }),
         xformers: Schema.boolean().default(false).description("Enable xformers"),
         sdpa: Schema.boolean().default(true).description("PyTorch's SDPA attention: much faster and less VRAM than sd-scripts' plain attention, which runs when neither SDPA nor xformers is on"),

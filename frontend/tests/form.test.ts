@@ -235,7 +235,10 @@ describe("rules", () => {
     expect(precision("sdxl-lora")).toEqual(["bf16", false, false, undefined]);
     expect(precision("sdxl-finetune")).toEqual(["bf16", false, false, undefined]);
     expect(precision("sd-lora")).toEqual(["bf16", false, false, undefined]);
-    expect(precision("sd-dreambooth")).toEqual(["fp16", false, false, true]);
+    // fp16 accumulation is untested on SD1.5 full fine-tunes: off there (sent as false, so an import keeps it)
+    expect(precision("sd-dreambooth")).toEqual(["fp16", false, false, false]);
+    // the shared fields are fresh per page: Dreambooth's defaults do not leak into the others
+    expect(initialFormValues(loadGroups("sd-lora")).fp16_accumulation).toBe(true);
     for (const schema of ["sdxl-lora", "sdxl-finetune", "sd-lora", "sd-dreambooth"]) {
       expect(["mixed_precision", "full_precision"].filter((name) => name in initialFormValues(loadGroups(schema))), schema).toEqual([]);
     }
