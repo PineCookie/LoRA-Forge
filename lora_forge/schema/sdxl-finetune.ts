@@ -194,7 +194,7 @@ Schema.intersect([
         ...SHARED_SCHEMAS.RAW.TRAINING_PRECISION,
         no_half_vae: Schema.boolean().description("Keep the VAE in full precision (fp32). Always on with the `fp16` and `full-fp16` training precisions: the SDXL VAE gives NaN in fp16"),
         xformers: Schema.boolean().default(false).description("Enable xformers"),
-        sdpa: Schema.boolean().description("Enable SDPA"),
+        sdpa: Schema.boolean().default(true).description("PyTorch's SDPA attention: much faster and less VRAM than sd-scripts' plain attention, which runs when neither SDPA nor xformers is on"),
         lowram: Schema.boolean().default(false).description("Low-RAM mode: loads the U-Net, text encoder and VAE directly into VRAM"),
         cache_latents: Schema.boolean().default(true).description("Cache image latents"),
         cache_latents_to_disk: Schema.boolean().default(true).description("Cache image latents to disk"),

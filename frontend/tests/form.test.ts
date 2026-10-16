@@ -241,6 +241,14 @@ describe("rules", () => {
     }
   });
 
+  it("uses SDPA attention by default on the sd-scripts pages", () => {
+    // without sdpa or xformers sd-scripts runs its plain attention: about twice as slow on SDXL
+    for (const schema of ["sdxl-lora", "sdxl-finetune", "sd-lora", "sd-dreambooth", "flux-lora", "sd3-lora"]) {
+      const groups = loadGroups(schema);
+      expect(readForm(initialFormValues(groups), groups).sdpa, schema).toBe(true);
+    }
+  });
+
   it("keeps the SDXL VAE in fp32 with the fp16 training precisions", () => {
     for (const schema of ["sdxl-lora", "sdxl-finetune"]) {
       const groups = loadGroups(schema);

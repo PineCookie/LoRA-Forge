@@ -57,6 +57,7 @@
   "Enable cuDNN benchmark, which may improve performance; works without compile": "启用 cuDNN benchmark，可能提升性能；与 compile 无关，可单独启用",
   "Enable for base models built on SD 2.0 or later": "底模为 sd2.0 以后的版本需要启用",
   "Enable SDPA": "启用 sdpa",
+  "PyTorch's SDPA attention: much faster and less VRAM than sd-scripts' plain attention, which runs when neither SDPA nor xformers is on": "使用 PyTorch 的 SDPA 注意力：比 sd-scripts 的普通注意力快得多，显存也更少（SDPA 和 xformers 都不开启时使用普通注意力）",
   "Enable xformers": "启用 xformers",
   "Flip augmentation": "图像翻转",
   "FLUX model path": "Flux 模型路径",

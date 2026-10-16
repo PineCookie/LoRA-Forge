@@ -57,6 +57,7 @@
   "Enable cuDNN benchmark, which may improve performance; works without compile": "cuDNN benchmark を有効化。性能が向上する場合があります。compile とは無関係に有効化できます",
   "Enable for base models built on SD 2.0 or later": "SD 2.0 以降ベースのモデルでは有効にしてください",
   "Enable SDPA": "SDPA を有効化",
+  "PyTorch's SDPA attention: much faster and less VRAM than sd-scripts' plain attention, which runs when neither SDPA nor xformers is on": "PyTorch の SDPA アテンションを使います。sd-scripts の通常のアテンション（SDPA も xformers もオフのときに使われます）より大幅に速く、VRAM も少なくて済みます",
   "Enable xformers": "xformers を有効化",
   "Flip augmentation": "画像の反転",
   "FLUX model path": "FLUX モデルのパス",
