@@ -1,5 +1,6 @@
 """Turn a config submitted by the web UI into the files sd-scripts runs with."""
 
+import importlib.util
 import os
 import random
 from dataclasses import dataclass, field
@@ -289,6 +290,31 @@ def apply_fp16_accumulation(config: dict, environment: dict) -> None:
     log.info("fp16_accumulation: fp16 matrix multiplies accumulate in fp16")
 
 
+SDXL_FLASH_ENV = "LORA_FORGE_SDXL_FLASH"
+SDXL_COMPILE_ENV = "LORA_FORGE_SDXL_COMPILE"
+# tried with SDXL compile: lycoris.kohya fails to compile (Triton "@jit functions should be defined in a
+# Python file"), networks.dylora too (its rank changes every step)
+SDXL_COMPILE_NETWORKS = {"networks.lora", "networks.oft"}
+
+
+def apply_sdxl_speed(config: dict, model_train_type: str, environment: dict) -> None:
+    """SDXL (run_entry.py, sdxl_speed.py): with sdpa, the attention runs on flash-attn when it is installed
+    (PyTorch's Windows builds have no flash kernels for SDPA), and the SDXL LoRA page's compile compiles
+    each transformer and resnet block. sd-scripts' SDXL trainers have no compile option of their own."""
+    if model_train_type not in ("sdxl-lora", "sdxl-finetune"):
+        return
+    if config.pop("compile", False) and model_train_type == "sdxl-lora":
+        network = config.get("network_module", "networks.lora")
+        if network in SDXL_COMPILE_NETWORKS:
+            environment[SDXL_COMPILE_ENV] = "1"
+            log.info("compile: each SDXL transformer and resnet block is compiled")
+        else:
+            log.info(f"compile is not used with {network}: it fails under torch.compile; training uncompiled")
+    if config.get("sdpa") and not config.get("xformers") and importlib.util.find_spec("flash_attn") is not None:
+        environment[SDXL_FLASH_ENV] = "1"
+        log.info("sdpa: the attention runs on flash-attn")
+
+
 def prepare_training(config: dict) -> PreparedRun:
     """Validate a submitted config and write the TOML (and prompt / dataset files) for sd-scripts.
 
@@ -326,6 +352,7 @@ def prepare_training(config: dict) -> PreparedRun:
         log.info("include_patterns with compile_shapes = bounded: inductor mix-order reduction is off")
     apply_activation_memory_budget(config, model_train_type, environment, gpu_count=len(gpu_ids or []))
     apply_fp16_accumulation(config, environment)
+    apply_sdxl_speed(config, model_train_type, environment)
 
     if model_train_type == krea2.MODEL_TRAIN_TYPE:
         return _prepare_krea2(config, timestamp, autosave_dir, toml_file, trainer_file, gpu_ids, environment)

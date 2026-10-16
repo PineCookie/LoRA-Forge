@@ -116,6 +116,8 @@ Schema.intersect([
             ...SHARED_SCHEMAS.RAW.TRAINING_PRECISION,
             no_half_vae: Schema.boolean().description("Keep the VAE in full precision (fp32). Always on with the `fp16` and `full-fp16` training precisions: the SDXL VAE gives NaN in fp16"),
             cache_text_encoder_outputs: Schema.boolean().default(true).description("Cache text encoder outputs to save VRAM. Needs shuffle_caption off; turns on network_train_unet_only (the text encoder cannot be trained at the same time)"),
+            // LoRA-Forge's own option (run_entry.py, sdxl_speed.py); sd-scripts' SDXL trainer has no per-block compile
+            compile: Schema.boolean().default(true).description("Speed up SDXL with torch.compile of each transformer and resnet block (needs Triton, which LoRA Forge installs). All bucket sizes share the compiled code. The first steps of a run are slower while it compiles; turn it off if compiling fails. Not used with lycoris.kohya and networks.dylora, which fail to compile"),
         }, ["mixed_precision", "full_fp16", "full_bf16"])
     ),
 

@@ -26,7 +26,8 @@ torch.compile's recompute planner replaces gradient checkpointing (install_memor
 flash-attn's forward made visible to that planner (plan_flash_attention). A run that fails for lack of
 VRAM gets an out_of_memory notice.
 For every trainer, ProdigyPlusScheduleFree gets a batched step with the same math
-(batched_ppsf.py); LORA_FORGE_PATCHES=0 turns that off too.
+(batched_ppsf.py); for SDXL, flash-attn and per-block compile (sdxl_speed.py). LORA_FORGE_PATCHES=0
+turns these off too.
 
 The output goes to the GUI through a pipe: install_console_output() keeps tqdm bars full width and
 rich's colors, and install_log_filter() shortens network_reg_lrs / network_reg_dims logging.
@@ -54,6 +55,12 @@ ANSI_ENV = "LORA_FORGE_ANSI"
 MEMORY_BUDGET_ENV = "LORA_FORGE_ACTIVATION_MEMORY_BUDGET"
 # GUI option fp16_accumulation (Anima, fp16 training precisions): fp16 matrix multiplies accumulate in fp16
 FP16_ACCUMULATION_ENV = "LORA_FORGE_FP16_ACCUMULATION"
+# SDXL (sdxl_speed.py): flash-attn for the SDPA path, and per-block compile (GUI option compile)
+SDXL_FLASH_ENV = "LORA_FORGE_SDXL_FLASH"
+SDXL_COMPILE_ENV = "LORA_FORGE_SDXL_COMPILE"
+SDXL_TRAINERS = ("sdxl_train_network.py", "sdxl_train.py")
+# the training batch size (upper bound of dynamic shapes), set by the runner
+BATCH_SIZE_ENV = "LORA_FORGE_BATCH_SIZE"
 # Krea 2 (musubi-tuner): JSON with the caching scripts' arguments, see run_krea2_caching
 KREA2_CACHE_ENV = "LORA_FORGE_KREA2_CACHE"
 KREA2_TURBO_LORA_ENV = "LORA_FORGE_KREA2_TURBO_LORA"
@@ -224,7 +231,7 @@ def bounded_block_call(fn):
 # token counts the dynamic graph covers: a 64x64 px bucket up to 2048x2048 px (16 px per token)
 SEQ_MIN, SEQ_MAX = 16, 16384
 # train_batch_size, set by the runner; the upper bound of the dynamic batch dimension
-BATCH_MAX = int(os.environ.get("LORA_FORGE_BATCH_SIZE", "0") or 0)
+BATCH_MAX = int(os.environ.get(BATCH_SIZE_ENV, "0") or 0)
 
 
 # set by main(): writes a notice to the run's events (the Runs page shows it)
@@ -639,6 +646,17 @@ def install_fp16_accumulation():
     print("LoRA-Forge: fp16_accumulation is on: fp16 matrix multiplies accumulate in fp16", flush=True)
 
 
+def load_sibling(name: str):
+    """A module next to this file, loaded by path: sys.path[0] is the trainer's folder, and lora_forge
+    is not imported here."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(f"lora_forge_{name}", os.path.join(os.path.dirname(__file__), f"{name}.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def install_batched_ppsf():
     """ProdigyPlusScheduleFree with a batched step (batched_ppsf.py): same math, far fewer GPU launches.
     About 7% less time per step on an Anima rank-32 LoRA."""
@@ -646,12 +664,7 @@ def install_batched_ppsf():
         from prodigyplus import core_optimiser, prodigy_plus_schedulefree
     except ImportError:
         return
-    import importlib.util
-
-    # loaded by path: sys.path[0] is the trainer's folder, and lora_forge is not imported here
-    spec = importlib.util.spec_from_file_location("lora_forge_batched_ppsf", os.path.join(os.path.dirname(__file__), "batched_ppsf.py"))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_sibling("batched_ppsf")
     if not module.install(prodigy_plus_schedulefree.ProdigyPlusScheduleFree, core_optimiser.CoreOptimiser):
         print("LoRA-Forge: this prodigy-plus-schedule-free version is not checked for the batched step; "
               "using its own", flush=True)
@@ -687,6 +700,10 @@ def main():
         install_anima_patches(dynamic_seq=os.environ.get(DYNAMIC_SEQ_ENV) == "1")
     if patches:
         install_batched_ppsf()
+    sdxl_flash = patches and os.environ.get(SDXL_FLASH_ENV) == "1"
+    sdxl_compile = patches and os.environ.get(SDXL_COMPILE_ENV) == "1"
+    if (sdxl_flash or sdxl_compile) and os.path.basename(trainer) in SDXL_TRAINERS:
+        load_sibling("sdxl_speed").install(sdxl_flash, sdxl_compile, int(os.environ.get(BATCH_SIZE_ENV) or 1))
 
     budget = os.environ.get(MEMORY_BUDGET_ENV)
     if budget and os.path.basename(trainer) == "anima_train_network.py":

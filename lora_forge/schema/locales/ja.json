@@ -57,6 +57,7 @@
   "Enable cuDNN benchmark, which may improve performance; works without compile": "cuDNN benchmark を有効化。性能が向上する場合があります。compile とは無関係に有効化できます",
   "Enable for base models built on SD 2.0 or later": "SD 2.0 以降ベースのモデルでは有効にしてください",
   "Enable SDPA": "SDPA を有効化",
+  "Speed up SDXL with torch.compile of each transformer and resnet block (needs Triton, which LoRA Forge installs). All bucket sizes share the compiled code. The first steps of a run are slower while it compiles; turn it off if compiling fails. Not used with lycoris.kohya and networks.dylora, which fail to compile": "transformer と resnet の各ブロックを torch.compile でコンパイルして SDXL の学習を速くします（Triton が必要で、LoRA Forge がインストールします）。すべてのバケットサイズでコンパイル結果を共有します。コンパイル中は最初の数ステップが遅くなります。コンパイルに失敗する場合はオフにしてください。lycoris.kohya と networks.dylora はコンパイルできないため、それらでは使われません",
   "PyTorch's SDPA attention: much faster and less VRAM than sd-scripts' plain attention, which runs when neither SDPA nor xformers is on": "PyTorch の SDPA アテンションを使います。sd-scripts の通常のアテンション（SDPA も xformers もオフのときに使われます）より大幅に速く、VRAM も少なくて済みます",
   "Enable xformers": "xformers を有効化",
   "Flip augmentation": "画像の反転",

@@ -249,6 +249,12 @@ describe("rules", () => {
     }
   });
 
+  it("compiles SDXL LoRA blocks by default (LoRA-Forge's option; the backend turns it into run_entry.py's patch)", () => {
+    const groups = loadGroups("sdxl-lora");
+    expect(readForm(initialFormValues(groups), groups).compile).toBe(true);
+    expect("compile" in initialFormValues(loadGroups("sdxl-finetune"))).toBe(false);
+  });
+
   it("keeps the SDXL VAE in fp32 with the fp16 training precisions", () => {
     for (const schema of ["sdxl-lora", "sdxl-finetune"]) {
       const groups = loadGroups(schema);
