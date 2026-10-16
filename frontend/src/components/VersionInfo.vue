@@ -44,11 +44,13 @@ dl div {
 }
 
 dt {
-  flex: 0 0 auto;
   color: var(--muted);
 }
 
+/* a narrow panel wraps the label, not the value */
 dd {
+  flex: 0 0 auto;
+  max-width: 70%;
   margin: 0;
   overflow: hidden;
   font-family: var(--font-mono);
