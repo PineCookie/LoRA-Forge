@@ -35,7 +35,7 @@ _✨ 享受 LoRA 训练！ ✨_
   <a href="README.md">English</a>
 </p>
 
-LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)（Krea 2 则用 [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)，MOSS-Image 用 LoRA Forge 自带的训练器）训练 LoRA 的网页界面。在浏览器里填好表单、点击开始，就能在实时页面上跟踪训练；Python、PyTorch 和训练脚本都由 LoRA Forge 自动准备。本项目延续自 [lora-scripts](https://github.com/Akegarasu/lora-scripts)。
+LoRA Forge 是一个训练 LoRA 的网页界面。选好模型，在浏览器里填好表单、点击开始，就能在实时页面上跟踪训练；Python、PyTorch 和训练脚本都由 LoRA Forge 自动准备。底层使用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)、[kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)（Krea 2）和 LoRA Forge 自带的 MOSS-Image 训练器，并在它们较慢的地方做了加速。本项目延续自 [lora-scripts](https://github.com/Akegarasu/lora-scripts)。
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/runs-dark.png">
@@ -43,9 +43,9 @@ LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scr
 </picture>
 
 - **模型**：Anima、Krea 2、MOSS-Image、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
-- **简洁的表单**：*常用* 视图只显示大多数人会改的选项，全部选项一键切换，支持搜索，配置可导入/导出为 JSON 或 TOML。
+- **简洁的表单**：*常用* 视图只显示大多数人会改的选项，全部选项一键切换，支持搜索，配置可导入/导出为 JSON 或 TOML。Anima、Krea 2 和 MOSS-Image 页面会列出所需的文件及下载链接，并检查你选择的文件。
 - **运行记录页面**：进度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件和控制台输出，以往的训练也能查看。不需要 TensorBoard。
-- **更快的训练**：LoRA Forge 会在 sd-scripts 较慢的地方打补丁，例如 Anima 的所有图像尺寸共用一个编译图、SDXL 的逐 block 编译和 flash-attn，以及快得多的 ProdigyPlus 优化器步骤。SDXL LoRA 的训练速度约为原版 sd-scripts 的两倍（[详情](#训练速度)）。
+- **更快的训练**：SDXL LoRA 的训练速度约为原版 sd-scripts 的两倍，Anima、Krea 2 和 MOSS-Image 也更快。大部分加速默认开启（[详情](#训练速度)）。
 - **16 GB 显卡也能训练 Krea 2**：默认使用 int8 底模权重和 block 交换（[详情](docs/krea2-zh.md)）。
 - **MOSS-Image**：OpenMOSS 的 5B 模型，文字渲染出色，用 LoRA Forge 自带的训练器在 16 GB 显卡上训练（[详情](docs/moss-image-zh.md)）。
 - 界面支持 English、中文、日本語，以及浅色和深色模式。
@@ -63,7 +63,8 @@ LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scr
 ### 准备
 
 - Windows 或 Linux，**NVIDIA 显卡**，且驱动支持 **CUDA 13**（LoRA Forge 使用 CUDA 13.0 版的 PyTorch 2.14）。暂不支持其他显卡。
-- [Git](https://git-scm.com/downloads)。
+- **显存**：默认设置下，批大小 2、1024×1024 时 Anima 和 SDXL LoRA 约需 9 GB。MOSS-Image 和 Krea 2 按 16 GB 显卡设置；Krea 2 调高 `blocks_to_swap` 后 12 GB 也能训练。
+- [Git](https://git-scm.com/downloads)，启动脚本用它下载 sd-scripts 和 musubi-tuner。
 - [uv](https://docs.astral.sh/uv/)，由它安装 Python 和其余所有依赖。请用官方安装脚本安装，然后**打开新的终端**：
 
   ```powershell
@@ -100,9 +101,9 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
     └── ...
 ```
 
-直接放在数据集文件夹里的图片不会被使用；找不到 `<重复次数>_<名称>` 子文件夹时，GUI 会给出提示。
+直接放在数据集文件夹里的图片不会被使用；找不到 `<重复次数>_<名称>` 子文件夹时，GUI 会给出提示。上面这种标签式标注适合 Anima 和 SDXL；Krea 2 和 MOSS-Image 更适合用句子描述，MOSS-Image 的标注文件还可以每行写一条标注（[详情](docs/moss-image-zh.md#标注)）。
 
-**2. 准备底模。** 下载要在其上训练的模型（Anima、Krea 2 和 MOSS-Image 还需要各自的文本编码器和 VAE）。模型页面会说明需要哪些文件。
+**2. 准备底模。** 下载要在其上训练的模型。Anima、Krea 2 和 MOSS-Image 还需要文本编码器和 VAE：它们的页面上有 **模型文件** 面板，给出每个文件的下载链接。SDXL、FLUX、SD3.5 和 SD1.5 可以使用该模型的任意 checkpoint。
 
 **3. 填写表单。** 在侧边栏打开对应模型的页面。在 *常用* 视图中至少填写底模文件、数据集文件夹和输出名称，其他值都有合理的默认值。数据集文件夹旁的 **步数预测** 会显示当前设置下的训练步数。
 
@@ -111,29 +112,33 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
   <img src="docs/images/anima-light.png" alt="Anima 页面的常用视图，含模型文件面板及其下载链接">
 </picture>
 
-**4. 开始并查看。** 点击 **开始训练**。页头的状态会显示进度，点击它即可在 **运行记录** 页面打开这次训练，查看 loss、样图和控制台输出。LoRA 文件保存在输出文件夹（默认 `output/`），并列在这次运行中。
+**4. 开始并查看。** 点击 **开始训练**。页头的状态会显示进度，点击它即可在 **运行记录** 页面打开这次训练，查看 loss、样图和控制台输出。LoRA 文件保存在输出文件夹（默认 `output/`），并列在这次运行中，可直接在 ComfyUI 等界面中加载。
 
 在浏览器标签页打开期间，每个页面都会保留已填写的内容，切换到「运行记录」或其他模型再回来也不会丢失，但刷新页面后会恢复默认。要保存配置，请用 **导出 JSON** 或 **导出 TOML**，再用 **导入配置…** 重新载入。每次开始训练时，配置也会保存到 `config/autosave/`，同样可以导入。
 
 ## 训练速度
 
-LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开始时给它们较慢的地方打补丁。下表中标为「开启」的项目无需任何操作。如果想原样运行 sd-scripts（例如做对比），请设置环境变量 `LORA_FORGE_PATCHES=0`。
+LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开始时为它们加速。每项改动都与原版对比过，loss 一致。下表数字为每步耗时，测试环境为 Windows 下的 RTX 5070 Ti（16 GB），rank 32 的 LoRA，批大小 2，约 100 万像素；其他显卡的提升会不同。
 
-| 内容 | 模型 | 默认 | 每步提升 |
+**默认开启**，无需设置：
+
+| 内容 | 模型 | 每步耗时 |
+|---|---|---|
+| 编译模型的各个 block（`torch.compile`），所有图像尺寸共用编译结果，换尺寸不会重新编译 | Anima、SDXL、MOSS-Image | SDXL −21%，MOSS-Image −29%；Anima 一个 epoch −11%（首次 −55%） |
+| 安装 [flash-attn](#flash-attn可选) 后，注意力使用 flash-attn | SDXL、Krea 2、MOSS-Image | SDXL −17%，Krea 2 −22%，MOSS-Image −29% |
+| 使用 PyTorch 的 SDPA 注意力，而不是 sd-scripts 的普通注意力 | SDXL、SD1.5 | 约减半，显存也更少 |
+| 更快的 ProdigyPlusScheduleFree 优化器步骤（结果相同） | 全部 | Anima −7%，SDXL −23% |
+| 几乎不影响速度的 block 交换，可以把更多模型放在内存里 | Krea 2 | 交换更多 block 而速度不变 |
+| 缓存 latent 时不启动 DataLoader 工作进程，训练更快开始 | 全部 | Windows 上第一步约提前一分钟 |
+
+**可选**，在模型页面中设置：
+
+| 设置 | 模型 | 每步耗时 | 代价 |
 |---|---|---|---|
-| 所有分桶尺寸和批大小共用一个编译图（`compile_shapes = bounded`），而不是每种尺寸各编译一次 | Anima | 开启 | 编译图从约 28 个降到 2 个：一个 epoch 快 11%，编译缓存为空时快 55% |
-| 逐 block 的 `torch.compile`（transformer 和 resnet block），所有分桶尺寸共用编译结果 | SDXL | 开启 | −21% |
-| 注意力使用 flash-attn（Windows 版 PyTorch 没有 flash 内核） | SDXL | 安装 [flash-attn](#flash-attn可选) 后开启 | −17% |
-| 默认使用 SDPA 注意力（关闭时 sd-scripts 会用普通注意力） | SDXL、SD1.5 | 开启 | 约快 2 倍，显存也更少 |
-| ProdigyPlusScheduleFree 把形状相同的张量放在一起更新，而不是逐个更新（计算相同） | 全部 | 开启 | Anima −7%，SDXL −23% |
-| fp16 训练配合 fp16 累加（`training_precision = fp16`），精度与 bf16 相当 | Anima、MOSS-Image、SDXL、SD1.5 | 可选 | Anima −24%，MOSS-Image −27%，SDXL −8% |
-| 用 `activation_memory_budget` 代替梯度检查点：显存放得下的激活直接保留，不再重算 | Anima | 可选（`auto`） | −8% 到 −11%，会用掉大部分显存 |
-| 注意力使用 flash-attn | Krea 2、MOSS-Image | 安装后开启 | Krea 2 −22%，MOSS-Image −29% |
-| 锁页内存的单向 block 交换：交换几乎没有开销，可腾出约 6 GB 显存 | Krea 2 | 开启 | 交换更多 block 而速度不变 |
-| 逐 block 的 `torch.compile`，所有分桶尺寸只需少数几个图 | MOSS-Image | 开启 | −29% |
-| 缓存 latent 时不启动 DataLoader 工作进程 | 全部 | 开启 | Windows 上第一步约 7 秒后开始，而不是 80 秒 |
+| `training_precision = fp16`（配合默认开启的 `fp16_accumulation`） | Anima、MOSS-Image、SDXL、SD1.5 | Anima −24%，MOSS-Image −27%，SDXL −8% | 测试中精度与 bf16 相当。只在 GeForce 显卡上有提升，RTX PRO 和数据中心卡没有 |
+| `activation_memory_budget = auto` | Anima | −8% 到 −11% | 会用掉大部分显存 |
 
-合计：SDXL LoRA 每步从 1.51 秒（启用 SDPA 的 sd-scripts）降到 0.81 秒，使用 fp16 时为 0.72 秒；Anima LoRA 每步（已编译）在使用 fp16 和 `activation_memory_budget = auto` 时从 1.73 秒降到 1.17 秒。每项改动都与原版对比过，loss 一致。测试环境为 Windows 下的 RTX 5070 Ti（16 GB），rank 32 的 LoRA，批大小 2，约 100 万像素；其他显卡的提升会不同，fp16 累加在数据中心卡和 RTX PRO 卡上没有提升。各选项的说明见 [Anima](docs/anima-zh.md)、[Krea 2](docs/krea2-zh.md) 和 [MOSS-Image](docs/moss-image-zh.md) 指南。
+合计：SDXL LoRA 每步从 1.51 秒（启用 SDPA 的 sd-scripts）在默认设置下降到 0.81 秒，使用 fp16 时为 0.72 秒；Anima LoRA 每步在使用 fp16 和 `activation_memory_budget = auto` 时从 1.73 秒降到 1.17 秒。各选项的说明见 [Anima](docs/anima-zh.md)、[Krea 2](docs/krea2-zh.md) 和 [MOSS-Image](docs/moss-image-zh.md) 指南。如果想原样运行 sd-scripts（例如做对比），请设置环境变量 `LORA_FORGE_PATCHES=0`。
 
 ## 更新
 
@@ -155,7 +160,7 @@ LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开�
 
 ### flash-attn（可选）
 
-[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现；在 Anima 页面中通过 `attn_mode = flash` 选择（默认的 `torch` 不需要额外安装），Krea 2 和 SDXL 页面在已安装时会自动使用它（SDXL 需开启 `sdpa`，这是默认设置）。它默认不会安装。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
+[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现（见 [训练速度](#训练速度)）。它默认不会安装。安装后，SDXL、Krea 2 和 MOSS-Image 页面会自动使用它；Anima 页面请选择 `attn_mode = flash`。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
 
 ```sh
 uv sync --extra flash-attn
@@ -199,6 +204,8 @@ uv sync --extra flash-attn
 | Windows：*在此系统上禁止运行脚本* | 右键 → *使用 PowerShell 运行*，或运行 `powershell -ExecutionPolicy Bypass -File .\run_gui.ps1` |
 | 首次启动非常慢 | 它在下载 PyTorch（数 GB）；国内请使用 `--cn` |
 | 训练失败 | 在运行记录页面打开它：控制台输出中有错误信息 |
+| 每步要几分钟而不是几秒 | 训练放不进显存，Windows 会借用系统内存而不报错。请降低批大小或分辨率，或保持 `gradient_checkpointing` 开启 |
+| **模型文件** 中某一行显示 *模型类型不对* | 该文件不是这个页面训练的模型（例如在 Anima 页面选了 SDXL checkpoint）。同一模型的微调版和融合模型没有问题 |
 | 某个选项似乎不起作用 | 查看首页 **系统信息** 面板中的 *sd-scripts 兼容性* |
 | Anima：编译报错或最初几步很慢 | 见 [Anima 训练说明](docs/anima-zh.md) |
 | SDXL：编译报错 | 在 SDXL LoRA 页面关闭 `compile`，训练会以未编译的方式运行 |

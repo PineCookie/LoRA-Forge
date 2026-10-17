@@ -35,7 +35,7 @@ _✨ Enjoy LoRA training! ✨_
   <a href="README-zh.md">中文</a>
 </p>
 
-LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) and, for Krea 2, [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner); MOSS-Image trains with LoRA Forge's own trainer. You fill in a form in the browser, press Start, and follow the training on a live page; LoRA Forge sets up Python, PyTorch and the trainers for you. It continues [lora-scripts](https://github.com/Akegarasu/lora-scripts).
+LoRA Forge is a web UI for training LoRAs. You pick a model, fill in a form in the browser, press Start and follow the training on a live page; LoRA Forge sets up Python, PyTorch and the trainers for you. Under the hood it runs [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts), [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner) (Krea 2) and its own MOSS-Image trainer, sped up where they are slow. It continues [lora-scripts](https://github.com/Akegarasu/lora-scripts).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/runs-dark.png">
@@ -43,9 +43,9 @@ LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://git
 </picture>
 
 - **Models**: Anima, Krea 2, MOSS-Image, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
-- **Easy forms**: an *Essentials* view with the options most people change, all options one click away, search, and import / export of configs as JSON or TOML.
+- **Easy forms**: an *Essentials* view with the options most people change, all options one click away, search, and import / export of configs as JSON or TOML. Anima, Krea 2 and MOSS-Image list the files they need, with download links, and check the files you pick.
 - **Runs page**: progress and time left, loss and learning rate charts, sample images, the saved LoRA files and the console output, also for past runs. No TensorBoard needed.
-- **Faster training**: LoRA Forge patches sd-scripts where it is slow, for example one compiled graph for all image sizes on Anima, per-block compile and flash-attn on SDXL, and a much faster ProdigyPlus optimizer step. An SDXL LoRA trains about twice as fast as with plain sd-scripts ([details](#speed)).
+- **Faster training**: an SDXL LoRA trains about twice as fast as with plain sd-scripts, and Anima, Krea 2 and MOSS-Image are faster too. Most of it is on by default ([details](#speed)).
 - **Krea 2 on 16 GB cards**: int8 base weights and block swap by default ([details](docs/krea2.md)).
 - **MOSS-Image**: OpenMOSS's 5B model with strong text rendering, trained with LoRA Forge's own trainer on 16 GB cards ([details](docs/moss-image.md)).
 - English, 中文 and 日本語, light and dark mode.
@@ -63,7 +63,8 @@ LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://git
 ### What you need
 
 - Windows or Linux with an **NVIDIA GPU** and a driver that supports **CUDA 13** (LoRA Forge uses PyTorch 2.14 for CUDA 13.0). Other GPUs are not supported yet.
-- [Git](https://git-scm.com/downloads).
+- **VRAM**: Anima and SDXL LoRAs need about 9 GB with the default settings at batch size 2 and 1024×1024. MOSS-Image and Krea 2 are set up for 16 GB cards; Krea 2 also fits 12 GB with more `blocks_to_swap`.
+- [Git](https://git-scm.com/downloads), which the launcher uses to download sd-scripts and musubi-tuner.
 - [uv](https://docs.astral.sh/uv/), which installs Python and everything else. Install it with the official installer, then **open a new terminal**:
 
   ```powershell
@@ -100,9 +101,9 @@ train/my_character/          ← choose this folder in the GUI
     └── ...
 ```
 
-Images directly in the dataset folder are not used; the GUI tells you when no `<repeats>_<name>` subfolder is found.
+Images directly in the dataset folder are not used; the GUI tells you when no `<repeats>_<name>` subfolder is found. Tag lists like the one above suit Anima and SDXL; Krea 2 and MOSS-Image learn best from sentences; for MOSS-Image a caption file can hold several captions, one per line ([details](docs/moss-image.md#captions)).
 
-**2. Get the base model.** Download the model you want to train on (for Anima, Krea 2 and MOSS-Image also their text encoder and VAE). The model page shows which files it needs.
+**2. Get the base model.** Download the model you want to train on. Anima, Krea 2 and MOSS-Image also need a text encoder and a VAE: their pages have a **Model files** panel with a download link for each file. For SDXL, FLUX, SD3.5 and SD1.5, use any checkpoint of that model you like.
 
 **3. Fill in the form.** Open the page for your model in the sidebar. In the *Essentials* view, set at least the base model file, the dataset folder and the output name; the other values are reasonable defaults. The step estimate next to the dataset folder shows how many steps the settings give.
 
@@ -111,29 +112,33 @@ Images directly in the dataset folder are not used; the GUI tells you when no `<
   <img src="docs/images/anima-light.png" alt="The Anima page in the Essentials view, with the model files panel and its download links">
 </picture>
 
-**4. Start and watch.** Press **Start training**. The status in the header shows the progress; click it to open the run on the **Runs** page, where you see the loss, samples and console output. The LoRA files are saved to the output folder (`output/` by default) and listed on the run.
+**4. Start and watch.** Press **Start training**. The status in the header shows the progress; click it to open the run on the **Runs** page, where you see the loss, samples and console output. The LoRA files are saved to the output folder (`output/` by default) and listed on the run. They load in ComfyUI and other UIs as they are.
 
 Each page keeps what you entered while the browser tab is open, also when you switch to the Runs page or another model and back, but not after a reload. To keep a config, use **Export JSON** or **Export TOML**, and **Import…** to load it again. Every training you start also saves its config in `config/autosave/`, which you can import as well.
 
 ## Speed
 
-LoRA Forge runs sd-scripts and musubi-tuner unchanged, but patches them when a training starts, where they are slow. What is marked *on* below needs nothing from you. To run sd-scripts exactly as it is (for example to compare), set the environment variable `LORA_FORGE_PATCHES=0`.
+LoRA Forge runs sd-scripts and musubi-tuner unchanged and speeds them up when a training starts. Every change was checked against the original for the same losses. The numbers are the time per step, measured on an RTX 5070 Ti (16 GB) under Windows with rank-32 LoRAs at batch size 2 and about 1 megapixel; other cards gain differently.
 
-| What | Models | Default | Gain per step |
+**On by default**, nothing to set:
+
+| What | Models | Time per step |
+|---|---|---|
+| Compiled model blocks (`torch.compile`) that handle every image size, so different sizes cost no new compiles | Anima, SDXL, MOSS-Image | −21% on SDXL, −29% on MOSS-Image; an Anima epoch −11% (−55% the first time) |
+| flash-attn for the attention, once [flash-attn](#flash-attn-optional) is installed | SDXL, Krea 2, MOSS-Image | −17% on SDXL, −22% on Krea 2, −29% on MOSS-Image |
+| PyTorch's SDPA attention instead of sd-scripts' plain attention | SDXL, SD1.5 | about half, with less VRAM |
+| A faster ProdigyPlusScheduleFree optimizer step (same results) | all | −7% on Anima, −23% on SDXL |
+| Block swap that costs almost no speed, so more of the model can stay in RAM | Krea 2 | same speed with far more blocks swapped |
+| Training starts without DataLoader worker processes when the latents are cached | all | the first step about a minute sooner on Windows |
+
+**Opt-in**, set on the model's page:
+
+| Setting | Models | Time per step | Trade-off |
 |---|---|---|---|
-| One compiled graph for all bucket and batch sizes (`compile_shapes = bounded`) instead of one per size | Anima | on | 2 graphs instead of about 28: an epoch 11% faster, 55% with an empty compile cache |
-| Per-block `torch.compile` of the transformer and resnet blocks, one graph for all bucket sizes | SDXL | on | −21% |
-| flash-attn for the attention (PyTorch's Windows builds have no flash kernels) | SDXL | on, when [flash-attn](#flash-attn-optional) is installed | −17% |
-| SDPA attention by default (sd-scripts' plain attention ran when it was off) | SDXL, SD1.5 | on | about 2× faster, and less VRAM |
-| ProdigyPlusScheduleFree updates tensors of the same shape together instead of one by one (same math) | all | on | −7% on Anima, −23% on SDXL |
-| fp16 training with fp16 accumulation (`training_precision = fp16`), as precise as bf16 | Anima, MOSS-Image, SDXL, SD1.5 | opt-in | −24% on Anima, −27% on MOSS-Image, −8% on SDXL |
-| `activation_memory_budget` in place of gradient checkpointing: keeps what fits in VRAM instead of recomputing it | Anima | opt-in (`auto`) | −8% to −11%, uses most of the VRAM |
-| flash-attn for the attention | Krea 2, MOSS-Image | on, when installed | −22% on Krea 2, −29% on MOSS-Image |
-| Pinned, one-way block swap: swapping costs almost nothing and frees about 6 GB | Krea 2 | on | same speed with far more blocks swapped |
-| Per-block `torch.compile`, a few graphs for all bucket sizes | MOSS-Image | on | −29% |
-| No DataLoader worker processes when the latents are cached | all | on | the first step after about 7 s instead of 80 s on Windows |
+| `training_precision = fp16` (with `fp16_accumulation`, on by default) | Anima, MOSS-Image, SDXL, SD1.5 | −24% on Anima, −27% on MOSS-Image, −8% on SDXL | As precise as bf16 in our tests. Gains only on GeForce cards, not on RTX PRO or data-center cards |
+| `activation_memory_budget = auto` | Anima | −8% to −11% | Uses most of the VRAM |
 
-Together: an SDXL LoRA step went from 1.51 s (sd-scripts with SDPA) to 0.81 s, or 0.72 s with fp16; an Anima LoRA step (already compiled) from 1.73 s to 1.17 s with fp16 and `activation_memory_budget = auto`. Every change was checked against the original for the same losses. Measured on an RTX 5070 Ti (16 GB) under Windows with rank-32 LoRAs at batch 2 and about 1 megapixel; other cards gain differently, and fp16 accumulation gains nothing on data-center or RTX PRO cards. The [Anima](docs/anima.md), [Krea 2](docs/krea2.md) and [MOSS-Image](docs/moss-image.md) guides explain the options.
+Together: an SDXL LoRA step went from 1.51 s (sd-scripts with SDPA) to 0.81 s with the defaults, or 0.72 s with fp16; an Anima LoRA step from 1.73 s to 1.17 s with fp16 and `activation_memory_budget = auto`. The [Anima](docs/anima.md), [Krea 2](docs/krea2.md) and [MOSS-Image](docs/moss-image.md) guides explain the options. To run sd-scripts exactly as it is (for example to compare), set the environment variable `LORA_FORGE_PATCHES=0`.
 
 ## Updating
 
@@ -155,7 +160,7 @@ Together: an SDXL LoRA step went from 1.51 s (sd-scripts with SDPA) to 0.81 s, o
 
 ### flash-attn (optional)
 
-[flash-attn](https://github.com/Dao-AILab/flash-attention) is a faster attention implementation; on the Anima page you choose it with `attn_mode = flash` (the default, `torch`, needs nothing extra), and the Krea 2 and SDXL pages use it automatically when it is installed (SDXL with `sdpa` on, its default). It is not installed by default. To install it, run this once in the LoRA Forge folder (Windows, or Linux on x86_64 or ARM):
+[flash-attn](https://github.com/Dao-AILab/flash-attention) is a faster attention implementation (see [Speed](#speed)). It is not installed by default. Once it is, the SDXL, Krea 2 and MOSS-Image pages use it automatically; on the Anima page choose it with `attn_mode = flash`. To install it, run this once in the LoRA Forge folder (Windows, or Linux on x86_64 or ARM):
 
 ```sh
 uv sync --extra flash-attn
@@ -199,6 +204,8 @@ The Runs page covers what most people need. To use TensorBoard as well, start wi
 | Windows: *running scripts is disabled on this system* | Start it with right-click → *Run with PowerShell*, or run `powershell -ExecutionPolicy Bypass -File .\run_gui.ps1` |
 | The first start takes very long | It downloads PyTorch (several GB); in mainland China use `--cn` |
 | A training fails | Open it on the Runs page: the console output shows the error |
+| Steps take minutes instead of seconds | The training does not fit in VRAM, and Windows borrows system RAM instead of failing. Lower the batch size or resolution, or keep `gradient_checkpointing` on |
+| A **Model files** row says *Different model type* | The file is not the model the page trains (for example an SDXL checkpoint on the Anima page). Fine-tunes and merges of the right model are fine |
 | An option seems to have no effect | Check *sd-scripts compatibility* in the **System info** panel on the home page |
 | Anima: compile errors or slow first steps | See the [Anima guide](docs/anima.md) |
 | SDXL: compile errors | Turn `compile` off on the SDXL LoRA page; training then runs uncompiled |
