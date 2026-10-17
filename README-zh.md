@@ -37,6 +37,11 @@ _✨ 享受 LoRA 训练！ ✨_
 
 LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts)（Krea 2 则用 [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner)，MOSS-Image 用 LoRA Forge 自带的训练器）训练 LoRA 的网页界面。在浏览器里填好表单、点击开始，就能在实时页面上跟踪训练；Python、PyTorch 和训练脚本都由 LoRA Forge 自动准备。本项目延续自 [lora-scripts](https://github.com/Akegarasu/lora-scripts)。
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/runs-dark.png">
+  <img src="docs/images/runs-light.png" alt="运行记录页面：一次已完成的 Anima LoRA 训练的进度、loss 与学习率曲线">
+</picture>
+
 - **模型**：Anima、Krea 2、MOSS-Image、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
 - **简洁的表单**：*常用* 视图只显示大多数人会改的选项，全部选项一键切换，支持搜索，配置可导入/导出为 JSON 或 TOML。
 - **运行记录页面**：进度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件和控制台输出，以往的训练也能查看。不需要 TensorBoard。
@@ -44,6 +49,11 @@ LoRA Forge 是一个用 [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scr
 - **16 GB 显卡也能训练 Krea 2**：默认使用 int8 底模权重和 block 交换（[详情](docs/krea2-zh.md)）。
 - **MOSS-Image**：OpenMOSS 的 5B 模型，文字渲染出色，用 LoRA Forge 自带的训练器在 16 GB 显卡上训练（[详情](docs/moss-image-zh.md)）。
 - 界面支持 English、中文、日本語，以及浅色和深色模式。
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png">
+  <img src="docs/images/home-light.png" alt="首页：每个模型一个页面，以及最近的训练和系统信息">
+</picture>
 
 > [!NOTE]
 > LoRA Forge 主要为个人使用而维护，可能还有不少粗糙之处。欢迎反馈问题、提出建议或提交 PR。
@@ -95,6 +105,11 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
 **2. 准备底模。** 下载要在其上训练的模型（Anima、Krea 2 和 MOSS-Image 还需要各自的文本编码器和 VAE）。模型页面会说明需要哪些文件。
 
 **3. 填写表单。** 在侧边栏打开对应模型的页面。在 *常用* 视图中至少填写底模文件、数据集文件夹和输出名称，其他值都有合理的默认值。数据集文件夹旁的 **步数预测** 会显示当前设置下的训练步数。
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/anima-dark.png">
+  <img src="docs/images/anima-light.png" alt="Anima 页面的常用视图，含模型文件面板及其下载链接">
+</picture>
 
 **4. 开始并查看。** 点击 **开始训练**。页头的状态会显示进度，点击它即可在 **运行记录** 页面打开这次训练，查看 loss、样图和控制台输出。LoRA 文件保存在输出文件夹（默认 `output/`），并列在这次运行中。
 

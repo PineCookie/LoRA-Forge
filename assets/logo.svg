@@ -1,17 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
   <title id="title">LoRA Forge logo</title>
-  <desc id="desc">A rounded square logo with a stylized forge flame and LoRA training path.</desc>
+  <desc id="desc">A rounded square logo with a glowing, low-rank letter L and sparks.</desc>
   <defs>
-    <linearGradient id="flame" x1="74" y1="48" x2="174" y2="196" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#38bdf8"/>
-      <stop offset="0.5" stop-color="#22c55e"/>
-      <stop offset="1" stop-color="#f97316"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f2937"/>
+      <stop offset="1" stop-color="#0b1120"/>
+    </linearGradient>
+    <linearGradient id="ember" x1="64" y1="56" x2="200" y2="204" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#facc15"/>
+      <stop offset="0.55" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#dc2626"/>
     </linearGradient>
   </defs>
-  <rect width="256" height="256" rx="48" fill="#111827"/>
-  <path d="M130 38c31 35 55 62 55 101 0 43-29 76-64 76-34 0-61-25-61-61 0-28 17-52 40-70-2 23 6 39 24 50 4-33 5-61 6-96Z" fill="url(#flame)"/>
-  <path d="M77 184h103" stroke="#f8fafc" stroke-width="18" stroke-linecap="round"/>
-  <path d="M87 136c27-21 55-21 83 0" fill="none" stroke="#f8fafc" stroke-width="16" stroke-linecap="round"/>
-  <circle cx="87" cy="136" r="11" fill="#f8fafc"/>
-  <circle cx="170" cy="136" r="11" fill="#f8fafc"/>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <path d="M64 60Q64 48 76 48H96Q108 48 108 60V160H188Q200 160 200 172V192Q200 204 188 204H76Q64 204 64 192Z" fill="url(#ember)"/>
+  <path d="M166 58l6 16 16 6-16 6-6 16-6-16-16-6 16-6z" fill="#fde68a"/>
+  <path d="M204 104l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="#fdba74"/>
+  <path d="M136 112l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#fcd34d"/>
 </svg>

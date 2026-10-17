@@ -37,6 +37,11 @@ _✨ Enjoy LoRA training! ✨_
 
 LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) and, for Krea 2, [kohya-ss/musubi-tuner](https://github.com/kohya-ss/musubi-tuner); MOSS-Image trains with LoRA Forge's own trainer. You fill in a form in the browser, press Start, and follow the training on a live page; LoRA Forge sets up Python, PyTorch and the trainers for you. It continues [lora-scripts](https://github.com/Akegarasu/lora-scripts).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/runs-dark.png">
+  <img src="docs/images/runs-light.png" alt="The Runs page: progress, loss and learning rate charts of a finished Anima LoRA training">
+</picture>
+
 - **Models**: Anima, Krea 2, MOSS-Image, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
 - **Easy forms**: an *Essentials* view with the options most people change, all options one click away, search, and import / export of configs as JSON or TOML.
 - **Runs page**: progress and time left, loss and learning rate charts, sample images, the saved LoRA files and the console output, also for past runs. No TensorBoard needed.
@@ -44,6 +49,11 @@ LoRA Forge is a web UI for training LoRAs with [kohya-ss/sd-scripts](https://git
 - **Krea 2 on 16 GB cards**: int8 base weights and block swap by default ([details](docs/krea2.md)).
 - **MOSS-Image**: OpenMOSS's 5B model with strong text rendering, trained with LoRA Forge's own trainer on 16 GB cards ([details](docs/moss-image.md)).
 - English, 中文 and 日本語, light and dark mode.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png">
+  <img src="docs/images/home-light.png" alt="The home page: one page per model, recent runs and system info">
+</picture>
 
 > [!NOTE]
 > LoRA Forge is maintained mainly for personal use, so expect rough edges. Bug reports, suggestions and PRs are welcome.
@@ -95,6 +105,11 @@ Images directly in the dataset folder are not used; the GUI tells you when no `<
 **2. Get the base model.** Download the model you want to train on (for Anima, Krea 2 and MOSS-Image also their text encoder and VAE). The model page shows which files it needs.
 
 **3. Fill in the form.** Open the page for your model in the sidebar. In the *Essentials* view, set at least the base model file, the dataset folder and the output name; the other values are reasonable defaults. The step estimate next to the dataset folder shows how many steps the settings give.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/anima-dark.png">
+  <img src="docs/images/anima-light.png" alt="The Anima page in the Essentials view, with the model files panel and its download links">
+</picture>
 
 **4. Start and watch.** Press **Start training**. The status in the header shows the progress; click it to open the run on the **Runs** page, where you see the loss, samples and console output. The LoRA files are saved to the output folder (`output/` by default) and listed on the run.
 
