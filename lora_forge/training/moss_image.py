@@ -63,18 +63,20 @@ def prepare_config(config: dict, prompt_path: str) -> None:
     """Rewrite a submitted MOSS-Image config in place into the trainer's options."""
     check_model_files(config)
     prompt_file = str(config.pop("prompt_file", "") or "").strip()
-    preview = bool(config.get("enable_preview"))
+    # the web UI sends the preview fields only with previews on and never sends enable_preview itself
+    # (a form-only key); a config built by hand may still say enable_preview = false
+    preview = config.get("enable_preview", True)
     prompts = sample_prompts(config)
-    if not preview:
-        config.pop("sample_every_n_epochs", None)
-        config.pop("sample_prompts", None)
-    elif prompt_file:
+    if preview and prompt_file:
         if not os.path.exists(prompt_file):
             raise MossConfigError(t("run.promptFileMissing", path=prompt_file))
         config["sample_prompts"] = prompt_file
-    elif prompts:
+    elif preview and prompts:
         with open(prompt_path, "w", encoding="utf-8") as f:
             f.write(prompts)
         config["sample_prompts"] = prompt_path
+    else:
+        config.pop("sample_every_n_epochs", None)
+        config.pop("sample_prompts", None)
     for key in DROPPED_KEYS:
         config.pop(key, None)
