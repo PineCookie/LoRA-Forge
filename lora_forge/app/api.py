@@ -245,6 +245,8 @@ async def list_available_cards() -> APIResponse:
 @router.get("/runtime")
 async def get_runtime() -> APIResponse:
     versions = {}
+    # a release zip has no .git, so this falls back to pyproject.toml's version
+    versions["lora_forge"] = launcher.git_tag(str(launcher.base_dir_path()))
     try:
         versions["sd_scripts"] = launcher.git_tag(str(launcher.sd_scripts_path()))
     except Exception:
@@ -255,6 +257,12 @@ async def get_runtime() -> APIResponse:
         versions["sd_scripts_status"] = sd_scripts.compatibility_status()
     except Exception:
         versions["sd_scripts_status"] = "unknown"
+
+    try:
+        musubi = launcher.musubi_tuner_path()
+        versions["musubi_tuner"] = launcher.git_tag(str(musubi)) if musubi.exists() else "not installed"
+    except Exception:
+        versions["musubi_tuner"] = "unknown"
 
     try:
         import torch
