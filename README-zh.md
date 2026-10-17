@@ -62,7 +62,7 @@ LoRA Forge 是一个训练 LoRA 的网页界面。选好模型，在浏览器里
 
 ### 准备
 
-- Windows 或 Linux，**NVIDIA 显卡**，且驱动支持 **CUDA 13**（LoRA Forge 使用 CUDA 13.0 版的 PyTorch 2.14）。暂不支持其他显卡。
+- Windows 或 Linux，**RTX 20 系列或更新的 NVIDIA 显卡**（计算能力 7.5），**驱动 580 或更新**（LoRA Forge 使用 CUDA 13.0 版的 PyTorch 2.14）。CUDA 13 不支持 GTX 10 系列及更早的显卡，暂不支持其他品牌的显卡。推荐 RTX 30 系列或更新的显卡：bf16 训练和 flash-attn 都需要它，RTX 20 系列请改用 fp16。首页的 **系统信息** 面板会显示你的显卡是否受支持。
 - **显存**：默认设置下，批大小 2、1024×1024 时 Anima 和 SDXL LoRA 约需 9 GB。MOSS-Image 和 Krea 2 按 16 GB 显卡设置；Krea 2 调高 `blocks_to_swap` 后 12 GB 也能训练。
 - [Git](https://git-scm.com/downloads)，启动脚本用它下载 sd-scripts 和 musubi-tuner。
 - [uv](https://docs.astral.sh/uv/)，由它安装 Python 和其余所有依赖。请用官方安装脚本安装，然后**打开新的终端**：

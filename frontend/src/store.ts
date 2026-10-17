@@ -3,9 +3,21 @@ import { api, loadGraphicCards } from "./api";
 import { setSchemaCatalogs, type Locale } from "./i18n";
 import { evaluateSchema, type SchemaNode } from "./schema/dsl";
 
+export interface Gpu {
+  name: string;
+  memory_gb: number;
+  /** compute capability, e.g. "8.9" */
+  capability: string;
+  /** the oldest compute capability the PyTorch build has kernels for */
+  minimum: string;
+  /** limited = Turing: no bf16, no flash-attn */
+  support: "ok" | "limited" | "unsupported";
+}
+
 export interface Runtime {
   services: Record<string, boolean>;
   versions: Record<string, string>;
+  gpus?: Gpu[];
   /** Hugging Face or the mirror the launcher set (--cn), for download links */
   hf_endpoint?: string;
 }

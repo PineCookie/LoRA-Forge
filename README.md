@@ -62,7 +62,7 @@ LoRA Forge is a web UI for training LoRAs. You pick a model, fill in a form in t
 
 ### What you need
 
-- Windows or Linux with an **NVIDIA GPU** and a driver that supports **CUDA 13** (LoRA Forge uses PyTorch 2.14 for CUDA 13.0). Other GPUs are not supported yet.
+- Windows or Linux with an **NVIDIA GPU, RTX 20 series or newer** (compute capability 7.5), and **driver 580 or newer** (LoRA Forge uses PyTorch 2.14 for CUDA 13.0). GTX 10 series and older cards are not supported by CUDA 13, and other GPU brands are not supported yet. An RTX 30 series card or newer is recommended: bf16 training and flash-attn need it, and on an RTX 20 series card you choose fp16 instead. The **System info** panel on the home page shows whether your GPU is supported.
 - **VRAM**: Anima and SDXL LoRAs need about 9 GB with the default settings at batch size 2 and 1024×1024. MOSS-Image and Krea 2 are set up for 16 GB cards; Krea 2 also fits 12 GB with more `blocks_to_swap`.
 - [Git](https://git-scm.com/downloads), which the launcher uses to download sd-scripts and musubi-tuner.
 - [uv](https://docs.astral.sh/uv/), which installs Python and everything else. Install it with the official installer, then **open a new terminal**:

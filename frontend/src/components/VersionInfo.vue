@@ -3,10 +3,16 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { store } from "../store";
 
+const gpus = computed(() => store.runtime?.gpus ?? []);
+
 const rows = computed(() => {
   const versions = store.runtime?.versions ?? {};
   if (!Object.keys(versions).length) return [];
   return [
+    ...gpus.value.map((gpu, index) => [
+      gpus.value.length > 1 ? `GPU ${index}` : "GPU",
+      `${gpu.name.replace(/^NVIDIA /, "")} (${gpu.memory_gb} GB)`,
+    ]),
     ["sd-scripts", versions.sd_scripts || "unknown"],
     ...(versions.sd_scripts_status ? [[t("system.sdScriptsStatus"), versions.sd_scripts_status]] : []),
     ["PyTorch", versions.pytorch || "unknown"],
@@ -14,6 +20,20 @@ const rows = computed(() => {
     ["CUDA", versions.cuda || "unknown"],
   ];
 });
+
+// cards this PyTorch build cannot run, or runs without bf16 / flash-attn
+const warnings = computed(() =>
+  gpus.value
+    .filter((gpu) => gpu.support !== "ok")
+    .map((gpu) => ({
+      level: gpu.support === "unsupported" ? "danger" : "warning",
+      text: t(gpu.support === "unsupported" ? "system.gpuUnsupported" : "system.gpuLimited", {
+        name: gpu.name.replace(/^NVIDIA /, ""),
+        capability: gpu.capability,
+        minimum: gpu.minimum,
+      }),
+    })),
+);
 </script>
 
 <template>
@@ -26,6 +46,7 @@ const rows = computed(() => {
       </div>
     </dl>
     <p v-else class="muted">{{ t("system.loading") }}</p>
+    <p v-for="warning in warnings" :key="warning.text" class="gpu-warning" :class="warning.level">{{ warning.text }}</p>
   </section>
 </template>
 
@@ -57,5 +78,22 @@ dd {
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gpu-warning {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gpu-warning.danger {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 </style>

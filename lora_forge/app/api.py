@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 
 from lora_forge import launcher, sd_scripts
 from lora_forge.app.models import APIResponse, APIResponseFail, APIResponsePending, APIResponseSuccess
-from lora_forge.devices import printable_devices
+from lora_forge.devices import gpu_info, printable_devices
 from lora_forge.file_dialogs import open_directory_selector, open_file_selector
 from lora_forge.i18n import t
 from lora_forge.log import log
@@ -275,6 +275,7 @@ async def get_runtime() -> APIResponse:
             "tensorboard": os.environ.get("LORA_FORGE_ENABLE_TENSORBOARD", "0") == "1",
         },
         "versions": versions,
+        "gpus": await asyncio.to_thread(gpu_info),
         # download links on the trainer pages use the mirror when the launcher set one (--cn)
         "hf_endpoint": (os.environ.get("HF_ENDPOINT") or "https://huggingface.co").rstrip("/"),
     })
