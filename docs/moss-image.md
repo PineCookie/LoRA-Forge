@@ -91,14 +91,15 @@ The defaults: rank and alpha 32 on the attention and feed-forward layers of all 
 74M parameters), AdamW at 1e-4, 10 epochs, and the report's timestep sampling (`logit_mean`
 -1.09, `logit_std` 0.95). What our character runs (28 images, about 100 steps per epoch) showed:
 
-- **MOSS-Image overtrains fast.** At 1e-4 and rank 32 a character was learned by about 200 steps
+- **In our runs it overtrained fast.** At 1e-4 and rank 32 a character was learned by about 200 steps
   and the result was best around 500-600 steps; from about 700 steps on, the all-layer LoRA broke
   the image (stiff poses, wrong colors, off anatomy). Save every epoch (`save_every_n_epochs = 1`)
   and pick the checkpoint by its images; 10 epochs is an upper bound, not a target.
 - **`lora_targets = attention`** trains only the attention layers (q, k, v, o; 33M parameters at
   rank 32) and leaves the feed-forward layers, which hold much of how things are drawn, to the base
   model. It overtrained far slower in our runs (no breakdown at 900 steps) and kept the base model's
-  rendering; it still learned the character. A good first choice for characters.
+  rendering; it still learned the character. Worth trying first for a character (one dataset so
+  far, not a general result).
 - **The model already draws a lot from words.** SFT drew our test character almost exactly from a
   plain description of her hair and outfit, without any LoRA. So the LoRA's job is to tie the name
   to that look and to add the details words miss, and at full strength it tends to do more than that
