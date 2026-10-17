@@ -175,14 +175,15 @@ def missing_features_message(missing: List[str], root: Optional[Path] = None) ->
     return t("sdScripts.missing", ref=ref, features=_feature_labels(missing))
 
 
-def compatibility_status(root: Optional[Path] = None) -> str:
-    """Short human-readable state of the checkout, for /api/runtime."""
-    head = head_commit(root)
+def compatibility(root: Optional[Path] = None) -> tuple[str, str]:
+    """State of the checkout for /api/runtime: `tested`, `compatible`, `unknown` (no git information)
+    or `outdated`, with the message to show for `outdated`."""
     missing = missing_features(FEATURES, root)
     if missing:
-        return t("sdScripts.outdated", features=_feature_labels(missing))
+        return "outdated", missing_features_message(missing, root)
+    head = head_commit(root)
     if head == SD_SCRIPTS_TESTED_REF:
-        return t("sdScripts.tested")
+        return "tested", ""
     if head is None:
-        return t("sdScripts.noGit")
-    return t("sdScripts.compatible")
+        return "unknown", ""
+    return "compatible", ""

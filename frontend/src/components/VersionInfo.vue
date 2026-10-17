@@ -14,8 +14,7 @@ const rows = computed(() => {
       `${gpu.name.replace(/^NVIDIA /, "")} (${gpu.memory_gb} GB)`,
     ]),
     ["LoRA Forge", versions.lora_forge || "unknown"],
-    ["sd-scripts", versions.sd_scripts || "unknown"],
-    ...(versions.sd_scripts_status ? [[t("system.sdScriptsStatus"), versions.sd_scripts_status]] : []),
+    ["sd-scripts", `${versions.sd_scripts || "unknown"}${versions.sd_scripts_state === "tested" ? ` (${t("system.tested")})` : ""}`],
     ["musubi-tuner", versions.musubi_tuner || "unknown"],
     ["PyTorch", versions.pytorch || "unknown"],
     ["Triton", versions.triton || "unknown"],
@@ -23,9 +22,9 @@ const rows = computed(() => {
   ];
 });
 
-// cards this PyTorch build cannot run, or runs without bf16 / flash-attn
-const warnings = computed(() =>
-  gpus.value
+// cards this PyTorch build cannot run, or runs without bf16 / flash-attn; an sd-scripts too old for some options
+const warnings = computed(() => [
+  ...gpus.value
     .filter((gpu) => gpu.support !== "ok")
     .map((gpu) => ({
       level: gpu.support === "unsupported" ? "danger" : "warning",
@@ -35,7 +34,8 @@ const warnings = computed(() =>
         minimum: gpu.minimum,
       }),
     })),
-);
+  ...(store.runtime?.versions.sd_scripts_problem ? [{ level: "warning", text: store.runtime.versions.sd_scripts_problem }] : []),
+]);
 </script>
 
 <template>

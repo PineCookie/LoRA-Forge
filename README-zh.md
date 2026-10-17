@@ -206,7 +206,7 @@ uv sync --extra flash-attn
 | 训练失败 | 在运行记录页面打开它：控制台输出中有错误信息 |
 | 每步要几分钟而不是几秒 | 训练放不进显存，Windows 会借用系统内存而不报错。请降低批大小或分辨率，或保持 `gradient_checkpointing` 开启 |
 | **模型文件** 中某一行显示 *模型类型不对* | 该文件不是这个页面训练的模型（例如在 Anima 页面选了 SDXL checkpoint）。同一模型的微调版和融合模型没有问题 |
-| 某个选项似乎不起作用 | 查看首页 **系统信息** 面板中的 *sd-scripts 兼容性* |
+| 某个选项似乎不起作用 | 查看首页的 **系统信息** 面板：已安装的 sd-scripts 过旧、不支持某些选项时，这里会给出提示 |
 | Anima：编译报错或最初几步很慢 | 见 [Anima 训练说明](docs/anima-zh.md) |
 | SDXL：编译报错 | 在 SDXL LoRA 页面关闭 `compile`，训练会以未编译的方式运行 |
 | Krea 2：每步要几分钟 | 模型放不进显存；请调高 `blocks_to_swap`（见 [Krea 2 训练说明](docs/krea2-zh.md)） |

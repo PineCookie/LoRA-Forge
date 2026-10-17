@@ -290,26 +290,6 @@ MESSAGES: dict[str, dict[str, str]] = {
               "無視されるため、main ブランチに更新してから再試行してください：run_gui.ps1 update-sd-scripts"
               "（Linux：bash run_gui.sh update-sd-scripts）",
     },
-    "sdScripts.outdated": {
-        "en": "Outdated: missing {features}",
-        "zh": "过旧：缺少 {features}",
-        "ja": "古いバージョン：{features} がありません",
-    },
-    "sdScripts.tested": {
-        "en": "Compatible (tested version)",
-        "zh": "兼容（已测试版本）",
-        "ja": "対応（検証済みバージョン）",
-    },
-    "sdScripts.noGit": {
-        "en": "Compatible (git version unknown)",
-        "zh": "兼容（未能读取 git 版本信息）",
-        "ja": "対応（git のバージョン情報を取得できません）",
-    },
-    "sdScripts.compatible": {
-        "en": "Compatible",
-        "zh": "兼容",
-        "ja": "対応",
-    },
     "feature.compile": {
         "en": "per-block torch.compile / CUDA performance options",
         "zh": "逐 block torch.compile / CUDA 性能开关",

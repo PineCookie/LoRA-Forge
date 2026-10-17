@@ -254,9 +254,9 @@ async def get_runtime() -> APIResponse:
 
     # whether the installed sd-scripts can apply the options this GUI exposes
     try:
-        versions["sd_scripts_status"] = sd_scripts.compatibility_status()
+        versions["sd_scripts_state"], versions["sd_scripts_problem"] = sd_scripts.compatibility()
     except Exception:
-        versions["sd_scripts_status"] = "unknown"
+        versions["sd_scripts_state"], versions["sd_scripts_problem"] = "unknown", ""
 
     try:
         musubi = launcher.musubi_tuner_path()

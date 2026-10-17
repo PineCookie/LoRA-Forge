@@ -226,7 +226,7 @@ const en = {
   "dataset.suggestion": "~{steps} steps: {epochs} epochs",
 
   "system.title": "System info",
-  "system.sdScriptsStatus": "sd-scripts compatibility",
+  "system.tested": "tested",
   "system.loading": "Loading…",
   "system.gpuUnsupported": "{name} (compute capability {capability}) is too old for this PyTorch build, which needs {minimum} or newer (RTX 20 series and up). Training on it will fail.",
   "system.gpuLimited": "{name} (compute capability {capability}) has no bf16 and no flash-attn support, which need an RTX 30 series card or newer: choose fp16 instead of bf16 on the trainer pages.",

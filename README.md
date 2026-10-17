@@ -206,7 +206,7 @@ The Runs page covers what most people need. To use TensorBoard as well, start wi
 | A training fails | Open it on the Runs page: the console output shows the error |
 | Steps take minutes instead of seconds | The training does not fit in VRAM, and Windows borrows system RAM instead of failing. Lower the batch size or resolution, or keep `gradient_checkpointing` on |
 | A **Model files** row says *Different model type* | The file is not the model the page trains (for example an SDXL checkpoint on the Anima page). Fine-tunes and merges of the right model are fine |
-| An option seems to have no effect | Check *sd-scripts compatibility* in the **System info** panel on the home page |
+| An option seems to have no effect | Check the **System info** panel on the home page: it warns when the installed sd-scripts is too old for some options |
 | Anima: compile errors or slow first steps | See the [Anima guide](docs/anima.md) |
 | SDXL: compile errors | Turn `compile` off on the SDXL LoRA page; training then runs uncompiled |
 | Krea 2: minutes per step | The model does not fit in VRAM; raise `blocks_to_swap` (see the [Krea 2 guide](docs/krea2.md)) |

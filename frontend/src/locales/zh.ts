@@ -219,7 +219,7 @@ const zh: Messages = {
   "dataset.suggestion": "达到 ~{steps} 步需要 {epochs} epoch",
 
   "system.title": "系统信息",
-  "system.sdScriptsStatus": "sd-scripts 兼容性",
+  "system.tested": "已测试",
   "system.loading": "加载中…",
   "system.gpuUnsupported": "{name}（计算能力 {capability}）对当前的 PyTorch 来说太旧，它需要 {minimum} 或更新的显卡（RTX 20 系列及以上）。在这张显卡上训练会失败。",
   "system.gpuLimited": "{name}（计算能力 {capability}）不支持 bf16 和 flash-attn，它们需要 RTX 30 系列或更新的显卡：请在训练页面中选择 fp16 而不是 bf16。",

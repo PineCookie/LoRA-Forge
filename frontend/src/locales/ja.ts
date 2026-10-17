@@ -224,7 +224,7 @@ const ja: Messages = {
   "dataset.suggestion": "~{steps} ステップ：{epochs} エポック",
 
   "system.title": "システム情報",
-  "system.sdScriptsStatus": "sd-scripts の互換性",
+  "system.tested": "検証済み",
   "system.loading": "読み込み中…",
   "system.gpuUnsupported": "{name}（Compute Capability {capability}）はこの PyTorch には古すぎます。{minimum} 以降の GPU（RTX 20 シリーズ以降）が必要で、この GPU での学習は失敗します。",
   "system.gpuLimited": "{name}（Compute Capability {capability}）は bf16 と flash-attn に対応していません（RTX 30 シリーズ以降が必要）。学習ページでは bf16 の代わりに fp16 を選んでください。",
