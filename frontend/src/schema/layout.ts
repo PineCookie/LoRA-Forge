@@ -52,7 +52,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     tone: "network",
     merged: "network",
     fields: [
-      "network_module", "network_weights", "network_dim", "network_alpha", "network_dropout", "scale_weight_norms",
+      "network_module", "network_weights", "network_dim", "network_alpha", "network_dropout", "lora_targets", "scale_weight_norms",
       // LyCORIS / DyLoRA settings, shown for their module
       "lycoris_algo", "conv_dim", "conv_alpha", "dropout", "train_norm", "lokr_factor", "dylora_unit",
       "network_train_unet_only", "network_train_text_encoder_only", "train_t5xxl", "network_reg_dims", "network_reg_lrs",

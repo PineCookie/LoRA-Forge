@@ -264,6 +264,7 @@
   "Learning rate; 1e-4 for AdamW / AdamW8bit at rank 32": "学习率；rank 32 下 AdamW / AdamW8bit 用 1e-4",
   "Continue training from an existing MOSS-Image LoRA of the same rank: enter its path": "从已有的同 rank MOSS-Image LoRA 继续训练：填写其路径",
   "Network dimension (rank). The LoRA covers the attention and feed-forward layers of all 42 blocks; rank 32 is about 74M parameters": "网络维度（rank）。LoRA 覆盖全部 42 个 block 的注意力层和前馈层；rank 32 约 7400 万参数",
+  "Layers the LoRA trains. `all`: attention and feed-forward. `attention`: attention only (33M instead of 74M parameters at rank 32); the feed-forward layers, which hold much of how things are drawn, stay the base model's, so its rendering style is kept better. Characters and outfits are usually still learned; very unusual small details may be less exact": "LoRA 训练哪些层。`all`：注意力层和前馈层。`attention`：只训练注意力层（rank 32 时 3300 万而不是 7400 万参数）；决定画法的前馈层保持底模原样，因此能更好地保留底模的画风。角色和服装通常仍能学到；非常少见的小细节可能不够准确",
   "Preview prompt file, one prompt per line, e.g. `a cat --n blurry --w 1024 --h 1024 --s 30 --l 3 --d 42`. When set, the options below are ignored": "预览图提示词文件，每行一个提示词，例如 `a cat --n blurry --w 1024 --h 1024 --s 30 --l 3 --d 42`。设置后将忽略下面的选项",
   "CFG scale, 3 recommended. As in OpenMOSS's pipeline, the negative pass skips block 22": "CFG 强度，推荐 3。与 OpenMOSS 的流程一样，负面推理会跳过第 22 个 block",
   "Sampling steps: 30 is enough for previews (OpenMOSS's default is 50)": "采样步数：预览图 30 步就够（OpenMOSS 默认 50 步）",

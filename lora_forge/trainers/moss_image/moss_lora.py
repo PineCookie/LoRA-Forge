@@ -11,6 +11,8 @@ from torch import nn
 from torch.nn import functional as F
 
 TARGETS = ("q", "k", "v", "o", "ffn_up_gate", "ffn_down")
+# lora_targets: "attention" leaves the feed-forward layers (about 2/3 of the LoRA at the same rank) to the base model
+TARGET_SETS = {"all": TARGETS, "attention": ("q", "k", "v", "o")}
 PREFIX = "lora_unet"
 
 
@@ -42,10 +44,11 @@ class LoRALinear(nn.Module):
 
 
 class LoRANetwork:
-    def __init__(self, model, rank: int, alpha: float, dropout: float = 0.0):
+    def __init__(self, model, rank: int, alpha: float, dropout: float = 0.0, targets=TARGETS):
         self.modules = {}
+        self.targets = tuple(targets)
         for index, layer in enumerate(model.layers):
-            for name in TARGETS:
+            for name in self.targets:
                 wrapped = LoRALinear(layer.proj[name], rank, alpha, dropout)
                 layer.proj[name] = wrapped
                 self.modules[f"{PREFIX}_layers_{index}_proj_{name}"] = wrapped

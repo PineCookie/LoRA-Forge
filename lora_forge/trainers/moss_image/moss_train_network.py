@@ -53,6 +53,8 @@ DEFAULTS = {
     "network_alpha": 32,
     "network_dropout": 0.0,
     "network_weights": "",
+    # which block Linears get a LoRA: "all" (attention + feed-forward) or "attention" (q, k, v, o)
+    "lora_targets": "all",
     "optimizer_type": "AdamW",
     "learning_rate": 1e-4,
     "optimizer_args": [],
@@ -252,8 +254,11 @@ class Trainer:
             print(f"LoRA-Forge: the block matrix multiplies run in fp16 (accumulating in {accumulation}) with loss scaling", flush=True)
         elif precision != "bf16":
             print(f"LoRA-Forge: mixed_precision {precision} is not used for MOSS-Image; training in bf16", flush=True)
+        targets = str(config["lora_targets"] or "all")
+        if targets not in moss_lora.TARGET_SETS:
+            raise SystemExit(f"lora_targets must be one of {', '.join(moss_lora.TARGET_SETS)}, not {targets!r}")
         self.network = moss_lora.LoRANetwork(model, int(config["network_dim"]), float(config["network_alpha"] or config["network_dim"]),
-                                             float(config["network_dropout"] or 0))
+                                             float(config["network_dropout"] or 0), moss_lora.TARGET_SETS[targets])
         if config["network_weights"]:
             self.network.load_weights(config["network_weights"])
             print(f"LoRA-Forge: continuing from {config['network_weights']}", flush=True)
@@ -263,7 +268,7 @@ class Trainer:
             model.block_fn = torch.compile(moss_model.Block.forward)
         self.model = model
         params = self.network.parameters()
-        print(f"LoRA-Forge: LoRA rank {self.network.rank}, alpha {self.network.alpha:g}, "
+        print(f"LoRA-Forge: LoRA rank {self.network.rank}, alpha {self.network.alpha:g} on {', '.join(self.network.targets)}, "
               f"{sum(p.numel() for p in params) / 1e6:.1f}M parameters", flush=True)
         self.optimizer = make_optimizer(config, params)
         self.params = params
@@ -300,6 +305,7 @@ class Trainer:
             "ss_network_dim": self.network.rank,
             "ss_network_alpha": self.network.alpha,
             "ss_network_dropout": config["network_dropout"],
+            "ss_network_args": json.dumps({"targets": list(self.network.targets)}),
             "ss_output_name": config["output_name"],
             "ss_learning_rate": config["learning_rate"],
             "ss_optimizer": config["optimizer_type"],

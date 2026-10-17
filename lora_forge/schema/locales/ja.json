@@ -264,6 +264,7 @@
   "Learning rate; 1e-4 for AdamW / AdamW8bit at rank 32": "学習率。rank 32 の AdamW / AdamW8bit では 1e-4",
   "Continue training from an existing MOSS-Image LoRA of the same rank: enter its path": "同じ rank の既存の MOSS-Image LoRA から学習を続けます。そのパスを入力してください",
   "Network dimension (rank). The LoRA covers the attention and feed-forward layers of all 42 blocks; rank 32 is about 74M parameters": "ネットワークの次元（rank）。LoRA は 42 ブロックすべてのアテンション層とフィードフォワード層に掛かります。rank 32 で約 7400 万パラメータです",
+  "Layers the LoRA trains. `all`: attention and feed-forward. `attention`: attention only (33M instead of 74M parameters at rank 32); the feed-forward layers, which hold much of how things are drawn, stay the base model's, so its rendering style is kept better. Characters and outfits are usually still learned; very unusual small details may be less exact": "LoRA が学習する層。`all`：アテンション層とフィードフォワード層。`attention`：アテンション層のみ（rank 32 で 7400 万ではなく 3300 万パラメータ）。描き方の多くを担うフィードフォワード層はベースモデルのままなので、その画風がよく保たれます。キャラクターや衣装は通常どおり学習されますが、非常に珍しい小さなディテールは不正確になることがあります",
   "Preview prompt file, one prompt per line, e.g. `a cat --n blurry --w 1024 --h 1024 --s 30 --l 3 --d 42`. When set, the options below are ignored": "プレビューのプロンプトファイル。1 行に 1 つのプロンプト、例：`a cat --n blurry --w 1024 --h 1024 --s 30 --l 3 --d 42`。指定すると下のオプションは無視されます",
   "CFG scale, 3 recommended. As in OpenMOSS's pipeline, the negative pass skips block 22": "CFG スケール。3 を推奨します。OpenMOSS のパイプラインと同じく、ネガティブ側の推論はブロック 22 を飛ばします",
   "Sampling steps: 30 is enough for previews (OpenMOSS's default is 50)": "サンプリングステップ数：プレビューには 30 で十分です（OpenMOSS の既定は 50）",

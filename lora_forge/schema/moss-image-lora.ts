@@ -68,6 +68,7 @@ Schema.intersect([
         network_dim: Schema.number().min(1).step(1).default(32).description("Network dimension (rank). The LoRA covers the attention and feed-forward layers of all 42 blocks; rank 32 is about 74M parameters"),
         network_alpha: Schema.number().min(1).default(32).description("Common values: equal to network_dim, network_dim/2, or 1. A smaller alpha needs a higher learning rate"),
         network_dropout: Schema.number().min(0).max(1).step(0.01).default(0).description("Dropout probability"),
+        lora_targets: Schema.union(["all", "attention"]).default("all").description("Layers the LoRA trains. `all`: attention and feed-forward. `attention`: attention only (33M instead of 74M parameters at rank 32); the feed-forward layers, which hold much of how things are drawn, stay the base model's, so its rendering style is kept better. Characters and outfits are usually still learned; very unusual small details may be less exact"),
     }),
 
     // Preview images
