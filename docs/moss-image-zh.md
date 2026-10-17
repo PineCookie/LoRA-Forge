@@ -22,12 +22,14 @@
 
 MOSS-Image 是用自然语言描述训练的，所以请写句子，而不是标签列表。图中的文字会按标注里写的样子渲染。
 
-**标注文件的每一行是该图片的一条标注。** 每一步随机选用其中一条训练，就像 OpenMOSS 用同一张图的短、中、长三种标注训练一样。这一点对角色很重要：如果每条标注都把完整外观写出来，模型学到的是画出这段描述，单靠名字几乎唤不回外观。请再加一行简短的，只写角色名和这张图里会变化的内容：
+**标注文件的每一行是该图片的一条标注。** 每一步随机选用其中一条训练，就像 OpenMOSS 用同一张图的短、中、长三种标注训练一样。这一点对角色很重要：如果每条标注都把完整外观写出来，模型学到的是画出这段描述，单靠名字几乎唤不回外观。请再加一行简短的，写角色名和这张图里会变化的内容：
 
 ```
-An anime-style illustration of my_character from the chest up in her school uniform: a navy blazer over a white shirt with a striped tie, ... Plain white background.
-my_character in her school uniform, smiling at the viewer.
+An anime-style illustration of my_character from the chest up in her school uniform: a navy blazer over a white shirt with a striped tie, a club badge on the lapel, ... Plain white background.
+my_character in her school uniform with a club badge, smiling at the viewer.
 ```
+
+每一行都要写出这张图与其他图不同的东西（徽章、眼镜、发带），只把固定不变的外观留给名字。短句里没写的内容，模型会归到名字上，然后在每张图里混着出现：徽章跑到别的服装上、多出来的发夹。
 
 只有一行的标注文件照常训练。OpenMOSS 的[用户指南](https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE_ZH.md)里有他们推荐的视觉模型标注提示词（长、中、短三种标注）。
 
@@ -35,7 +37,7 @@ my_character in her school uniform, smiling at the viewer.
 
 1. **缓存。** 训练开始前先缓存 latent（VAE）和文本编码器输出，训练页面上显示为“缓存 latent”和“缓存文本编码器输出”。缓存文件写在图片旁边（`*_moss_latent.safetensors`、`*_moss_te.safetensors`），并记录它们由什么生成：图片、标注或模型文件改动后会重新编码。文本编码器需要约 20 GB 可用内存，显存放不下的部分在内存中运行。
 2. **训练**，批大小为 1：每张图保留自己的标注长度，与 OpenMOSS 的流程一致。想要更大的批次请用 `gradient_accumulation_steps`。每张图按自身宽高比得到一个分桶，像素数等于训练分辨率，边长为 16 的倍数。
-3. **预览图**使用 OpenMOSS 的采样方式：Euler、shift 5 加 CFG，负面推理跳过第 22 个 block。
+3. **预览图**使用 OpenMOSS 的采样方式：Euler、shift 5 加 CFG，负面推理跳过第 22 个 block。预览图用训练所用的模型（Base）生成，它比 SFT 画得朴素：只给名字时可能画出别的角色，训练中途的检查点也比最终 LoRA 在 SFT 上的效果差。请在 ComfyUI 中用 SFT 评判 LoRA，不要只看预览图。
 
 数据集文件夹的结构与其他模型相同（`<重复次数>_<名称>` 子文件夹，里面放图片和 `.txt` 标注）。只支持单卡训练。
 
@@ -50,7 +52,12 @@ my_character in her school uniform, smiling at the viewer.
 
 ## 训练设置
 
-默认：rank 和 alpha 为 32，覆盖全部 42 个 block 的注意力层和前馈层（约 7400 万参数），AdamW 学习率 1e-4，10 个 epoch，时间步采样使用报告中的值（`logit_mean` -1.09、`logit_std` 0.95）。一个角色测试 LoRA（28 张图、545 步）在第 2 个 epoch 就学会了服装细节。最佳设置尚未确定。
+默认：rank 和 alpha 为 32，覆盖全部 42 个 block 的注意力层和前馈层（约 7400 万参数），AdamW 学习率 1e-4，10 个 epoch，时间步采样使用报告中的值（`logit_mean` -1.09、`logit_std` 0.95）。我们的角色训练（28 张图，每个 epoch 约 100 步）得到的经验：
+
+- **MOSS-Image 很容易练过头。** 学习率 1e-4、rank 32 时，角色约 200 步就学会了，500-600 步左右效果最好；约 700 步之后，覆盖全部层的 LoRA 开始破坏图像（姿势僵硬、颜色错误、人体变形）。请每个 epoch 都保存（`save_every_n_epochs = 1`），按图片效果挑选检查点；10 个 epoch 是上限，不是目标。
+- **`lora_targets = attention`** 只训练注意力层（q、k、v、o；rank 32 时 3300 万参数），决定画法的前馈层保持底模原样。在我们的训练中它练过头的速度慢得多（900 步仍未崩坏），保留了底模的画风，角色也照样学到了。训练角色时建议首选。
+- **模型本身就能从文字画出很多东西。** 不加任何 LoRA，SFT 仅凭对发型和服装的文字描述就几乎准确画出了我们的测试角色。所以 LoRA 的任务是把名字和这个外观绑定、补上文字说不清的细节；强度 1.0 时它往往做得过多（头发纹理重复、服装被覆盖）。效果最干净的是：描述性提示词加上强度 0.5-0.7 的 LoRA，在 SFT 上生成；只给名字、强度 1.0 的组合最容易出现瑕疵。
+- fp16 配合 `fp16_accumulation` 完整训练了两次，没有溢出；但没有在完全相同的设置下与 bf16 比较过图片效果。
 
 ## 在 ComfyUI 中使用 LoRA
 

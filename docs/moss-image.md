@@ -34,13 +34,17 @@ Visible text is rendered as written in the caption.
 **Each line of a caption file is one caption of its image.** Each step trains on one of them at
 random, as OpenMOSS trained on short, medium and long captions of the same image. For a character
 this matters: if every caption describes the full look, the model learns to draw that description
-and the name alone brings back little of it. Add a short line that only names the character and
-what changes in that image:
+and the name alone brings back little of it. Add a short line that names the character and what
+changes in that image:
 
 ```
-An anime-style illustration of my_character from the chest up in her school uniform: a navy blazer over a white shirt with a striped tie, ... Plain white background.
-my_character in her school uniform, smiling at the viewer.
+An anime-style illustration of my_character from the chest up in her school uniform: a navy blazer over a white shirt with a striped tie, a club badge on the lapel, ... Plain white background.
+my_character in her school uniform with a club badge, smiling at the viewer.
 ```
+
+Name everything that varies between images in every line (a badge, glasses, a hair ribbon), and
+leave only the constant look to the name. Whatever the short lines do not name, the model attaches
+to the name, and it comes back as a mix in every image: a badge on the wrong outfit, stray hairpins.
 
 A one-line caption file trains as before. OpenMOSS's
 [user guide](https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE.md) has the captioning
@@ -57,7 +61,9 @@ prompt they recommend for vision models (long, medium and short captions).
    `gradient_accumulation_steps` gives larger batches. Each image gets a bucket of its own aspect
    ratio at the training resolution's pixel count, with sides in multiples of 16.
 3. **Preview images** use OpenMOSS's sampler: Euler with shift 5 and CFG, block 22 skipped in the
-   negative pass.
+   negative pass. They are rendered with the model you train on (Base), which draws plainer than SFT:
+   a name alone can give another character, and a checkpoint from the middle of a run looks worse
+   than the finished LoRA on SFT. Judge a LoRA on SFT in ComfyUI, not on the previews.
 
 The dataset folder has the same layout as for the other models (`<repeats>_<name>` subfolders
 with images and `.txt` captions). Only single-GPU training is offered.
@@ -83,8 +89,24 @@ On an RTX 5070 Ti (16 GB) at about 1 megapixel, rank 32: **2.1 s per step** with
 
 The defaults: rank and alpha 32 on the attention and feed-forward layers of all 42 blocks (about
 74M parameters), AdamW at 1e-4, 10 epochs, and the report's timestep sampling (`logit_mean`
--1.09, `logit_std` 0.95). A character test LoRA (28 images, 545 steps) learned the outfit details by
-epoch 2. Optimal settings are not established yet.
+-1.09, `logit_std` 0.95). What our character runs (28 images, about 100 steps per epoch) showed:
+
+- **MOSS-Image overtrains fast.** At 1e-4 and rank 32 a character was learned by about 200 steps
+  and the result was best around 500-600 steps; from about 700 steps on, the all-layer LoRA broke
+  the image (stiff poses, wrong colors, off anatomy). Save every epoch (`save_every_n_epochs = 1`)
+  and pick the checkpoint by its images; 10 epochs is an upper bound, not a target.
+- **`lora_targets = attention`** trains only the attention layers (q, k, v, o; 33M parameters at
+  rank 32) and leaves the feed-forward layers, which hold much of how things are drawn, to the base
+  model. It overtrained far slower in our runs (no breakdown at 900 steps) and kept the base model's
+  rendering; it still learned the character. A good first choice for characters.
+- **The model already draws a lot from words.** SFT drew our test character almost exactly from a
+  plain description of her hair and outfit, without any LoRA. So the LoRA's job is to tie the name
+  to that look and to add the details words miss, and at full strength it tends to do more than that
+  (repeated hair textures, outfits overridden). The cleanest results came from a descriptive prompt
+  with the LoRA at strength 0.5-0.7 on SFT; a bare name at strength 1.0 was the setting that showed
+  the artifacts.
+- fp16 with `fp16_accumulation` trained two full runs with no overflow; its images were not
+  compared against bf16 on identical settings.
 
 ## Using the LoRA in ComfyUI
 
