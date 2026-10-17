@@ -24,7 +24,8 @@ pytorch#193194, which only hits when every dimension may become dynamic.
 With LORA_FORGE_ACTIVATION_MEMORY_BUDGET (GUI option activation_memory_budget, a fraction or `auto`)
 torch.compile's recompute planner replaces gradient checkpointing (install_memory_budget), with
 flash-attn's forward made visible to that planner (plan_flash_attention). A run that fails for lack of
-VRAM gets an out_of_memory notice.
+VRAM gets an out_of_memory notice; on Windows, a run that spills VRAM into system RAM (much slower,
+but no error) gets a vram_spill notice (SpillMonitor).
 For every trainer, ProdigyPlusScheduleFree gets a batched step with the same math
 (batched_ppsf.py); for SDXL, flash-attn and per-block compile (sdxl_speed.py). LORA_FORGE_PATCHES=0
 turns these off too.
@@ -689,6 +690,7 @@ def main():
         notify = events.write
         install_tracker(events)
         install_progress(events, compile_monitor)
+        install_spill_monitor()
 
     install_console_output()
     if "musubi_tuner" in trainer.replace("\\", "/").split("/"):
@@ -723,6 +725,123 @@ def main():
         if notify is not None and is_out_of_memory(error):
             notify("notice", code="out_of_memory", budget=applied_budget, text=str(error).strip().splitlines()[0][:300])
         raise
+
+
+class SpillMonitor:
+    """Windows does not fail when a training needs more VRAM than the card has: the driver moves part of
+    it to system RAM (WDDM sysmem fallback) and every step gets much slower. This watches the process's
+    GPU memory counters and reports how much spilled (notice `vram_spill`, the largest amount seen).
+
+    Pinned RAM (block swap, staging buffers) is counted as shared GPU memory too, so the spill is the
+    shared usage minus PyTorch's pinned memory minus what was shared at the start, and only counts while
+    the card's dedicated memory is full (a paged optimizer's managed memory is shared as well). Reads
+    performance counters only and never calls CUDA from this thread."""
+
+    INTERVAL = 10.0
+    # the card counts as full within this much of its size (Windows keeps about 0.5 GiB back)
+    FULL_MARGIN = 1.0 * 2 ** 30
+    # report from this much, seen twice in a row
+    REPORT_FROM = 0.25 * 2 ** 30
+
+    def __init__(self, notify):
+        import ctypes
+        from ctypes import wintypes
+
+        class FmtValue(ctypes.Structure):
+            _fields_ = [("CStatus", wintypes.DWORD), ("largeValue", ctypes.c_longlong)]
+
+        class FmtItem(ctypes.Structure):
+            _fields_ = [("szName", wintypes.LPWSTR), ("FmtValue", FmtValue)]
+
+        self.ctypes, self.wintypes, self.item_type = ctypes, wintypes, FmtItem
+        self.pdh = ctypes.WinDLL("pdh.dll")
+        self.notify = notify
+        self.query = wintypes.HANDLE()
+        if self.pdh.PdhOpenQueryW(None, None, ctypes.byref(self.query)) != 0:
+            raise OSError("PdhOpenQueryW failed")
+        process = f"\\GPU Process Memory(pid_{os.getpid()}_*)"
+        self.dedicated = self.add(process + "\\Dedicated Usage")
+        self.shared = self.add(process + "\\Shared Usage")
+        self.adapters = self.add("\\GPU Adapter Memory(*)\\Dedicated Usage")
+        self.baseline = None
+        self.reported = 0
+        self.pending = False
+
+    def add(self, path):
+        handle = self.wintypes.HANDLE()
+        status = self.pdh.PdhAddEnglishCounterW(self.query, path, None, self.ctypes.byref(handle))
+        if status != 0:
+            raise OSError(f"PdhAddEnglishCounterW {path}: {status & 0xFFFFFFFF:#x}")
+        return handle
+
+    def values(self, handle) -> dict:
+        ctypes = self.ctypes
+        size, count = self.wintypes.DWORD(0), self.wintypes.DWORD(0)
+        self.pdh.PdhGetFormattedCounterArrayW(handle, 0x400, ctypes.byref(size), ctypes.byref(count), None)
+        if not size.value:
+            return {}
+        buffer = (ctypes.c_byte * size.value)()
+        if self.pdh.PdhGetFormattedCounterArrayW(handle, 0x400, ctypes.byref(size), ctypes.byref(count), buffer) != 0:
+            return {}
+        items = ctypes.cast(buffer, ctypes.POINTER(self.item_type))
+        return {items[i].szName: items[i].FmtValue.largeValue for i in range(count.value)}
+
+    def sample(self, total: int):
+        import torch
+
+        def pinned_now():
+            return torch.cuda.host_memory_stats().get("allocated_bytes.current", 0)
+
+        # skip a sample taken while memory was being pinned or freed: the counters and the
+        # pinned total would not match, and the baseline would stay too low for the rest of the run
+        pinned = pinned_now()
+        if self.pdh.PdhCollectQueryData(self.query) != 0 or pinned_now() != pinned:
+            return
+        dedicated = self.values(self.dedicated)
+        if not dedicated:
+            return
+        # this process's card: the adapter it has the most dedicated memory on
+        luid = max(dedicated, key=dedicated.get).split("_luid_")[-1]
+        adapter = sum(value for name, value in self.values(self.adapters).items() if luid in name)
+        unexplained = sum(self.values(self.shared).values()) - pinned
+        full = adapter >= total - self.FULL_MARGIN
+        # the shared memory a process has without any spill (CUDA's own, ~0.06 GiB), taken only while
+        # the card is not full; a run that overflows right away is measured from 0
+        if not full:
+            self.baseline = unexplained if self.baseline is None else min(self.baseline, unexplained)
+        spill = unexplained - (self.baseline or 0)
+        if not full or spill < max(self.REPORT_FROM, self.reported + self.REPORT_FROM):
+            self.pending = False
+            return
+        if self.pending:
+            self.reported = spill
+            self.notify("notice", code="vram_spill", gib=round(spill / 2 ** 30, 1), total_gib=round(total / 2 ** 30, 1))
+        self.pending = not self.pending
+
+    def run(self):
+        total = None
+        while True:
+            time.sleep(self.INTERVAL)
+            try:
+                torch = sys.modules.get("torch")
+                # never the first to touch CUDA: the trainer picks the device and initializes it
+                if torch is None or not torch.cuda.is_initialized():
+                    continue
+                if total is None:
+                    total = torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory
+                self.sample(total)
+            except Exception:
+                return
+
+
+def install_spill_monitor():
+    if sys.platform != "win32" or notify is None:
+        return
+    try:
+        monitor = SpillMonitor(notify)
+    except Exception:
+        return
+    threading.Thread(target=monitor.run, name="lora-forge-spill-monitor", daemon=True).start()
 
 
 def run_krea2_caching(trainer: str, cache: dict):

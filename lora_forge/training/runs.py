@@ -237,7 +237,11 @@ def summary(run_id: str) -> dict:
                         state.graphs = event.get("graphs")
                     elif kind == "notice" and event.get("code"):
                         notice = {key: value for key, value in event.items() if key not in ("t", "type")}
-                        state.notices.setdefault(event["code"], notice)
+                        # a spill is reported again when it grows: keep the largest
+                        if event["code"] == "vram_spill":
+                            state.notices[event["code"]] = notice
+                        else:
+                            state.notices.setdefault(event["code"], notice)
                 moved = offset != state.offset
                 state.offset = offset
                 if not moved or not events:

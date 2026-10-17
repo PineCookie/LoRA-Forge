@@ -38,6 +38,9 @@ export interface RunNotice {
   batch?: number;
   min?: number;
   max?: number;
+  /** vram_spill: GiB moved to system RAM (the largest amount seen), and the card's size */
+  gib?: number;
+  total_gib?: number;
   /** out_of_memory: the run's activation_memory_budget, if it had one */
   budget?: string | null;
 }
