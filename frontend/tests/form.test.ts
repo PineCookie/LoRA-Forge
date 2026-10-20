@@ -323,6 +323,31 @@ describe("visibility", () => {
     expect(isFieldVisible("network_dim", values)).toBe(true);
   });
 
+  it("hides a field whose controller is hidden", () => {
+    const values = initialFormValues(loadGroups("anima-lora"));
+    values.network_module = "lycoris.kohya";
+    values.lycoris_algo = "lokr";
+    expect(isFieldVisible("lokr_factor", values)).toBe(true);
+    values.network_module = "networks.lora_anima";
+    expect(isFieldVisible("lycoris_algo", values)).toBe(false);
+    expect(isFieldVisible("lokr_factor", values)).toBe(false);
+  });
+
+  it("shows and keeps the checkpoint offloads only with gradient checkpointing", () => {
+    for (const [schema, offload] of [["anima-lora", "cpu_offload_checkpointing"], ["krea2-lora", "gradient_checkpointing_cpu_offload"]]) {
+      const groups = loadGroups(schema);
+      const values = initialFormValues(groups);
+      expect(isFieldVisible(offload, values), schema).toBe(true);
+      values[offload] = true;
+      values.gradient_checkpointing = false;
+      expect(isFieldVisible(offload, values), schema).toBe(false);
+      // an import with a leftover offload: not sent, so it cannot cancel blocks_to_swap
+      expect(readForm(values, groups), schema).not.toHaveProperty(offload);
+      applyExclusiveRules(values, "gradient_checkpointing");
+      expect(values[offload], schema).toBe(false);
+    }
+  });
+
   it("shows the bucket side limits only without bucket_no_upscale, which makes sd-scripts ignore them", () => {
     for (const schema of ["anima-lora", "flux-lora", "sd3-lora", "sdxl-lora", "sd-lora", "sdxl-finetune", "sd-dreambooth"]) {
       const values = initialFormValues(loadGroups(schema));

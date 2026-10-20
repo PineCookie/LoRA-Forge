@@ -54,6 +54,9 @@ const VISIBILITY_RULES: Record<string, [string, ShownFor]> = {
   compile_fullgraph: ["compile", true],
   compile_cache_size_limit: ["compile", true],
   activation_memory_budget: ["compile", true],
+  // the trainers only read these inside `if gradient_checkpointing`
+  cpu_offload_checkpointing: ["gradient_checkpointing", true],
+  gradient_checkpointing_cpu_offload: ["gradient_checkpointing", true],
   // fp16 accumulation only changes fp16 matrix multiplies
   fp16_accumulation: ["training_precision", ["fp16", "full-fp16"]],
   // Krea 2 (musubi-tuner)
@@ -71,7 +74,9 @@ export function controllerOf(name: string): string | undefined {
   return VISIBILITY_RULES[name]?.[0];
 }
 
-/** Whether a field is shown for the current form values. Hidden fields are still submitted. */
+/** Whether a field is shown for the current form values: its controller must match and be shown
+ * itself (lokr_factor needs lycoris_algo = lokr AND network_module = lycoris.kohya). Hidden fields
+ * are still submitted. */
 export function isFieldVisible(name: string, values: FormValues): boolean {
   const rule = VISIBILITY_RULES[name];
   if (!rule) return true;
@@ -79,5 +84,6 @@ export function isFieldVisible(name: string, values: FormValues): boolean {
   if (!(controller in values)) return false;
   const current = String(values[controller]);
   const listed = (value: string | boolean | string[]) => (Array.isArray(value) ? value : [value]).map(String).includes(current);
-  return typeof shownFor === "object" && !Array.isArray(shownFor) ? !listed(shownFor.not) : listed(shownFor);
+  const matches = typeof shownFor === "object" && !Array.isArray(shownFor) ? !listed(shownFor.not) : listed(shownFor);
+  return matches && isFieldVisible(controller, values);
 }

@@ -63,8 +63,13 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
   // Krea 2: one Turbo source for the previews
   if (edited === "turbo_dit" && String(values.turbo_dit ?? "").trim()) setField(values, "turbo_lora", "");
   if (edited === "turbo_lora" && String(values.turbo_lora ?? "").trim()) setField(values, "turbo_dit", "");
-  // Krea 2: musubi refuses H2D-only block swap without gradient checkpointing
-  if (edited === "gradient_checkpointing" && !checked(values, edited)) setField(values, "block_swap_h2d_only", false);
+  // Krea 2: musubi refuses H2D-only block swap without gradient checkpointing; the checkpoint offloads
+  // are only read with it (a leftover one would still cancel blocks_to_swap)
+  if (edited === "gradient_checkpointing" && !checked(values, edited)) {
+    setField(values, "block_swap_h2d_only", false);
+    setField(values, "cpu_offload_checkpointing", false);
+    setField(values, "gradient_checkpointing_cpu_offload", false);
+  }
   if (edited === "block_swap_h2d_only" && checked(values, edited)) setField(values, "gradient_checkpointing", true);
 
   // activation_memory_budget spends VRAM for speed, the others save VRAM: the last edited one wins

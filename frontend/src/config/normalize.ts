@@ -287,6 +287,14 @@ export function normalizeTrainingConfig(config: TrainingConfig) {
 function normalizeConstraintCombinations(config: TrainingConfig) {
   if (config.compile_fullgraph) config.split_attn = false;
 
+  // Krea 2: H2D-only block swap needs gradient checkpointing (musubi refuses it otherwise); the
+  // checkpoint offloads are only read with it, and a leftover one would still cancel blocks_to_swap
+  if (!config.gradient_checkpointing) {
+    delete config.block_swap_h2d_only;
+    delete config.cpu_offload_checkpointing;
+    delete config.gradient_checkpointing_cpu_offload;
+  }
+
   if (config.blocks_to_swap) {
     config.cpu_offload_checkpointing = false;
     config.unsloth_offload_checkpointing = false;
@@ -296,8 +304,6 @@ function normalizeConstraintCombinations(config: TrainingConfig) {
   }
   // Krea 2: an imported config with both keeps int8 (config.py does the same)
   if (config.convrot_int8) delete config.fp8_base;
-  // Krea 2: H2D-only block swap needs gradient checkpointing (musubi refuses it otherwise)
-  if (!config.gradient_checkpointing) delete config.block_swap_h2d_only;
 
   // scheduler settings only for the scheduler that reads them (sd-scripts' warmup_stable_decay would
   // also take a restarts count left over from cosine_with_restarts as its decay shape)
