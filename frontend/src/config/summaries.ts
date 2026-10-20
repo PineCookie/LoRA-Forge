@@ -21,10 +21,15 @@ export function sectionSummary(section: MergedSectionId, values: FormValues): st
     case "model":
       add(fileName(values.pretrained_model_name_or_path) || t("summary.noModel"));
       break;
-    case "data":
+    case "dataset":
       add(fileName(values.train_data_dir));
       add(text(values.resolution).replace(",", "x"));
-      add(fileName(values.output_name));
+      if (values.enable_bucket === true) add(t("summary.buckets"));
+      break;
+    case "captions":
+      add(values.caption_extension);
+      if (values.shuffle_caption === true) add(t("summary.shuffled"));
+      if (Number(values.caption_dropout_rate) > 0) add(t("summary.dropout", { rate: text(values.caption_dropout_rate) }));
       break;
     case "training": {
       if (text(values.max_train_epochs)) add(t("summary.epochs", { count: text(values.max_train_epochs) }));
@@ -34,18 +39,33 @@ export function sectionSummary(section: MergedSectionId, values: FormValues): st
       add(isFieldVisible("prodigyplus_d_coef", values) ? t("summary.scheduleFree") : values.lr_scheduler);
       break;
     }
+    case "timesteps":
+      add(values.timestep_sampling);
+      if ("logit_mean" in values && isFieldVisible("logit_mean", values)) add(`${text(values.logit_mean)} / ${text(values.logit_std)}`);
+      add(values.loss_type);
+      break;
     case "network":
       add(short(values.network_module));
       if (text(values.network_dim)) add(t("summary.dimAlpha", { dim: text(values.network_dim), alpha: text(values.network_alpha) || "-" }));
       break;
-    case "preview":
-      add(values.enable_preview ? t("summary.previewEvery", { count: text(values.sample_every_n_epochs) || "1" }) : t("summary.off"));
+    case "saving":
+      add(fileName(values.output_name));
+      if (text(values.save_every_n_epochs)) add(t("summary.everyEpochs", { count: text(values.save_every_n_epochs) }));
+      add(values.save_precision);
       break;
-    case "speed":
+    case "preview":
+      add(values.enable_preview ? t("summary.everyEpochs", { count: text(values.sample_every_n_epochs) || "1" }) : t("summary.off"));
+      break;
+    case "memory":
       add(values.training_precision ?? values.mixed_precision);
-      if (values.compile === true) add(t("summary.compiled"));
       if (values.gradient_checkpointing === true) add(t("summary.checkpointing"));
       if (Number(values.blocks_to_swap) > 0) add(t("summary.swap", { count: text(values.blocks_to_swap) }));
+      break;
+    case "speed":
+      add(values.attn_mode);
+      if (values.sdpa === true) add("sdpa");
+      if (values.xformers === true) add("xformers");
+      if (values.compile === true) add(t("summary.compiled"));
       break;
   }
   return parts.join(" · ");

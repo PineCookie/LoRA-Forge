@@ -17,10 +17,14 @@ export interface Group {
 /** The sections of a trainer page, in page order; each holds some of layout.ts's sections. */
 export const MERGED_SECTIONS: { id: MergedSectionId; tone: Tone }[] = [
   { id: "model", tone: "model" },
-  { id: "data", tone: "data" },
+  { id: "dataset", tone: "data" },
+  { id: "captions", tone: "data" },
   { id: "training", tone: "optimize" },
+  { id: "timesteps", tone: "optimize" },
   { id: "network", tone: "network" },
+  { id: "saving", tone: "save" },
   { id: "preview", tone: "observe" },
+  { id: "memory", tone: "performance" },
   { id: "speed", tone: "performance" },
 ];
 

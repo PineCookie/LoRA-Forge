@@ -6,7 +6,7 @@ import { isEssential } from "../src/config/essentials";
 import { initialFormValues } from "../src/config/form";
 import { isFieldVisible } from "../src/config/visibility";
 import { parseRichText } from "../src/richText";
-import { groupTone, mergedSectionOf } from "../src/schema/groups";
+import { groupTone, MERGED_SECTIONS, mergedSectionOf } from "../src/schema/groups";
 import { FALLBACK_SECTION, SECTION_LAYOUT } from "../src/schema/layout";
 import { loadGroups, SCHEMA_NAMES } from "./helpers";
 
@@ -69,9 +69,18 @@ describe("essentials", () => {
   });
 });
 
-describe("merged Essentials sections", () => {
-  it("puts the dataset folder and outputs together", () => {
-    expect(["Dataset", "Saving", "Logging", "Captions"].map(mergedSectionOf)).toEqual(["data", "data", "data", "data"]);
+describe("trainer page sections", () => {
+  it("group related layout sections", () => {
+    expect(["Dataset", "Data augmentation", "Saving", "Logging", "Timesteps and loss", "Noise", "Precision", "Memory", "torch.compile"].map(mergedSectionOf)).toEqual([
+      "dataset", "dataset", "saving", "saving", "timesteps", "timesteps", "memory", "memory", "speed",
+    ]);
+    expect(SECTION_LAYOUT.filter((section) => !MERGED_SECTIONS.some((page) => page.id === section.merged))).toEqual([]);
+  });
+
+  it.each(SCHEMA_NAMES)("%s keeps every section short enough to scan", (name) => {
+    const counts = new Map<string, number>();
+    for (const group of loadGroups(name, ["GPU 0: A", "GPU 1: B"])) counts.set(mergedSectionOf(group.title), (counts.get(mergedSectionOf(group.title)) ?? 0) + group.fields.length);
+    expect([...counts].filter(([, count]) => count > 25)).toEqual([]);
   });
 });
 

@@ -6,8 +6,8 @@
 
 export type Tone = "general" | "model" | "data" | "save" | "optimize" | "network" | "observe" | "performance";
 
-/** The broader sections the Essentials view merges these into. */
-export type MergedSectionId = "model" | "data" | "training" | "network" | "preview" | "speed";
+/** The trainer page's sections; each holds one or more of the sections below. */
+export type MergedSectionId = "model" | "dataset" | "captions" | "training" | "timesteps" | "network" | "saving" | "preview" | "memory" | "speed";
 
 export interface SectionLayout {
   title: string;
@@ -30,7 +30,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
   {
     title: "Dataset",
     tone: "data",
-    merged: "data",
+    merged: "dataset",
     fields: [
       "train_data_dir", "reg_data_dir", "prior_loss_weight", "resolution", "enable_bucket", "bucket_reso_steps", "bucket_no_upscale",
       "min_bucket_reso", "max_bucket_reso",
@@ -39,14 +39,14 @@ export const SECTION_LAYOUT: SectionLayout[] = [
   {
     title: "Captions",
     tone: "data",
-    merged: "data",
+    merged: "captions",
     fields: [
       "caption_extension", "shuffle_caption", "keep_tokens", "keep_tokens_separator", "weighted_captions", "caption_dropout_rate",
       "caption_dropout_every_n_epochs", "caption_tag_dropout_rate", "max_token_length", "qwen3_max_token_length",
       "t5_max_token_length", "t5xxl_max_token_length", "no_token_padding",
     ],
   },
-  { title: "Data augmentation", tone: "data", merged: "data", fields: ["color_aug", "flip_aug", "random_crop"] },
+  { title: "Data augmentation", tone: "data", merged: "dataset", fields: ["color_aug", "flip_aug", "random_crop"] },
   {
     title: "Network",
     tone: "network",
@@ -83,18 +83,18 @@ export const SECTION_LAYOUT: SectionLayout[] = [
   {
     title: "Timesteps and loss",
     tone: "optimize",
-    merged: "training",
+    merged: "timesteps",
     fields: [
       "timestep_sampling", "logit_mean", "logit_std", "sigmoid_scale", "discrete_flow_shift", "model_prediction_type", "guidance_scale", "weighting_scheme",
       "min_timestep", "max_timestep", "loss_type", "huber_schedule", "huber_c", "min_snr_gamma", "debiased_estimation_loss",
       "show_timesteps_resolution", "show_timesteps_offset",
     ],
   },
-  { title: "Noise", tone: "optimize", merged: "training", fields: ["noise_offset", "multires_noise_iterations", "multires_noise_discount"] },
+  { title: "Noise", tone: "optimize", merged: "timesteps", fields: ["noise_offset", "multires_noise_iterations", "multires_noise_discount"] },
   {
     title: "Saving",
     tone: "save",
-    merged: "data",
+    merged: "saving",
     fields: ["output_name", "output_dir", "save_model_as", "save_precision", "save_every_n_epochs", "save_state", "save_last_n_epochs_state", "resume"],
   },
   {
@@ -106,17 +106,17 @@ export const SECTION_LAYOUT: SectionLayout[] = [
       "sample_height", "sample_cfg", "sample_steps", "sample_seed", "sample_sampler", "sample_every_n_epochs",
     ],
   },
-  { title: "Logging", tone: "observe", merged: "data", fields: ["log_with", "wandb_api_key", "logging_dir", "log_prefix", "log_tracker_name"] },
+  { title: "Logging", tone: "observe", merged: "saving", fields: ["log_with", "wandb_api_key", "logging_dir", "log_prefix", "log_tracker_name"] },
   {
     title: "Precision",
     tone: "performance",
-    merged: "speed",
+    merged: "memory",
     fields: ["training_precision", "fp16_accumulation", "mixed_precision", "full_precision", "convrot_int8", "convrot_int8_bwd", "fp8_base", "fp8_base_unet", "no_half_vae"],
   },
   {
     title: "Caching and VAE",
     tone: "performance",
-    merged: "speed",
+    merged: "memory",
     fields: [
       "cache_latents", "cache_latents_to_disk", "cache_text_encoder_outputs", "cache_text_encoder_outputs_to_disk",
       "text_encoder_batch_size", "vae_batch_size", "qwen_image_vae_2d", "vae_chunk_size", "vae_disable_cache",
@@ -125,7 +125,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
   {
     title: "Memory",
     tone: "performance",
-    merged: "speed",
+    merged: "memory",
     fields: [
       "gradient_checkpointing", "activation_memory_budget", "gradient_checkpointing_cpu_offload", "blocks_to_swap",
       "use_pinned_memory_for_block_swap", "block_swap_h2d_only", "cpu_offload_checkpointing", "unsloth_offload_checkpointing",

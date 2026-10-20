@@ -11,10 +11,26 @@ defineProps<{ section: MergedSectionId }>();
       <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
       <path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" />
     </template>
-    <template v-else-if="section === 'data'">
+    <template v-else-if="section === 'dataset'">
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <circle cx="9" cy="10" r="2" />
       <path d="M3 17l5-4 4 3 3-2 6 4" />
+    </template>
+    <template v-else-if="section === 'captions'">
+      <path d="M4 5h16v11H9l-5 4z" />
+      <path d="M8 9h8M8 12h5" />
+    </template>
+    <template v-else-if="section === 'timesteps'">
+      <circle cx="12" cy="13" r="8" />
+      <path d="M12 9v4l3 2M9 2h6" />
+    </template>
+    <template v-else-if="section === 'saving'">
+      <path d="M12 3v12M7 10l5 5 5-5" />
+      <path d="M4 17v3h16v-3" />
+    </template>
+    <template v-else-if="section === 'memory'">
+      <rect x="6" y="6" width="12" height="12" rx="1.5" />
+      <path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4" />
     </template>
     <template v-else-if="section === 'training'">
       <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />

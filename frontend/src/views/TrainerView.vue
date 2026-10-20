@@ -250,7 +250,7 @@ const checkpoints = computed(() => {
   const epochs = Number(values.value.max_train_epochs);
   return every > 0 && epochs > 0 ? Math.max(1, Math.floor(epochs / every)) : null;
 });
-const previews = computed(() => (values.value.enable_preview === true ? t("summary.previewEvery", { count: String(values.value.sample_every_n_epochs || 1) }) : t("summary.off")));
+const previews = computed(() => (values.value.enable_preview === true ? t("summary.everyEpochs", { count: String(values.value.sample_every_n_epochs || 1) }) : t("summary.off")));
 const learningRate = computed(() => {
   if (!("lr_scheduler" in values.value)) return "";
   if (isFieldVisible("prodigyplus_d_coef", values.value)) return t("summary.scheduleFree");
