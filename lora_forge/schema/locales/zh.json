@@ -8,7 +8,7 @@
   "ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. FLUX accepts multiples of 32": "ARB 分桶分辨率步长：图像会被调整到以该像素数为步长的尺寸，步长越小裁剪越少。FLUX 可用 32 的倍数",
   "ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. SD3.5 accepts multiples of 32": "ARB 分桶分辨率步长：图像会被调整到以该像素数为步长的尺寸，步长越小裁剪越少。SD3.5 可用 32 的倍数",
   "ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. Anima accepts multiples of 16; with compile_shapes = bounded more bucket sizes cost no extra compiles": "ARB 分桶分辨率步长：图像会被调整到以该像素数为步长的尺寸，步长越小裁剪越少。Anima 可用 16 的倍数；compile_shapes = bounded 时，更多分桶尺寸不会带来额外编译",
-  "Attention implementation. torch = PyTorch SDPA; xformers / flash need their library installed (flash-attn)": "Attention 实现。torch = PyTorch SDPA；xformers / flash 需安装对应库（flash-attn）",
+  "Attention implementation. auto = flash when flash-attn is installed and can run (a 16-bit run on an RTX 30 or newer), otherwise torch (PyTorch SDPA); xformers needs xformers": "Attention 实现。auto = 已安装 flash-attn 且可用时（16 位训练、RTX 30 系列或更新的显卡）使用 flash，否则使用 torch（PyTorch SDPA）；xformers 需安装 xformers",
   "Base model file": "底模文件路径",
   "Batch size": "批量大小",
   "Batch size for caching text encoder outputs; empty uses the dataset batch size": "缓存文本编码器输出时的批量大小，不填写则使用数据集 batch size",

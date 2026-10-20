@@ -3,6 +3,7 @@
 import importlib.util
 import os
 import random
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from glob import glob
@@ -10,7 +11,7 @@ from typing import Optional, Tuple
 
 import toml
 
-from lora_forge import musubi_tuner, sd_scripts
+from lora_forge import devices, musubi_tuner, sd_scripts
 from lora_forge.i18n import join_list, t
 from lora_forge.log import log
 from lora_forge.training import krea2, moss_image, validation
@@ -318,6 +319,26 @@ def apply_sdxl_speed(config: dict, model_train_type: str, environment: dict) -> 
         log.info("sdpa: the attention runs on flash-attn")
 
 
+def resolve_attn_mode(config: dict, gpu_ids) -> None:
+    """Anima's attn_mode = auto (the page's default): flash-attn when it can run, else PyTorch's SDPA (torch).
+    sd-scripts calls flash-attn without a fallback, so auto only picks it when it is installed, the run is
+    16-bit (flash-attn has no fp32 kernels) and every training GPU is an RTX 30 or newer (no Turing support)."""
+    if str(config.get("attn_mode", "")).strip().lower() != "auto":
+        return
+    indices = [int(match.group(1)) for gpu in gpu_ids or [] if (match := re.search(r"GPU\s+(\d+)", str(gpu)))] or [0]
+    gpus = devices.gpu_info()
+    if importlib.util.find_spec("flash_attn") is None:
+        reason = "flash-attn is not installed"
+    elif config.get("mixed_precision") not in ("fp16", "bf16"):
+        reason = "flash-attn has no fp32 kernels"
+    elif any(index < len(gpus) and gpus[index]["support"] != "ok" for index in indices):
+        reason = "flash-attn needs an RTX 30 series GPU or newer"
+    else:
+        reason = None
+    config["attn_mode"] = "torch" if reason else "flash"
+    log.info(f"attn_mode auto: PyTorch SDPA ({reason})" if reason else "attn_mode auto: flash-attn")
+
+
 def check_step_counts(config: dict) -> None:
     """sd-scripts and musubi-tuner read lr_warmup_steps / lr_decay_steps as a step count when it is an
     int and as a fraction of all steps when it is a float, so 1.5 would mean 150% of the run."""
@@ -354,6 +375,8 @@ def prepare_training(config: dict) -> PreparedRun:
     trainer_file = TRAINERS.get(model_train_type)
     if trainer_file is None:
         raise TrainingConfigError(t("run.unknownType", type=model_train_type))
+    if model_train_type == "anima-lora":  # Krea 2 and MOSS-Image resolve their own auto
+        resolve_attn_mode(config, gpu_ids)
 
     # LoRA-Forge's own options, applied by run_entry.py; sd-scripts never sees them.
     # compile_dynamic_seq is what the web UI sends for compile_shapes = bounded.

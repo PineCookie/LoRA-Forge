@@ -38,7 +38,7 @@ whether the file exists and is the right one (for example not the Qwen-Image 2.1
 
 | Option | |
 |---|---|
-| `attn_mode` | `torch` (PyTorch SDPA), `xformers` or `flash` (needs flash-attn, see [installing it](../README.md#flash-attn-optional)). Replaces the `xformers` / `sdpa` switches of other models |
+| `attn_mode` | `auto` (default): `flash` when [flash-attn](../README.md#flash-attn-optional) is installed and can run (a 16-bit run on an RTX 30 or newer), otherwise `torch` (PyTorch SDPA). Or choose `torch`, `xformers` or `flash` yourself. Replaces the `xformers` / `sdpa` switches of other models |
 | `split_attn` | saves VRAM only; cannot be combined with `compile_fullgraph` |
 | `timestep_sampling` | `sigma`, `uniform`, `sigmoid` (default), `shift`, `flux_shift` |
 | `discrete_flow_shift` | only used with `timestep_sampling = sigma` or `shift` |

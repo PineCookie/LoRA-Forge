@@ -140,7 +140,7 @@ Schema.intersect([
             cache_latents: Schema.boolean().default(true).description("Cache image latents (VAE outputs) to save VRAM"),
             cache_latents_to_disk: Schema.boolean().default(true).description("Cache image latents to disk"),
             // --xformers / --sdpa are overridden by --attn_mode, so only attn_mode is exposed
-            attn_mode: Schema.union(["torch", "xformers", "flash"]).default("torch").description("Attention implementation. torch = PyTorch SDPA; xformers / flash need their library installed (flash-attn)"),
+            attn_mode: Schema.union(["auto", "torch", "xformers", "flash"]).default("auto").description("Attention implementation. auto = flash when flash-attn is installed and can run (a 16-bit run on an RTX 30 or newer), otherwise torch (PyTorch SDPA); xformers needs xformers"),
             split_attn: Schema.boolean().default(false).description("Split attention per sample to save VRAM. Anima has no attention mask, so xformers is not required; cannot be combined with compile_fullgraph"),
             blocks_to_swap: Schema.number().min(0).step(1).description("Number of blocks swapped to the CPU (more saves VRAM but is slower). Cannot be combined with the cpu/unsloth offload options; checking either one clears this field"),
             cpu_offload_checkpointing: Schema.boolean().default(false).description("Offload gradient checkpoints to the CPU: less VRAM but slower. Cannot be combined with blocks_to_swap or unsloth offload"),

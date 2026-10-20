@@ -8,7 +8,7 @@
   "ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. FLUX accepts multiples of 32": "ARB バケット解像度のステップ：画像はこのピクセル数刻みのサイズに合わせられるため、ステップが小さいほど切り取りが減ります。FLUX は 32 の倍数が使えます",
   "ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. SD3.5 accepts multiples of 32": "ARB バケット解像度のステップ：画像はこのピクセル数刻みのサイズに合わせられるため、ステップが小さいほど切り取りが減ります。SD3.5 は 32 の倍数が使えます",
   "ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. Anima accepts multiples of 16; with compile_shapes = bounded more bucket sizes cost no extra compiles": "ARB バケット解像度のステップ：画像はこのピクセル数刻みのサイズに合わせられるため、ステップが小さいほど切り取りが減ります。Anima は 16 の倍数が使えます。compile_shapes = bounded なら、バケットサイズが増えてもコンパイルは増えません",
-  "Attention implementation. torch = PyTorch SDPA; xformers / flash need their library installed (flash-attn)": "Attention の実装。torch = PyTorch SDPA。xformers / flash は対応ライブラリ（flash-attn）が必要",
+  "Attention implementation. auto = flash when flash-attn is installed and can run (a 16-bit run on an RTX 30 or newer), otherwise torch (PyTorch SDPA); xformers needs xformers": "Attention の実装。auto = flash-attn がインストール済みで使えるとき（16 ビットの学習、RTX 30 シリーズ以降）は flash、それ以外は torch（PyTorch SDPA）。xformers には xformers が必要",
   "Base model file": "ベースモデルファイル",
   "Batch size": "バッチサイズ",
   "Batch size for caching text encoder outputs; empty uses the dataset batch size": "テキストエンコーダ出力キャッシュ時のバッチサイズ。空欄ならデータセットのバッチサイズを使用",

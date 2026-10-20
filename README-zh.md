@@ -160,7 +160,7 @@ LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开�
 
 ### flash-attn（可选）
 
-[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现（见 [训练速度](#训练速度)）。它默认不会安装。安装后，SDXL、Krea 2 和 MOSS-Image 页面会自动使用它；Anima 页面请选择 `attn_mode = flash`。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
+[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现（见 [训练速度](#训练速度)）。它默认不会安装。安装后，Anima、SDXL、Krea 2 和 MOSS-Image 页面会自动使用它。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
 
 ```sh
 uv sync --extra flash-attn

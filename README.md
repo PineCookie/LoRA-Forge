@@ -160,7 +160,7 @@ Together: an SDXL LoRA step went from 1.51 s (sd-scripts with SDPA) to 0.81 s wi
 
 ### flash-attn (optional)
 
-[flash-attn](https://github.com/Dao-AILab/flash-attention) is a faster attention implementation (see [Speed](#speed)). It is not installed by default. Once it is, the SDXL, Krea 2 and MOSS-Image pages use it automatically; on the Anima page choose it with `attn_mode = flash`. To install it, run this once in the LoRA Forge folder (Windows, or Linux on x86_64 or ARM):
+[flash-attn](https://github.com/Dao-AILab/flash-attention) is a faster attention implementation (see [Speed](#speed)). It is not installed by default. Once it is, the Anima, SDXL, Krea 2 and MOSS-Image pages use it automatically. To install it, run this once in the LoRA Forge folder (Windows, or Linux on x86_64 or ARM):
 
 ```sh
 uv sync --extra flash-attn

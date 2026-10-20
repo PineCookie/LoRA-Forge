@@ -35,7 +35,7 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 
 | 选项 | |
 |---|---|
-| `attn_mode` | `torch`（PyTorch SDPA）、`xformers` 或 `flash`（需要 flash-attn，[安装方法](../README-zh.md#flash-attn可选)）。取代其他模型的 `xformers` / `sdpa` 开关 |
+| `attn_mode` | `auto`（默认）：已安装 [flash-attn](../README-zh.md#flash-attn可选) 且可用时（16 位训练、RTX 30 系列或更新的显卡）使用 `flash`，否则使用 `torch`（PyTorch SDPA）。也可以手动选择 `torch`、`xformers` 或 `flash`。取代其他模型的 `xformers` / `sdpa` 开关 |
 | `split_attn` | 只省显存；不能与 `compile_fullgraph` 同时使用 |
 | `timestep_sampling` | `sigma`、`uniform`、`sigmoid`（默认）、`shift`、`flux_shift` |
 | `discrete_flow_shift` | 只在 `timestep_sampling = sigma` 或 `shift` 时使用 |
