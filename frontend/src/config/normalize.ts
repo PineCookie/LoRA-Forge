@@ -63,7 +63,7 @@ export const optimizerRules: OptimizerRule[] = [
       "weight_decay=0.01",
       "use_bias_correction=True",
       config.prodigy_d_coef !== undefined ? `d_coef=${config.prodigy_d_coef}` : null,
-      config.lr_warmup_steps ? "safeguard_warmup=True" : null,
+      config.lr_warmup_steps && config.lr_scheduler !== "constant" ? "safeguard_warmup=True" : null,
       config.prodigy_d0 ? `d0=${config.prodigy_d0}` : null,
     ],
   },
@@ -298,6 +298,12 @@ function normalizeConstraintCombinations(config: TrainingConfig) {
   if (config.convrot_int8) delete config.fp8_base;
   // Krea 2: H2D-only block swap needs gradient checkpointing (musubi refuses it otherwise)
   if (!config.gradient_checkpointing) delete config.block_swap_h2d_only;
+
+  // scheduler settings only for the scheduler that reads them (sd-scripts' warmup_stable_decay would
+  // also take a restarts count left over from cosine_with_restarts as its decay shape)
+  if (config.lr_scheduler === "constant") delete config.lr_warmup_steps;
+  if (config.lr_scheduler !== "cosine_with_restarts") delete config.lr_scheduler_num_cycles;
+  if (config.lr_scheduler !== "warmup_stable_decay") delete config.lr_decay_steps;
 
   // the VRAM-saving options win over activation_memory_budget (config.py ignores it with them)
   if (config.blocks_to_swap || config.cpu_offload_checkpointing || config.unsloth_offload_checkpointing) {

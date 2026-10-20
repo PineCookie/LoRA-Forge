@@ -86,7 +86,7 @@
   "Learning rate and optimizer": "学习率与优化器设置",
   "Learning rate per module, matched by regex (Anima). Format: pattern=lr,pattern=lr. Example: .*self_attn.*=1e-4,.*cross_attn.*=5e-5": "Anima 正则学习率控制，格式：pattern=lr,pattern=lr。例如：.*self_attn.*=1e-4,.*cross_attn.*=5e-5",
   "Learning rate scheduler": "学习率调度器设置",
-  "Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off. `constant` has no warmup; use `constant_with_warmup`": "学习率预热：填整数表示步数（100 = 前 100 步），小于 1 表示占总步数的比例（0.05 = 前 5%，会随训练长度变化）。0 = 关闭。`constant` 不支持预热，请改用 `constant_with_warmup`",
+  "Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off": "学习率预热：填整数表示步数（100 = 前 100 步），小于 1 表示占总步数的比例（0.05 = 前 5%，会随训练长度变化）。0 = 关闭",
   "Length of the decay at the end of `warmup_stable_decay`: a whole number of steps, or below 1 a fraction of all steps (0.2 = the last 20%). Between the warmup and the decay the learning rate stays at its full value": "`warmup_stable_decay` 末尾衰减阶段的长度：填整数表示步数，小于 1 表示占总步数的比例（0.2 = 最后 20%）。预热与衰减之间学习率保持完整值",
   "Learning rate weight of the U-Net mid block, 1 value": "U-Net 的 Mid 层分层学习率权重，共 1 层",
   "Learning rate weights of the U-Net decoder (up) blocks, 12 values": "U-Net 的 Decoder 层分层学习率权重，共 12 层",

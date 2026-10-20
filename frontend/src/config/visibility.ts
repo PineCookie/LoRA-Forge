@@ -1,7 +1,9 @@
 import type { FormValues } from "./form";
 
-// field -> [controlling field, value(s) for which the field is shown]
-const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = {
+// field -> [controlling field, value(s) for which the field is shown, or { not: value(s) it is hidden for }]
+type ShownFor = string | boolean | string[] | { not: string | string[] };
+
+const VISIBILITY_RULES: Record<string, [string, ShownFor]> = {
   prodigy_d0: ["optimizer_type", "Prodigy"],
   prodigy_d_coef: ["optimizer_type", "Prodigy"],
   prodigyplus_d_coef: ["optimizer_type", "prodigyplus.ProdigyPlusScheduleFree"],
@@ -36,6 +38,10 @@ const VISIBILITY_RULES: Record<string, [string, string | boolean | string[]]> = 
   // sd-scripts ignores both with bucket_no_upscale (it sizes each bucket from its image)
   min_bucket_reso: ["bucket_no_upscale", false],
   max_bucket_reso: ["bucket_no_upscale", false],
+  // sd-scripts and musubi-tuner refuse a warmup with `constant` (constant_with_warmup has one)
+  lr_warmup_steps: ["lr_scheduler", { not: "constant" }],
+  lr_scheduler_num_cycles: ["lr_scheduler", "cosine_with_restarts"],
+  lr_decay_steps: ["lr_scheduler", "warmup_stable_decay"],
   huber_schedule: ["loss_type", ["huber", "smooth_l1"]],
   huber_c: ["loss_type", ["huber", "smooth_l1"]],
   v2: ["model_train_type", ["sd-lora", "sd-dreambooth"]],
@@ -72,5 +78,6 @@ export function isFieldVisible(name: string, values: FormValues): boolean {
   const [controller, shownFor] = rule;
   if (!(controller in values)) return false;
   const current = String(values[controller]);
-  return (Array.isArray(shownFor) ? shownFor : [shownFor]).map(String).includes(current);
+  const listed = (value: string | boolean | string[]) => (Array.isArray(value) ? value : [value]).map(String).includes(current);
+  return typeof shownFor === "object" && !Array.isArray(shownFor) ? !listed(shownFor.not) : listed(shownFor);
 }

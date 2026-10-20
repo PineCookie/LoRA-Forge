@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { expandImportedArgs } from "../src/config/import";
 import { normalizeTrainingConfig, type TrainingConfig } from "../src/config/normalize";
 import { fromToml, toToml } from "../src/config/toml";
+import { isFieldVisible } from "../src/config/visibility";
 
 // form values -> export (normalizeTrainingConfig) -> TOML -> import (expandImportedArgs) -> form ->
 // submit must reproduce the export, and a later form edit must win.
@@ -108,6 +109,27 @@ describe("training_precision", () => {
     expect(expandImportedArgs({ mixed_precision: "bf16" }).training_precision).toBe("bf16");
     expect(expandImportedArgs({ full_bf16: true }).training_precision).toBe("full-bf16");
     expect(expandImportedArgs({ mixed_precision: "no" }).training_precision).toBe("fp32");
+  });
+});
+
+describe("lr_scheduler settings", () => {
+  it("sends the restarts count and the decay length only for their scheduler", () => {
+    const form = { lr_scheduler: "cosine", lr_scheduler_num_cycles: 3, lr_warmup_steps: 0.05, lr_decay_steps: 0.2 };
+    expect(submit(form)).toEqual({ lr_scheduler: "cosine", lr_warmup_steps: 0.05 });
+    expect(submit({ ...form, lr_scheduler: "cosine_with_restarts" })).toEqual({ lr_scheduler: "cosine_with_restarts", lr_scheduler_num_cycles: 3, lr_warmup_steps: 0.05 });
+    expect(submit({ ...form, lr_scheduler: "warmup_stable_decay" })).toEqual({ lr_scheduler: "warmup_stable_decay", lr_warmup_steps: 0.05, lr_decay_steps: 0.2 });
+  });
+
+  it("hides and drops the warmup for constant, which sd-scripts refuses with one", () => {
+    expect(isFieldVisible("lr_warmup_steps", { lr_scheduler: "constant" })).toBe(false);
+    expect(isFieldVisible("lr_warmup_steps", { lr_scheduler: "constant_with_warmup" })).toBe(true);
+    expect(submit({ lr_scheduler: "constant", lr_warmup_steps: 100 })).toEqual({ lr_scheduler: "constant" });
+    expect(submit({ optimizer_type: "Prodigy", lr_scheduler: "constant", lr_warmup_steps: 100 }).optimizer_args).not.toContain("safeguard_warmup=True");
+  });
+
+  it("keeps a fraction a float in the TOML", () => {
+    expect(toToml({ lr_warmup_steps: 0.05 })).toContain("lr_warmup_steps = 0.05");
+    expect(fromToml(toToml({ lr_warmup_steps: 0.05, lr_decay_steps: 100 }))).toEqual({ lr_warmup_steps: 0.05, lr_decay_steps: 100 });
   });
 });
 

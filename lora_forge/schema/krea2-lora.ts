@@ -56,7 +56,7 @@ Schema.intersect([
             optimizer_type: Schema.union(["AdamW8bit", "AdamW", "AdaFactor", "prodigyplus.ProdigyPlusScheduleFree"]).default("AdamW8bit").description("Optimizer"),
             learning_rate: Schema.number().min(0).default("1e-4").description("Learning rate; 1e-4 is the Krea 2 authors' starting point for rank 32"),
             lr_scheduler: Schema.union(["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "constant_with_warmup", "warmup_stable_decay"]).default("constant").description("Learning rate scheduler"),
-            lr_warmup_steps: Schema.number().min(0).default(0).description("Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off. `constant` has no warmup; use `constant_with_warmup`"),
+            lr_warmup_steps: Schema.number().min(0).default(0).description("Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off"),
             max_grad_norm: Schema.number().min(0).step(0.1).default(1.0).description("Max gradient norm for clipping, 0 = no clipping. sd-scripts default 1.0; 0 is recommended for adaptive optimizers such as Prodigy / ProdigyPlus (set automatically when you switch optimizers)"),
         }),
         Schema.union([

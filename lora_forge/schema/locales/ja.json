@@ -86,7 +86,7 @@
   "Learning rate and optimizer": "学習率とオプティマイザ",
   "Learning rate per module, matched by regex (Anima). Format: pattern=lr,pattern=lr. Example: .*self_attn.*=1e-4,.*cross_attn.*=5e-5": "正規表現でモジュールごとに学習率を指定（Anima）。形式：pattern=lr,pattern=lr。例：.*self_attn.*=1e-4,.*cross_attn.*=5e-5",
   "Learning rate scheduler": "学習率スケジューラ",
-  "Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off. `constant` has no warmup; use `constant_with_warmup`": "学習率のウォームアップ：整数ならステップ数（100 = 最初の 100 ステップ）、1 未満なら全ステップに対する割合（0.05 = 最初の 5%、学習の長さに合わせて変わります）。0 = オフ。`constant` にはウォームアップがないため、`constant_with_warmup` を使ってください",
+  "Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off": "学習率のウォームアップ：整数ならステップ数（100 = 最初の 100 ステップ）、1 未満なら全ステップに対する割合（0.05 = 最初の 5%、学習の長さに合わせて変わります）。0 = オフ",
   "Length of the decay at the end of `warmup_stable_decay`: a whole number of steps, or below 1 a fraction of all steps (0.2 = the last 20%). Between the warmup and the decay the learning rate stays at its full value": "`warmup_stable_decay` の最後の減衰区間の長さ：整数ならステップ数、1 未満なら全ステップに対する割合（0.2 = 最後の 20%）。ウォームアップと減衰の間は学習率が最大値のまま保たれます",
   "Learning rate weight of the U-Net mid block, 1 value": "U-Net の Mid 層の階層別学習率の重み。全 1 層",
   "Learning rate weights of the U-Net decoder (up) blocks, 12 values": "U-Net デコーダ（up）層の階層別学習率の重み。全 12 層",
