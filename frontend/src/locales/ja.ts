@@ -240,6 +240,7 @@ const ja: Messages = {
   "summary.steps": "{steps} ステップ",
   "summary.estimate": "前回の学習の速度で約 {time}（{run}、{speed} 秒/ステップ）",
   "summary.noEstimate": "このモデルの学習が一度終わると、所要時間の目安が表示されます。",
+  "summary.lowerBound": "これは下限です。サイズの異なるバケットで通常 1〜10% ほどステップが増えます。",
   "summary.noDataset": "データセットのフォルダを選ぶとステップ数を数えます。",
   "summary.dataset": "データセット",
   "summary.images": "{images} 枚 · 繰り返し込み {repeats} 枚",
@@ -271,25 +272,18 @@ const ja: Messages = {
   "summary.warmup": "ウォームアップ {steps}",
 
   "dataset.loading": "データセットを読み込み中…",
-  "dataset.title": "📊 ステップ数の見積もり",
-  "dataset.subfolder": "サブフォルダ",
-  "dataset.repeats": "繰り返し回数",
-  "dataset.images": "画像数",
-  "dataset.effectiveImages": "繰り返し込み",
-  "dataset.offset": "タイムステップオフセット",
+  "dataset.folders": "データセットのサブフォルダ",
+  "dataset.folderImages": "{count} 枚",
+  "dataset.aimFor": "目標ステップ数：",
+  "dataset.targetTitle": "{epochs} エポック ≈ {steps} ステップ",
   "dataset.offsetTitle": "負の値：低ノイズ/細部、正の値：高ノイズ/構図。0 なら従来どおりの動作です。",
   "dataset.offsetNote":
-    "タイムステップオフセット：負の値は低ノイズ（細部）、正の値は高ノイズ（構図）寄りになります。FLUX / Anima の学習でのみ使われ、0 なら従来どおりです。⚠ sd-scripts main（> v0.11.1）が必要で、古いバージョンでは無視されます。",
+    "サブフォルダごとにタイムステップのサンプリングをずらします（sd-scripts の `custom_attributes.timestep_sampling.offset`、データセット設定でサブセットごとに指定）。負の値は低ノイズ（細部）、正の値は高ノイズ（構図）寄りで、0 なら既定のままです。⚠ sd-scripts main（> v0.11.1）が必要で、古いバージョンでは無視されます。",
   "dataset.adviceSigmaUniform": "**アドバイス：**`sigma` / `uniform` ではオフセットは効果がありません。使う場合は `sigmoid` から始めてください。",
   "dataset.adviceShift":
     "**アドバイス：**`shift` / `flux_shift` はすでに高タイムステップ寄りです。**±0.25** から始め、正のオフセットは慎重に。まず「タイムステップ分布をプレビュー」で分布を確認してください。",
   "dataset.adviceDefault":
     "**おすすめの出発点：**`timestep_sampling=sigmoid`、`sigmoid_scale=1.0`。まずはすべて 0 のままにし、細部/アップのサブセットは **-0.25**、全身/構図のサブセットは **+0.25** を試してください。**±0.5** まで広げるのはプレビューを比較してからにしましょう。",
-  "dataset.noSubsets": "`繰り返し回数_名前` 形式のサブフォルダが見つかりません",
-  "dataset.bucketNote":
-    "⚠ これは**下限の見積もり**です（すべての画像が同じ解像度バケットに入ると仮定）。ARB はアスペクト比ごとに画像をバケットへ振り分け、バケットごとにバッチを組むため、実際のステップ数は少し多くなります（通常 +1%〜10%）。",
-  "dataset.suggestTitle": "💡 目標ステップ数に必要なエポック数（下限の見積もりから）",
-  "dataset.suggestion": "~{steps} ステップ：{epochs} エポック",
 
   "system.title": "システム情報",
   "system.tested": "検証済み",

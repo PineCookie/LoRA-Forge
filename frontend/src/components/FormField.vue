@@ -165,6 +165,8 @@ watch(description, () => nextTick(measure));
         <span>{{ note }}</span>
         <button type="button" @click="emit('undo')">{{ t("field.undo") }}</button>
       </div>
+      <!-- what the page shows for this option's value, e.g. the dataset's folders -->
+      <slot />
     </div>
   </div>
 </template>

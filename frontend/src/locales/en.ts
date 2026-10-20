@@ -241,6 +241,7 @@ const en = {
   "summary.steps": "{steps} steps",
   "summary.estimate": "≈ {time} at the speed of your last run ({run}, {speed} s/step)",
   "summary.noEstimate": "A time estimate appears once a run of this model has finished.",
+  "summary.lowerBound": "A lower bound: buckets of different sizes add about 1-10% more steps.",
   "summary.noDataset": "Pick a dataset folder to count the steps.",
   "summary.dataset": "Dataset",
   "summary.images": "{images} images · {repeats} with repeats",
@@ -272,25 +273,18 @@ const en = {
   "summary.warmup": "warmup {steps}",
 
   "dataset.loading": "Reading the dataset…",
-  "dataset.title": "📊 Step estimate",
-  "dataset.subfolder": "Subfolder",
-  "dataset.repeats": "Repeats",
-  "dataset.images": "Images",
-  "dataset.effectiveImages": "With repeats",
-  "dataset.offset": "Timestep offset",
+  "dataset.folders": "Dataset subfolders",
+  "dataset.folderImages": "{count} images",
+  "dataset.aimFor": "Aim for steps:",
+  "dataset.targetTitle": "{epochs} epochs = ≈ {steps} steps",
   "dataset.offsetTitle": "Negative: low noise / detail; positive: high noise / structure. 0 keeps the default behavior.",
   "dataset.offsetNote":
-    "Timestep offset: negative values favor low noise (detail), positive values high noise (structure). Only used for FLUX / Anima training; 0 keeps the default behavior. ⚠ Needs sd-scripts main (> v0.11.1); older versions silently ignore it.",
+    "Shifts the timestep sampling of one subfolder (sd-scripts' `custom_attributes.timestep_sampling.offset`, set per subset in the dataset config): negative values favor low noise (detail), positive values high noise (structure); 0 keeps the default. ⚠ Needs sd-scripts main (> v0.11.1); older versions silently ignore it.",
   "dataset.adviceSigmaUniform": "**Advice:** offsets have no effect with `sigma` / `uniform`. To use them, start from `sigmoid`.",
   "dataset.adviceShift":
     "**Advice:** `shift` / `flux_shift` already favor high timesteps. Start at **±0.25**, be careful with positive offsets, and check the distribution with **Preview timesteps** first.",
   "dataset.adviceDefault":
     "**Suggested start:** `timestep_sampling=sigmoid`, `sigmoid_scale=1.0`. Keep every offset at 0 first; try **-0.25** for detail / close-up subsets and **+0.25** for full-body / composition subsets. Only go up to **±0.5** after comparing previews.",
-  "dataset.noSubsets": "No subfolders in the `repeats_name` format found",
-  "dataset.bucketNote":
-    "⚠ These are **lower bounds**: they assume every image lands in one resolution bucket. ARB sorts images into buckets by aspect ratio and batches each bucket separately, so the real step count is a little higher (usually +1% to 10%).",
-  "dataset.suggestTitle": "💡 Epochs for a target step count (from the lower bound)",
-  "dataset.suggestion": "~{steps} steps: {epochs} epochs",
 
   "system.title": "System info",
   "system.tested": "tested",

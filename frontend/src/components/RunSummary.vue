@@ -54,6 +54,7 @@ const fmt = (n: number) => n.toLocaleString();
           {{ t("summary.estimate", { time: duration(estimate.seconds), speed: estimate.secondsPerStep.toFixed(2), run: estimate.from }) }}
         </div>
         <div v-else class="sub">{{ t("summary.noEstimate") }}</div>
+        <div class="sub faint">{{ t("summary.lowerBound") }}</div>
       </template>
       <div v-else class="sub">{{ t(datasetLoading ? "dataset.loading" : "summary.noDataset") }}</div>
       <dl>
@@ -141,6 +142,11 @@ h2 {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.sub.faint {
+  margin-top: 2px;
+  color: var(--faint);
 }
 
 dl {

@@ -3,7 +3,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, w
 import { useRoute } from "vue-router";
 import { api, postJson } from "../api";
 import ConfigDrawer from "../components/ConfigDrawer.vue";
-import DatasetStats from "../components/DatasetStats.vue";
+import DatasetFolders from "../components/DatasetFolders.vue";
+import EpochTargets from "../components/EpochTargets.vue";
 import FieldTree from "../components/FieldTree.vue";
 import FormField, { type FieldMessage } from "../components/FormField.vue";
 import FormSection from "../components/FormSection.vue";
@@ -12,6 +13,7 @@ import PageHeader from "../components/PageHeader.vue";
 import RunSummary, { type SpeedEstimate, type SummaryCheck } from "../components/RunSummary.vue";
 import SectionIndex from "../components/SectionIndex.vue";
 import TaskStatus from "../components/TaskStatus.vue";
+import TimestepOffsets from "../components/TimestepOffsets.vue";
 import { confirmAction } from "../composables/useConfirm";
 import { useConfigFile } from "../composables/useConfigFile";
 import { useDatasetInfo } from "../composables/useDatasetInfo";
@@ -24,6 +26,7 @@ import { isEssential } from "../config/essentials";
 import { formValueKey } from "../config/form";
 import { fieldHint, resolutionOf, stepCount, stepsPerEpoch, totalSteps } from "../config/hints";
 import { redactConfigForLog } from "../config/normalize";
+import { OFFSET_NAME } from "../config/offsets";
 import { sectionSummary } from "../config/summaries";
 import { conditionOf, isFieldVisible } from "../config/visibility";
 import { locale, t, tr } from "../i18n";
@@ -138,17 +141,41 @@ function conditionText(name: string) {
   return t(not ? "trainer.whenNot" : "trainer.whenEquals", { name: controller, values: list.join(" / ") });
 }
 
+// --- timestep offsets per dataset subfolder (FLUX / Anima) --------------------------------------------
+
+// Offsets belong to one dataset folder: drop them for another folder or for subfolders that no longer
+// exist (/api/run rejects unknown folders, and their inputs would be gone)
+watch(dataset.info, (result) => {
+  const dir = datasetDir.value.trim();
+  if (!result) {
+    if (!dir) offsets.value = { dir: null, values: {} };
+    return;
+  }
+  const names = new Set(result.subdirs.map((subdir) => subdir.name));
+  const kept = offsets.value.dir === dir ? Object.entries(offsets.value.values).filter(([name]) => names.has(name)) : [];
+  offsets.value = { dir, values: Object.fromEntries(kept) };
+});
+const offsetsAvailable = computed(() => supportsTimestepPreview && !!dataset.info.value?.subdirs.length);
+const offsetsSet = computed(() => Object.values(offsets.value.values).some((value) => Number(value) !== 0));
+// a row behind the section's "+ more", like the other tuning options; set offsets stay shown
+const offsetsShown = computed(() => {
+  if (!offsetsAvailable.value) return false;
+  if (query.value) return [OFFSET_NAME, t("dataset.offsetNote")].some((text) => text.toLowerCase().includes(query.value));
+  return isExpanded("timesteps") || offsetsSet.value;
+});
+
 const sections = computed<SectionView[]>(() =>
   pageSections.map((section) => {
     const names = section.fields.map((field) => field.name);
+    const offsetsHere = section.id === "timesteps" && offsetsAvailable.value;
     return {
       ...section,
       title: t(`trainer.merged.${section.id}`),
       summary: sectionSummary(section.id, values.value),
       edited: names.filter(form.isEdited).length,
-      more: names.filter((name) => shownExpanded.value.has(name) && !shown.value.has(name)).length,
+      more: names.filter((name) => shownExpanded.value.has(name) && !shown.value.has(name)).length + (offsetsHere && !offsetsShown.value ? 1 : 0),
       hiddenHits: query.value ? names.filter((name) => hits.value.has(name) && !isFieldVisible(name, values.value)).map((name) => ({ name, condition: conditionText(name) })) : [],
-      visible: !query.value || names.some(isShown) || names.some((name) => hits.value.has(name)),
+      visible: !query.value || names.some(isShown) || names.some((name) => hits.value.has(name)) || (offsetsHere && offsetsShown.value),
     };
   }),
 );
@@ -172,6 +199,7 @@ function groupNote(group: Group) {
 // --- what the page knows about the values ------------------------------------------------------------
 
 const imagesWithRepeats = computed(() => dataset.info.value?.total_images_with_repeats ?? null);
+const perEpoch = computed(() => stepsPerEpoch(values.value, imagesWithRepeats.value));
 const total = computed(() => totalSteps(values.value, imagesWithRepeats.value));
 
 const checks = computed(() =>
@@ -462,20 +490,22 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
                   @reset="form.resetField(field.name)"
                   @pick="pickPath(field.name, $event)"
                   @undo="form.undoCoupled()"
-                />
+                >
+                  <DatasetFolders v-if="field.name === 'train_data_dir'" :info="dataset.info.value" :loading="dataset.loading.value" />
+                  <EpochTargets
+                    v-if="field.name === 'max_train_epochs' && perEpoch"
+                    :steps-per-epoch="perEpoch"
+                    :epochs="String(values.max_train_epochs ?? '')"
+                    @set="form.setValue('max_train_epochs', $event)"
+                  />
+                </FormField>
               </template>
             </FieldTree>
             <ModelFiles v-if="group.group.title === 'Model' && !query" :schema-name="schemaName" :values="values" :states="fileStates" />
-            <DatasetStats
-              v-if="group.group.title === 'Dataset' && !query"
+            <TimestepOffsets
+              v-if="group.group.title === 'Timesteps and loss' && offsetsShown && dataset.info.value"
               v-model:offsets="offsets"
-              :dir="datasetDir"
               :info="dataset.info.value"
-              :loading="dataset.loading.value"
-              :error="dataset.error.value"
-              :batch-size="form.numberValue('train_batch_size')"
-              :grad-acc="form.numberValue('gradient_accumulation_steps')"
-              :supports-offsets="supportsTimestepPreview"
               :timestep-sampling="String(values.timestep_sampling ?? 'sigmoid')"
             />
           </template>
@@ -502,7 +532,7 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
       <RunSummary
         class="summary"
         :total-steps="total"
-        :steps-per-epoch="stepsPerEpoch(values, imagesWithRepeats)"
+        :steps-per-epoch="perEpoch"
         :epochs="String(values.max_train_epochs ?? '')"
         :images="dataset.info.value?.total_images ?? null"
         :images-with-repeats="imagesWithRepeats"
