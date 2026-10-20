@@ -27,7 +27,7 @@ watch(
 
 <style scoped>
 .confirm {
-  width: min(420px, calc(100vw - 32px));
+  width: min(420px, calc(var(--viewport-width) - 32px));
   padding: 20px;
   border: 1px solid var(--border);
   border-radius: var(--radius);

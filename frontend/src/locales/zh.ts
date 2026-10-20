@@ -5,6 +5,8 @@ const zh: Messages = {
   "app.loadFailed": "前端加载失败",
   "app.sourceCode": "源代码",
   "app.language": "语言",
+  "app.size": "大小",
+  "size.auto": "自动",
   "app.theme": "主题",
 
   "nav.lora": "LoRA 训练",

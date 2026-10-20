@@ -130,8 +130,8 @@ h3 {
 }
 
 .lightbox {
-  max-width: min(96vw, 1400px);
-  max-height: 96vh;
+  max-width: min(calc(var(--viewport-width) * 0.96), 1400px);
+  max-height: calc(var(--viewport-height) * 0.96);
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -152,7 +152,7 @@ h3 {
 .lightbox img {
   display: block;
   max-width: 100%;
-  max-height: calc(96vh - 52px);
+  max-height: calc(var(--viewport-height) * 0.96 - 52px);
   margin: 0 auto;
   object-fit: contain;
 }

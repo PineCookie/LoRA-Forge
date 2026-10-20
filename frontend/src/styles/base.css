@@ -186,6 +186,70 @@ input[type="checkbox"]:checked {
     center no-repeat;
 }
 
+/* a short choice as a row of buttons (role="radio" with aria-checked), e.g. training_precision,
+   the language and theme in the sidebar */
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.segmented button {
+  flex: 1 1 auto;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.segmented button:hover:not(:disabled) {
+  border: 0;
+  color: var(--text-strong);
+}
+
+.segmented button[aria-checked="true"] {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+/* related actions joined into one control, e.g. the trainer page's import / export buttons */
+.button-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.button-group > button,
+.button-group > .button {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.button-group > button:hover,
+.button-group > .button:hover {
+  border: 0;
+  background: var(--surface);
+  color: var(--text-strong);
+}
+
 /* --- shared blocks ------------------------------------------------------------------------ */
 
 .panel {

@@ -47,7 +47,7 @@ defineEmits<{ jump: [id: MergedSectionId]; expandAll: []; collapseAll: [] }>();
   display: grid;
   align-content: start;
   gap: 2px;
-  max-height: calc(100vh - var(--header-height) - 32px);
+  max-height: calc(var(--viewport-height) - var(--header-height) - 32px);
   overflow-y: auto;
 }
 

@@ -3,7 +3,7 @@
 #app {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
-  min-height: 100vh;
+  min-height: var(--viewport-height);
 }
 
 @media (max-width: 860px) {

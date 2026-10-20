@@ -48,9 +48,9 @@ function onDialogClick(event: MouseEvent) {
 .drawer {
   position: fixed;
   inset: 0 0 0 auto;
-  width: min(560px, 100vw);
+  width: min(560px, var(--viewport-width));
   max-width: none;
-  height: 100vh;
+  height: var(--viewport-height);
   max-height: none;
   margin: 0;
   padding: 0;
@@ -104,7 +104,7 @@ h3 {
 }
 
 .args {
-  max-height: 22vh;
+  max-height: calc(var(--viewport-height) * 0.22);
 }
 
 .arg {

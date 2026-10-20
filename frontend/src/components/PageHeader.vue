@@ -23,11 +23,11 @@ defineProps<{ title: string }>();
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px 16px;
+  gap: 8px 16px;
   min-height: var(--header-height);
-  padding: 12px 24px;
+  padding: 8px 24px;
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -39,7 +39,8 @@ defineProps<{ title: string }>();
 
 h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .actions {
@@ -47,5 +48,11 @@ h1 {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+/* header buttons a size smaller than the page's */
+.actions > :slotted(button) {
+  padding: 6px 12px;
+  font-size: 13.5px;
 }
 </style>

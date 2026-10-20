@@ -45,16 +45,17 @@ const routes: RouteRecordRaw[] = [
 ];
 
 // /lora/index.html is the home page under its old URL, so it is not listed
-export const navigation: { heading: { key: MessageKey }; items: { path: string; label: Label }[] }[] = [
+// each item shows a model's mark (pages.ts) or a line icon (AppSidebar)
+export const navigation: { heading: { key: MessageKey }; items: { path: string; label: Label; mark?: string; icon?: "runs" | "tensorboard" }[] }[] = [
   {
     heading: { key: "nav.train" },
-    items: TRAINER_PAGES.map((page) => ({ path: page.path, label: page.title })),
+    items: TRAINER_PAGES.map((page) => ({ path: page.path, label: page.title, mark: page.mark })),
   },
   {
     heading: { key: "nav.monitor" },
     items: [
-      { path: "/runs.html", label: { key: "nav.runs" } },
-      { path: "/tensorboard.html", label: { text: "Tensorboard" } },
+      { path: "/runs.html", label: { key: "nav.runs" }, icon: "runs" },
+      { path: "/tensorboard.html", label: { text: "Tensorboard" }, icon: "tensorboard" },
     ],
   },
 ];

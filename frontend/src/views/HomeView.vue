@@ -16,8 +16,6 @@ import { labelText } from "../router";
 
 interface ModelInfo {
   text: MessageKey;
-  /** short letters on the model's badge */
-  mark: string;
   /** a --tone-* color */
   tone: string;
   /** facts shown as chips on the featured cards: plain text or message keys */
@@ -25,15 +23,15 @@ interface ModelInfo {
 }
 
 const MODELS: Record<string, ModelInfo> = {
-  "anima-lora": { text: "home.mode.anima", mark: "An", tone: "network", facts: ["2B", { key: "home.fact.anime" }] },
-  "krea2-lora": { text: "home.mode.krea2", mark: "K2", tone: "optimize", facts: ["12.9B", { key: "home.fact.16gb" }] },
-  "moss-image-lora": { text: "home.mode.moss", mark: "Mo", tone: "data", facts: ["5B", { key: "home.fact.text" }, { key: "home.fact.new" }] },
-  "sdxl-lora": { text: "home.mode.sdxl", mark: "XL", tone: "model", facts: ["2.6B"] },
-  "flux-lora": { text: "home.mode.flux", mark: "F1", tone: "performance" },
-  "sd3-lora": { text: "home.mode.sd3", mark: "3.5", tone: "observe" },
-  "sd-lora": { text: "home.mode.sd15", mark: "1.5", tone: "general" },
-  "sdxl-finetune": { text: "home.mode.sdxlFinetune", mark: "XL", tone: "save" },
-  "sd-dreambooth": { text: "home.mode.sdDreambooth", mark: "DB", tone: "save" },
+  "anima-lora": { text: "home.mode.anima", tone: "network", facts: ["2B", { key: "home.fact.anime" }] },
+  "krea2-lora": { text: "home.mode.krea2", tone: "optimize", facts: ["12.9B", { key: "home.fact.16gb" }] },
+  "moss-image-lora": { text: "home.mode.moss", tone: "data", facts: ["5B", { key: "home.fact.text" }, { key: "home.fact.new" }] },
+  "sdxl-lora": { text: "home.mode.sdxl", tone: "model", facts: ["2.6B"] },
+  "flux-lora": { text: "home.mode.flux", tone: "performance" },
+  "sd3-lora": { text: "home.mode.sd3", tone: "observe" },
+  "sd-lora": { text: "home.mode.sd15", tone: "general" },
+  "sdxl-finetune": { text: "home.mode.sdxlFinetune", tone: "save" },
+  "sd-dreambooth": { text: "home.mode.sdDreambooth", tone: "save" },
 };
 
 const GROUPS: { title?: MessageKey; schemas: string[]; featured?: boolean }[] = [
@@ -47,7 +45,7 @@ const groups = GROUPS.map((group) => ({
   pages: group.schemas
     .map((schema) => TRAINER_PAGES.find((page) => page.schemaName === schema))
     .filter((page) => page !== undefined)
-    .map((page) => ({ path: page.path, title: labelText(page.title), ...MODELS[page.schemaName] })),
+    .map((page) => ({ path: page.path, title: labelText(page.title), mark: page.mark, ...MODELS[page.schemaName] })),
 }));
 
 const factText = (fact: string | { key: MessageKey }) => (typeof fact === "string" ? fact : t(fact.key));

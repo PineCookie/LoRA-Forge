@@ -20,7 +20,7 @@ import { dismissToast, toasts } from "../toast";
   z-index: 1000;
   display: grid;
   gap: 10px;
-  width: min(420px, calc(100vw - 32px));
+  width: min(420px, calc(var(--viewport-width) - 32px));
   pointer-events: none;
 }
 

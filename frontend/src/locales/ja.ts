@@ -5,6 +5,8 @@ const ja: Messages = {
   "app.loadFailed": "Web UI の読み込みに失敗しました",
   "app.sourceCode": "ソースコード",
   "app.language": "言語",
+  "app.size": "サイズ",
+  "size.auto": "自動",
   "app.theme": "テーマ",
 
   "nav.lora": "LoRA 学習",

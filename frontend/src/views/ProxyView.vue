@@ -32,7 +32,7 @@ const name = computed(() => labelText(route.meta.title));
 
 iframe {
   width: 100%;
-  height: calc(100vh - var(--header-height) - 40px);
+  height: calc(var(--viewport-height) - var(--header-height) - 40px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);

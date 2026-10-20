@@ -41,7 +41,7 @@ watch(
 <style scoped>
 .workspace {
   min-width: 0;
-  min-height: 100vh;
+  min-height: var(--viewport-height);
 }
 
 .state {

@@ -2,12 +2,14 @@
 import { RouterLink } from "vue-router";
 import logoUrl from "../../../assets/logo.svg";
 import { useTasks } from "../composables/useTasks";
-import { setTheme, THEME_CHOICES, themeChoice, type ThemeChoice } from "../composables/useTheme";
+import { setTheme, THEME_CHOICES, themeChoice } from "../composables/useTheme";
+import { setUiScale, UI_SCALE_CHOICES, uiScaleChoice } from "../composables/useUiScale";
 import { LOCALES, locale, setLocale, t, type Locale } from "../i18n";
 import { REPOSITORY } from "../links";
 import { labelText, navigation } from "../router";
 
 const { activeTask } = useTasks();
+const locales = Object.entries(LOCALES) as [Locale, string][];
 </script>
 
 <template>
@@ -21,25 +23,44 @@ const { activeTask } = useTasks();
       <section v-for="group in navigation" :key="group.heading.key">
         <h2>{{ t(group.heading.key) }}</h2>
         <RouterLink v-for="item in group.items" :key="item.path" :to="item.path" exact-active-class="active">
-          {{ labelText(item.label) }}
+          <span class="tile" aria-hidden="true">
+            <template v-if="item.mark">{{ item.mark }}</template>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path v-if="item.icon === 'runs'" d="M3 12h4l3-8 4 16 3-8h4" />
+              <path v-else d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+            </svg>
+          </span>
+          <span class="label">{{ labelText(item.label) }}</span>
           <span v-if="item.path === '/runs.html' && activeTask" class="running-dot" :title="t(`tasks.status.${activeTask.status}`)" />
         </RouterLink>
       </section>
     </nav>
 
     <div class="footer">
-      <label>
+      <div class="setting">
         <span>{{ t("app.language") }}</span>
-        <select :value="locale" @change="setLocale(($event.target as HTMLSelectElement).value as Locale)">
-          <option v-for="(name, code) in LOCALES" :key="code" :value="code">{{ name }}</option>
-        </select>
-      </label>
-      <label>
+        <div class="segmented" role="radiogroup" :aria-label="t('app.language')">
+          <button v-for="[code, name] in locales" :key="code" type="button" role="radio" :aria-checked="locale === code" @click="setLocale(code)">
+            {{ name }}
+          </button>
+        </div>
+      </div>
+      <div class="setting">
         <span>{{ t("app.theme") }}</span>
-        <select :value="themeChoice" @change="setTheme(($event.target as HTMLSelectElement).value as ThemeChoice)">
-          <option v-for="choice in THEME_CHOICES" :key="choice" :value="choice">{{ t(`theme.${choice}`) }}</option>
-        </select>
-      </label>
+        <div class="segmented" role="radiogroup" :aria-label="t('app.theme')">
+          <button v-for="choice in THEME_CHOICES" :key="choice" type="button" role="radio" :aria-checked="themeChoice === choice" @click="setTheme(choice)">
+            {{ t(`theme.${choice}`) }}
+          </button>
+        </div>
+      </div>
+      <div class="setting">
+        <span>{{ t("app.size") }}</span>
+        <div class="segmented" role="radiogroup" :aria-label="t('app.size')">
+          <button v-for="choice in UI_SCALE_CHOICES" :key="choice" type="button" role="radio" :aria-checked="uiScaleChoice === choice" @click="setUiScale(choice)">
+            {{ choice === "auto" ? t("size.auto") : `${Math.round(Number(choice) * 100)}%` }}
+          </button>
+        </div>
+      </div>
       <!-- AGPL-3.0 section 13: users of the UI over a network must be offered the source -->
       <p class="source">
         <a :href="REPOSITORY" target="_blank" rel="noopener">{{ t("app.sourceCode") }}</a>
@@ -55,8 +76,8 @@ const { activeTask } = useTasks();
   top: 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  padding: 18px 14px;
+  height: var(--viewport-height);
+  padding: 0 12px 16px;
   overflow-y: auto;
   border-right: 1px solid var(--border);
   background: var(--surface);
@@ -66,27 +87,25 @@ const { activeTask } = useTasks();
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 8px 20px;
-  font-size: 20px;
+  /* as tall as the page header, so the two line up */
+  min-height: var(--header-height);
+  margin: 0 -12px 14px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-strong);
+  font-size: 18px;
   font-weight: 700;
 }
 
-.brand span {
-  background: linear-gradient(90deg, #2563eb 0%, #0891b2 42%, #16a34a 76%, #ea580c 100%);
-  background-clip: text;
-  color: transparent;
-}
-
 .logo {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
-  box-shadow: var(--shadow-sm);
 }
 
 nav {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 nav section {
@@ -95,9 +114,9 @@ nav section {
 }
 
 h2 {
-  margin: 0 10px 4px;
-  color: var(--faint);
-  font-size: 11px;
+  margin: 0 10px 6px;
+  color: var(--muted);
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -106,23 +125,58 @@ h2 {
 nav a {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
+  gap: 11px;
+  padding: 6px 8px;
   border-radius: var(--radius-sm);
-  color: var(--muted);
+  color: var(--text);
+  font-size: 14.5px;
   font-weight: 500;
   transition: background 0.16s ease, color 0.16s ease;
 }
 
 nav a:hover {
   background: var(--surface-muted);
-  color: var(--text);
+  color: var(--text-strong);
 }
 
 nav a.active {
-  background: var(--primary-soft);
-  color: var(--primary-text);
-  font-weight: 700;
+  background: var(--surface-sunken);
+  color: var(--text-strong);
+  font-weight: 650;
+}
+
+.tile {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--surface-sunken);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+nav a:hover .tile {
+  background: var(--border);
+}
+
+.active .tile,
+nav a.active:hover .tile {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.tile svg {
+  width: 16px;
+  height: 16px;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
 }
 
 .running-dot {
@@ -135,35 +189,38 @@ nav a.active {
 
 .footer {
   display: grid;
-  gap: 10px;
-  margin: auto 8px 0;
+  gap: 12px;
+  margin: auto 4px 0;
   padding-top: 18px;
   color: var(--muted);
   font-size: 12px;
 }
 
-.footer label {
+.setting {
   display: grid;
-  gap: 4px;
+  gap: 5px;
 }
 
-.footer select {
-  padding: 5px 8px;
+.setting .segmented button {
+  padding: 4px 6px;
   font-size: 12px;
 }
 
 .source {
-  display: grid;
-  gap: 2px;
-  margin: 4px 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: var(--faint);
 }
 
 .source a {
+  color: var(--muted);
   text-decoration: underline;
 }
 
 .source a:hover {
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 @media (max-width: 860px) {
@@ -175,7 +232,7 @@ nav a.active {
   }
 
   nav section {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 
   h2 {

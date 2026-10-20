@@ -99,7 +99,7 @@ const advice = computed(() => {
   line-height: 1.45;
 }
 
-@media (max-width: 720px) {
+@container (max-width: 620px) {
   .offsets-row {
     grid-template-columns: minmax(0, 1fr);
   }

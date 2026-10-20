@@ -415,7 +415,7 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
       <template v-if="guide" #title>
         <a class="guide" :href="guideUrl(guide, locale)" target="_blank" rel="noopener">{{ t("trainer.guide") }} ↗</a>
       </template>
-      <div class="config-actions">
+      <div class="button-group config-actions">
         <label class="button">
           {{ t("trainer.import") }}
           <input type="file" accept=".json,.toml,application/json,text/plain" @change="onImport" />
@@ -571,7 +571,7 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
   gap: 24px;
   align-items: start;
   /* room below the last section, so sections near the end can still scroll to the top */
-  padding: 16px 24px 40vh;
+  padding: 16px 24px calc(var(--viewport-height) * 0.4);
 }
 
 .sections {
@@ -680,12 +680,7 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
 }
 
 .config-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-right: 10px;
-  padding-right: 16px;
-  border-right: 1px solid var(--border);
+  margin-right: 6px;
 }
 
 .config-actions input {
@@ -710,7 +705,7 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
 @media (max-width: 1000px) {
   .trainer {
     grid-template-columns: minmax(0, 1fr);
-    padding: 12px 16px 40vh;
+    padding: 12px 16px calc(var(--viewport-height) * 0.4);
   }
 
   .summary {

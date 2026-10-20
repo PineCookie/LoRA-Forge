@@ -255,7 +255,7 @@ watch(consoleOpen, () => (stickToBottom = true));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
-  max-height: calc(100vh - var(--header-height) - 40px);
+  max-height: calc(var(--viewport-height) - var(--header-height) - 40px);
   overflow-y: auto;
 }
 
@@ -475,7 +475,7 @@ watch(consoleOpen, () => (stickToBottom = true));
 }
 
 .output {
-  max-height: 60vh;
+  max-height: calc(var(--viewport-height) * 0.6);
   margin-top: 8px;
   white-space: pre;
   overflow-wrap: normal;

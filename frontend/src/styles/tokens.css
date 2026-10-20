@@ -6,7 +6,11 @@
   --font-mono: "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, Monaco, monospace;
   --radius: 8px;
   --radius-sm: 6px;
-  --header-height: 72px;
+  --header-height: 60px;
+  /* the UI's zoom (useUiScale) also scales vh / vw: these are the window's real size */
+  --ui-scale: 1;
+  --viewport-height: calc(100vh / var(--ui-scale));
+  --viewport-width: calc(100vw / var(--ui-scale));
 
   --bg: #f4f7fb;
   --surface: #ffffff;

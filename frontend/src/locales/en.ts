@@ -6,6 +6,8 @@ const en = {
   "app.loadFailed": "The web UI failed to load",
   "app.sourceCode": "Source code",
   "app.language": "Language",
+  "app.size": "Size",
+  "size.auto": "Auto",
   "app.theme": "Theme",
 
   "nav.lora": "LoRA training",

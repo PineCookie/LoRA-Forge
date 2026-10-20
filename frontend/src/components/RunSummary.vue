@@ -116,6 +116,7 @@ const fmt = (n: number) => n.toLocaleString();
 }
 
 .card {
+  container-type: inline-size;
   padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -273,5 +274,18 @@ dd {
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* a narrow panel: each value under its label, so long values are not cut mid-word */
+@container (max-width: 230px) {
+  dl {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  dd {
+    margin-bottom: 4px;
+    text-align: left;
+  }
 }
 </style>

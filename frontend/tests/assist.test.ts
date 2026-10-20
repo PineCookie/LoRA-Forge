@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { autoScale } from "../src/composables/useUiScale";
 import { locale } from "../src/i18n";
 import { blocksStart, formChecks } from "../src/config/checks";
 import { initialFormValues } from "../src/config/form";
@@ -83,6 +84,12 @@ describe("section summaries", () => {
     expect(sectionSummary("training", values)).toBe("10 epochs · batch 2 · AdamW8bit · 1e-4 · cosine");
     expect(sectionSummary("training", { ...values, optimizer_type: "prodigyplus.ProdigyPlusScheduleFree" })).toContain("ProdigyPlus · 1e-4 · schedule-free");
     expect(sectionSummary("model", { ...values, pretrained_model_name_or_path: "./sd-models/anima-base.safetensors" })).toBe("anima-base.safetensors");
+  });
+});
+
+describe("UI size", () => {
+  it("grows on wide windows only", () => {
+    expect([1280, 1920, 2560, 3840, 5120].map(autoScale)).toEqual([1, 1, 1.15, 1.4, 1.4]);
   });
 });
 

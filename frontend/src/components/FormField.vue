@@ -353,38 +353,6 @@ input.invalid {
   transform: translateX(18px);
 }
 
-.segmented {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-muted);
-}
-
-.segmented button {
-  flex: 1 1 auto;
-  padding: 5px 9px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.segmented button:hover {
-  color: var(--text-strong);
-}
-
-.segmented button[aria-checked="true"] {
-  background: var(--surface);
-  box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
-  color: var(--text-strong);
-  font-weight: 600;
-}
-
 .choices {
   display: flex;
   flex-wrap: wrap;
@@ -461,7 +429,8 @@ input.invalid {
   text-decoration: underline;
 }
 
-@media (max-width: 720px) {
+/* a narrow section (small window, side panels): the control goes under the name */
+@container (max-width: 620px) {
   .field {
     grid-template-columns: minmax(0, 1fr);
   }

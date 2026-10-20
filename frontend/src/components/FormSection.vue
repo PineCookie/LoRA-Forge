@@ -37,6 +37,8 @@ defineEmits<{ toggle: [] }>();
 
 <style scoped>
 .form-section {
+  /* option rows stack their control under the name when the section is narrow (FormField) */
+  container-type: inline-size;
   /* below the sticky page header and toolbar when jumped to */
   scroll-margin-top: calc(var(--header-height) + 64px);
   border: 1px solid var(--border);
