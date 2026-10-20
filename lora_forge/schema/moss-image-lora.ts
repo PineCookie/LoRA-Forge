@@ -19,6 +19,7 @@ Schema.intersect([
         enable_bucket: Schema.boolean().default(true).description("Enable ARB buckets so images can have different aspect ratios"),
         bucket_no_upscale: Schema.boolean().default(true).description("Give each image a bucket of its own aspect ratio: larger images are scaled down to the training resolution's pixel count, smaller ones keep their size"),
         caption_extension: Schema.string().default(".txt").description("Caption file extension. Each line of a caption file is one caption of its image, and each step trains on one of them at random: e.g. a full description on one line and a short one with the name on the next"),
+        caption_dropout_rate: Schema.number().min(0).max(0.5).step(0.01).default(0).description("Share of steps that train on an empty caption, so the LoRA also learns the empty prompt that CFG compares against. Helps a style apply everywhere (0.1 is common); for a character it can make it appear without its name. 0 = off"),
     }),
 
     // Saving
@@ -37,14 +38,21 @@ Schema.intersect([
         Schema.object({
             optimizer_type: Schema.union(["AdamW", "AdamW8bit", "AdaFactor", "prodigyplus.ProdigyPlusScheduleFree"]).default("AdamW").description("Optimizer"),
             learning_rate: Schema.number().min(0).default("1e-4").description("Learning rate; 1e-4 for AdamW / AdamW8bit at rank 32"),
-            lr_scheduler: Schema.union(["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "constant_with_warmup"]).default("constant").description("Learning rate scheduler"),
-            lr_warmup_steps: Schema.number().min(0).step(1).default(0).description('Learning rate warmup steps'),
+            lr_scheduler: Schema.union(["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "constant_with_warmup", "warmup_stable_decay"]).default("cosine").description("Learning rate scheduler. `cosine` lowers the learning rate toward 0 over the run, so late steps change the LoRA less; MOSS-Image LoRAs overtrained quickly at a constant rate in our tests. Schedule-free optimizers (ProdigyPlus) always run constant"),
+            lr_warmup_steps: Schema.number().min(0).default(0).description("Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off. `constant` has no warmup; use `constant_with_warmup`"),
             max_grad_norm: Schema.number().min(0).step(0.1).default(1.0).description("Max gradient norm for clipping, 0 = no clipping. sd-scripts default 1.0; 0 is recommended for adaptive optimizers such as Prodigy / ProdigyPlus (set automatically when you switch optimizers)"),
         }),
         Schema.union([
             Schema.object({
                 lr_scheduler: Schema.const('cosine_with_restarts'),
                 lr_scheduler_num_cycles: Schema.number().min(1).step(1).default(1).description('Number of restarts'),
+            }),
+            Schema.object({}),
+        ]),
+        Schema.union([
+            Schema.object({
+                lr_scheduler: Schema.const('warmup_stable_decay'),
+                lr_decay_steps: Schema.number().min(0).default(0.2).description("Length of the decay at the end of `warmup_stable_decay`: a whole number of steps, or below 1 a fraction of all steps (0.2 = the last 20%). Between the warmup and the decay the learning rate stays at its full value"),
             }),
             Schema.object({}),
         ]),

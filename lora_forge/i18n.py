@@ -102,6 +102,11 @@ MESSAGES: dict[str, dict[str, str]] = {
               "{works} を使うか、full_fp16 をオフにしてください（混合精度が fp16 なら重みは fp32 で学習します。"
               "Anima のページでは training_precision を fp16 に）。",
     },
+    "run.stepsOrFraction": {
+        "en": "{option} = {value} is neither a whole number of steps nor a fraction below 1 (0.05 = 5% of all steps).",
+        "zh": "{option} = {value} 既不是整数步数，也不是小于 1 的比例（0.05 = 总步数的 5%）。",
+        "ja": "{option} = {value} は整数のステップ数でも 1 未満の割合（0.05 = 全ステップの 5%）でもありません。",
+    },
     "run.weightedCaptions": {
         "en": "This training type does not support weighted_captions: only SD / SDXL implement weighted "
               "tokenization, and Anima / FLUX / SD3 ignore it or fail. Turn the option off and try again.",

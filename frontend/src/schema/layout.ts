@@ -74,7 +74,7 @@ export const SECTION_LAYOUT: SectionLayout[] = [
     fields: [
       "optimizer_type", "learning_rate", "unet_lr", "text_encoder_lr", "learning_rate_te", "train_text_encoder", "learning_rate_te1",
       "learning_rate_te2", "lr_scheduler",
-      "lr_scheduler_num_cycles", "lr_warmup_steps", "max_grad_norm",
+      "lr_scheduler_num_cycles", "lr_warmup_steps", "lr_decay_steps", "max_grad_norm",
       // the optimizer's own settings, shown for it
       "prodigy_d0", "prodigy_d_coef", "prodigyplus_d_coef", "prodigyplus_betas", "prodigyplus_schedulefree_c",
       "prodigyplus_prodigy_steps", "optimizer_args_custom",

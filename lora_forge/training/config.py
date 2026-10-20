@@ -318,6 +318,22 @@ def apply_sdxl_speed(config: dict, model_train_type: str, environment: dict) -> 
         log.info("sdpa: the attention runs on flash-attn")
 
 
+def check_step_counts(config: dict) -> None:
+    """sd-scripts and musubi-tuner read lr_warmup_steps / lr_decay_steps as a step count when it is an
+    int and as a fraction of all steps when it is a float, so 1.5 would mean 150% of the run."""
+    for key in ("lr_warmup_steps", "lr_decay_steps"):
+        value = config.get(key)
+        if value is None or value == "" or isinstance(value, bool):
+            continue
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            raise TrainingConfigError(t("run.stepsOrFraction", option=key, value=value)) from None
+        if number < 0 or (number >= 1 and not number.is_integer()):
+            raise TrainingConfigError(t("run.stepsOrFraction", option=key, value=value))
+        config[key] = int(number) if number >= 1 or number == 0 else number
+
+
 def prepare_training(config: dict) -> PreparedRun:
     """Validate a submitted config and write the TOML (and prompt / dataset files) for sd-scripts.
 
@@ -330,6 +346,7 @@ def prepare_training(config: dict) -> PreparedRun:
     toml_file = os.path.join(autosave_dir, f"{timestamp}.toml")
 
     validation.fix_config_types(config)
+    check_step_counts(config)
     subset_timestep_sampling_offsets = config.pop("subset_timestep_sampling_offsets", {})
     gpu_ids = config.pop("gpu_ids", None)
 

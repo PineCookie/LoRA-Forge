@@ -30,6 +30,9 @@ import moss_lora
 import moss_model
 import moss_sampling
 
+# the empty prompt's text-encoder output for caption dropout, cached in the dataset folder
+EMPTY_PROMPT_CACHE = "_moss_empty_prompt_te.safetensors"
+
 DEFAULTS = {
     "pretrained_model_name_or_path": "",
     "text_encoder": "",
@@ -40,6 +43,8 @@ DEFAULTS = {
     "enable_bucket": True,
     "bucket_no_upscale": True,
     "caption_extension": ".txt",
+    # share of steps that train on the empty prompt instead of the caption
+    "caption_dropout_rate": 0.0,
     "output_dir": "./output",
     "output_name": "moss_image_lora",
     "save_precision": "fp16",
@@ -59,7 +64,9 @@ DEFAULTS = {
     "learning_rate": 1e-4,
     "optimizer_args": [],
     "lr_scheduler": "constant",
+    # as in sd-scripts: a whole number is a step count, a value below 1 a fraction of all steps
     "lr_warmup_steps": 0,
+    "lr_decay_steps": 0,
     "lr_scheduler_num_cycles": 1,
     "lr_scheduler_power": 1.0,
     "max_grad_norm": 1.0,
@@ -224,7 +231,14 @@ class Trainer:
             print(f"LoRA-Forge: cached latents of {encoded} images", flush=True)
         self.free_memory()
         texts = [p["prompt"] for p in self.prompts] + [p["negative"] for p in self.prompts]
-        self.prompt_embeddings = moss_data.cache_text(items, texts, config["text_encoder"], self.device, config["tokenizer"])
+        self.caption_dropout = float(config["caption_dropout_rate"] or 0)
+        if not 0 <= self.caption_dropout < 1:
+            raise SystemExit(f"caption_dropout_rate must be at least 0 and below 1, not {self.caption_dropout}")
+        # caption dropout trains on the empty prompt, the one CFG's unconditional pass uses
+        empty_cache = os.path.join(config["train_data_dir"], EMPTY_PROMPT_CACHE) if self.caption_dropout else ""
+        self.prompt_embeddings = moss_data.cache_text(items, texts, config["text_encoder"], self.device, config["tokenizer"], empty_cache)
+        if self.caption_dropout:
+            print(f"LoRA-Forge: caption dropout {self.caption_dropout:g}: that share of steps trains on the empty prompt", flush=True)
         self.free_memory()
 
     def free_memory(self):
@@ -290,9 +304,28 @@ class Trainer:
         from diffusers.optimization import get_scheduler
 
         config = self.config
-        return get_scheduler(str(config["lr_scheduler"] or "constant"), self.optimizer,
-                             num_warmup_steps=int(config["lr_warmup_steps"] or 0), num_training_steps=self.total_steps,
+        name = str(config["lr_scheduler"] or "constant")
+        # schedule-free optimizers (ProdigyPlusScheduleFree) replace the schedule with their own averaging
+        if name != "constant" and callable(getattr(self.optimizer, "eval", None)):
+            print(f"LoRA-Forge: lr_scheduler {name} is not used with the schedule-free {type(self.optimizer).__name__}; "
+                  "the learning rate stays constant", flush=True)
+            name = "constant"
+        warmup = self.step_count("lr_warmup_steps")
+        if name == "warmup_stable_decay":  # not in diffusers; the transformers schedule sd-scripts and musubi use
+            from transformers.optimization import get_wsd_schedule
+
+            return get_wsd_schedule(self.optimizer, num_warmup_steps=warmup, num_decay_steps=self.step_count("lr_decay_steps"),
+                                    num_training_steps=self.total_steps)
+        return get_scheduler(name, self.optimizer, num_warmup_steps=warmup, num_training_steps=self.total_steps,
                              num_cycles=int(config["lr_scheduler_num_cycles"] or 1), power=float(config["lr_scheduler_power"] or 1.0))
+
+    def step_count(self, key: str) -> int:
+        """sd-scripts' convention for lr_warmup_steps / lr_decay_steps: a whole number counts steps, a value
+        below 1 is a fraction of all steps (0.05 = 5%)."""
+        value = float(self.config[key] or 0)
+        if value < 0 or (value >= 1 and not value.is_integer()):
+            raise SystemExit(f"{key} must be a whole number of steps or a fraction below 1, not {value:g}")
+        return int(value * self.total_steps) if value < 1 else int(value)
 
     # ------------------------------------------------------------ output
     def metadata(self, epoch: int, step: int) -> dict:
@@ -311,6 +344,8 @@ class Trainer:
             "ss_optimizer": config["optimizer_type"],
             "ss_lr_scheduler": config["lr_scheduler"],
             "ss_lr_warmup_steps": config["lr_warmup_steps"],
+            "ss_lr_decay_steps": config["lr_decay_steps"],
+            "ss_caption_dropout_rate": self.caption_dropout,
             "ss_num_train_images": len(self.items),
             "ss_num_batches_per_epoch": self.steps_per_epoch,
             "ss_num_epochs": self.epochs,
@@ -409,6 +444,8 @@ class Trainer:
             accumulated = 0.0
             for index, item in enumerate(order):
                 latent, hidden = moss_data.load_cached(item, random.randrange(len(item.captions)))
+                if self.caption_dropout and random.random() < self.caption_dropout:
+                    hidden = self.prompt_embeddings[""]
                 x0 = latent[None].to(self.device, torch.float32)
                 context = hidden[None].to(self.device)
                 sigma = moss_sampling.sample_sigma(self.generator, mean, std)

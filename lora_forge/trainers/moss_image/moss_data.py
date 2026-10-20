@@ -281,9 +281,12 @@ def _weights_file_list(path: str) -> list:
     return [path]
 
 
-def cache_text(items: list, prompts: list, text_encoder_path: str, device, tokenizer: str = "") -> dict:
+def cache_text(items: list, prompts: list, text_encoder_path: str, device, tokenizer: str = "", empty_cache: str = "") -> dict:
     """Encodes the captions whose cache is missing or stale, and the preview prompts (kept in memory,
-    returned as {text: hidden})."""
+    returned as {text: hidden}). With `empty_cache` (a file path), the empty prompt that caption
+    dropout trains with is cached there and returned as {"": hidden}, so a run with every caption
+    cached and no previews does not load the text encoder for it."""
+    from safetensors import safe_open
     from safetensors.torch import save_file
     from tqdm import tqdm
 
@@ -294,14 +297,21 @@ def cache_text(items: list, prompts: list, text_encoder_path: str, device, token
         if _cache_metadata(item.text_cache) != expected:
             todo.append((item, expected))
     prompts = sorted(set(prompts))
-    if not todo and not prompts:
-        return {}
-    encoder = TextEncoder(text_encoder_path, device, tokenizer)
-    for item, metadata in tqdm(todo, desc="caching text encoder outputs", smoothing=0):
-        tensors = {f"hidden_{i}": encoder.encode(caption) for i, caption in enumerate(item.captions)}
-        save_file(tensors, item.text_cache, metadata=metadata)
-    encoded = {prompt: encoder.encode(prompt) for prompt in prompts}
-    del encoder
+    empty_expected = {"format": CACHE_FORMAT, "captions": "[\"\"]", "text_encoder": model}
+    encode_empty = bool(empty_cache) and _cache_metadata(empty_cache) != empty_expected
+    encoded = {}
+    if todo or prompts or encode_empty:
+        encoder = TextEncoder(text_encoder_path, device, tokenizer)
+        for item, metadata in tqdm(todo, desc="caching text encoder outputs", smoothing=0):
+            tensors = {f"hidden_{i}": encoder.encode(caption) for i, caption in enumerate(item.captions)}
+            save_file(tensors, item.text_cache, metadata=metadata)
+        if encode_empty:
+            save_file({"hidden_0": encoder.encode("")}, empty_cache, metadata=empty_expected)
+        encoded = {prompt: encoder.encode(prompt) for prompt in prompts}
+        del encoder
+    if empty_cache and "" not in encoded:
+        with safe_open(empty_cache, framework="pt") as f:
+            encoded[""] = f.get_tensor("hidden_0")
     return encoded
 
 

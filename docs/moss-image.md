@@ -88,8 +88,23 @@ On an RTX 5070 Ti (16 GB) at about 1 megapixel, rank 32: **2.1 s per step** with
 ## Training settings
 
 The defaults: rank and alpha 32 on the attention and feed-forward layers of all 42 blocks (about
-74M parameters), AdamW at 1e-4, 10 epochs, and the report's timestep sampling (`logit_mean`
--1.09, `logit_std` 0.95). What our character runs (28 images, about 100 steps per epoch) showed:
+74M parameters), AdamW at 1e-4 with a cosine schedule, 10 epochs, and the report's timestep
+sampling (`logit_mean` -1.09, `logit_std` 0.95).
+
+- **Cosine schedule**: the learning rate falls toward 0 over the run, so late steps change the LoRA
+  less. ProdigyPlus is schedule-free and always runs constant. A warmup is off by default:
+  `lr_warmup_steps` takes a whole number of steps, or below 1 a fraction of all steps (0.05 = the
+  first 5%, which scales with the run's length), as in sd-scripts.
+- **Caption dropout** (`caption_dropout_rate`, off by default): a share of the steps trains on an
+  empty caption. With CFG every sampling step also runs the model on the negative prompt, empty by
+  default, and the result amplifies the difference between the two; dropout trains the LoRA for that
+  empty pass too, teaching it "empty prompt → images like the dataset". That helps a style apply
+  everywhere (0.1 is common); for a character it can make the character appear in prompts that do
+  not name it. The empty prompt's encoding is cached once in the dataset folder
+  (`_moss_empty_prompt_te.safetensors`).
+
+What our character runs (28 images, about 100 steps per epoch, constant learning rate and no
+caption dropout at the time) showed:
 
 - **In our runs it overtrained fast.** At 1e-4 and rank 32 a character was learned by about 200 steps
   and the result was best around 500-600 steps; from about 700 steps on, the all-layer LoRA broke

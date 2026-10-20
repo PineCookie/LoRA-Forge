@@ -164,8 +164,9 @@
                     "polynomial",
                     "constant",
                     "constant_with_warmup",
+                    "warmup_stable_decay",
                 ]).default("cosine_with_restarts").description("Learning rate scheduler"),
-                lr_warmup_steps: Schema.number().min(0).step(1).default(0).description('Learning rate warmup steps'),
+                lr_warmup_steps: Schema.number().min(0).default(0).description("Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off. `constant` has no warmup; use `constant_with_warmup`"),
                 max_grad_norm: Schema.number().min(0).step(0.1).default(1.0).description("Max gradient norm for clipping, 0 = no clipping. sd-scripts default 1.0; 0 is recommended for adaptive optimizers such as Prodigy / ProdigyPlus (set automatically when you switch optimizers)"),
             }),
 
@@ -173,6 +174,14 @@
                 Schema.object({
                     lr_scheduler: Schema.const('cosine_with_restarts'),
                     lr_scheduler_num_cycles: Schema.number().min(1).step(1).default(1).description('Number of restarts'),
+                }),
+                Schema.object({}),
+            ]),
+
+            Schema.union([
+                Schema.object({
+                    lr_scheduler: Schema.const('warmup_stable_decay'),
+                    lr_decay_steps: Schema.number().min(0).default(0.2).description("Length of the decay at the end of `warmup_stable_decay`: a whole number of steps, or below 1 a fraction of all steps (0.2 = the last 20%). Between the warmup and the decay the learning rate stays at its full value"),
                 }),
                 Schema.object({}),
             ]),
