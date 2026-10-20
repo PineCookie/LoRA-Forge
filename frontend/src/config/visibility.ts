@@ -74,6 +74,18 @@ export function controllerOf(name: string): string | undefined {
   return VISIBILITY_RULES[name]?.[0];
 }
 
+/** When a field is shown, for a search result that is hidden now: its controller, the values that
+ * show it, and whether those are the values that hide it instead ({ not: ... }). */
+export function conditionOf(name: string): { controller: string; values: string[]; not: boolean } | undefined {
+  const rule = VISIBILITY_RULES[name];
+  if (!rule) return undefined;
+  const [controller, shownFor] = rule;
+  const list = (value: string | boolean | string[]) => (Array.isArray(value) ? value : [value]).map(String);
+  return typeof shownFor === "object" && !Array.isArray(shownFor)
+    ? { controller, values: list(shownFor.not), not: true }
+    : { controller, values: list(shownFor), not: false };
+}
+
 /** Whether a field is shown for the current form values: its controller must match and be shown
  * itself (lokr_factor needs lycoris_algo = lokr AND network_module = lycoris.kohya). Hidden fields
  * are still submitted. */

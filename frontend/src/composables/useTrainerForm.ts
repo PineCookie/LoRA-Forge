@@ -1,4 +1,4 @@
-import { computed, effectScope, ref } from "vue";
+import { computed, effectScope, ref, toRaw } from "vue";
 import { formValueKey, initialFormValues, readForm, toFormValue, type FormValue, type FormValues } from "../config/form";
 import { EXPANDED_KEYS, expandImportedArgs } from "../config/import";
 import type { TrainingConfig } from "../config/normalize";
@@ -9,6 +9,15 @@ import { buildGroups, schemaOptions, type Group } from "../schema/groups";
 import { getSchema, store } from "../store";
 
 export type TrainerForm = ReturnType<typeof createTrainerForm>;
+
+export interface CoupledEdit {
+  /** the option the user changed */
+  field: string;
+  /** the options the rules changed with it */
+  changed: string[];
+  /** their values before, the edited option's included */
+  previous: FormValues;
+}
 
 // one form per page for the whole visit, so a page shows what was entered after going to the Runs
 // page or another model and back (a reload starts over; "Reset all" too)
@@ -44,13 +53,27 @@ function createTrainerForm(schemaName: string) {
     initialValues.value = structuredClone(next);
     offsets.value = { dir: null, values: {} };
     datasetRefresh.value += 1;
+    coupled.value = null;
   }
+
+  /** The other options the latest edit changed through the coupling rules (shown with an Undo). */
+  const coupled = ref<CoupledEdit | null>(null);
 
   /** A user edit: also applies the rules that couple fields. */
   function setValue(name: string, value: FormValue) {
+    const before = structuredClone(toRaw(values.value));
     values.value[name] = value;
     applyExclusiveRules(values.value, name);
     applyDependentValues(values.value);
+    const changed = Object.keys(values.value).filter((key) => key !== name && formValueKey(values.value[key]) !== formValueKey(before[key]));
+    coupled.value = changed.length ? { field: name, changed, previous: Object.fromEntries([name, ...changed].map((key) => [key, before[key]])) } : null;
+  }
+
+  /** Takes back the latest edit together with the options it changed. */
+  function undoCoupled() {
+    if (!coupled.value) return;
+    Object.assign(values.value, structuredClone(toRaw(coupled.value.previous)));
+    coupled.value = null;
   }
 
   /** Back to the value the page started with (coupled fields follow, as for an edit). */
@@ -90,6 +113,7 @@ function createTrainerForm(schemaName: string) {
     applyExclusiveRules(values.value, null); // full pass: fix constrained combinations from the file
     applyDependentValues(values.value);
     datasetRefresh.value += 1;
+    coupled.value = null;
     // gpu_ids depends on the machine: with one GPU the page has no picker, which is not worth a warning
     return Object.keys(imported).filter((name) => !fieldMap.has(name) && !EXPANDED_KEYS.has(name) && name !== "gpu_ids");
   }
@@ -126,8 +150,12 @@ function createTrainerForm(schemaName: string) {
     reset,
     resetField,
     setValue,
+    coupled,
+    undoCoupled,
     isEdited,
     editedCount,
+    /** the value an option starts with, as text */
+    initialText: (name: string) => initialKeys.value[name] ?? "",
     applyImported,
     runConfig,
     numberValue: (name: string) => parseInt(String(values.value[name] ?? ""), 10) || 1,

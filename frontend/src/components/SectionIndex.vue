@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { t } from "../i18n";
-import type { Tone } from "../schema/groups";
+import type { MergedSectionId } from "../schema/layout";
+import SectionIcon from "./SectionIcon.vue";
 
 export interface IndexItem {
-  id: string;
+  id: MergedSectionId;
   /** shown as is (already translated) */
   title: string;
-  tone: Tone;
   edited: number;
+  /** checks that hold back Start in this section */
+  blocking: number;
 }
 
 defineProps<{ items: IndexItem[]; active: string | null }>();
-defineEmits<{ jump: [id: string]; expandAll: []; collapseAll: [] }>();
+defineEmits<{ jump: [id: MergedSectionId]; expandAll: []; collapseAll: [] }>();
 </script>
 
 <template>
@@ -23,16 +25,16 @@ defineEmits<{ jump: [id: string]; expandAll: []; collapseAll: [] }>();
     </div>
     <button
       v-for="item in items"
-      class="item"
       :key="item.id"
+      class="item"
       type="button"
       :class="{ active: item.id === active }"
       :aria-current="item.id === active ? 'location' : undefined"
-      :style="{ '--accent': `var(--tone-${item.tone})` }"
       @click="$emit('jump', item.id)"
     >
-      <span class="dot" aria-hidden="true" />
+      <SectionIcon :section="item.id" />
       <span class="title">{{ item.title }}</span>
+      <span v-if="item.blocking" class="alert" :title="t('trainer.blockingTitle', { count: item.blocking })">!</span>
       <span v-if="item.edited" class="badge" :title="t('trainer.editedTitle', { count: item.edited })">{{ item.edited }}</span>
     </button>
   </nav>
@@ -44,7 +46,7 @@ defineEmits<{ jump: [id: string]; expandAll: []; collapseAll: [] }>();
   top: calc(var(--header-height) + 16px);
   display: grid;
   align-content: start;
-  gap: 1px;
+  gap: 2px;
   max-height: calc(100vh - var(--header-height) - 32px);
   overflow-y: auto;
 }
@@ -83,9 +85,9 @@ h2 {
 
 .item {
   justify-content: flex-start;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -102,17 +104,10 @@ h2 {
 }
 
 .item.active {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
   color: var(--text-strong);
   font-weight: 600;
-}
-
-.dot {
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
 }
 
 .title {
@@ -120,12 +115,23 @@ h2 {
   min-width: 0;
 }
 
-.badge {
+.badge,
+.alert {
+  min-width: 18px;
   padding: 0 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--edited) 18%, transparent);
-  color: var(--edited-text);
   font-size: 11px;
   font-weight: 700;
+  text-align: center;
+}
+
+.badge {
+  background: var(--primary-soft);
+  color: var(--primary-text);
+}
+
+.alert {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 </style>

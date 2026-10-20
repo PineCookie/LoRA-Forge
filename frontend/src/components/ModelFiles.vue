@@ -1,51 +1,18 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, watch } from "vue";
-import { api } from "../api";
+import { computed } from "vue";
+import type { FileStates } from "../composables/useModelFileStates";
 import type { FormValues } from "../config/form";
-import { MODEL_FILES, type ModelFileState } from "../config/modelFiles";
+import { MODEL_FILES } from "../config/modelFiles";
 import { isFieldVisible } from "../config/visibility";
 import { t } from "../i18n";
 import { huggingFaceFileUrl } from "../links";
 import { store } from "../store";
 import RichText from "./RichText.vue";
 
-const props = defineProps<{ schemaName: string; values: FormValues }>();
+const props = defineProps<{ schemaName: string; values: FormValues; states: FileStates }>();
 
-const DEBOUNCE_MS = 400;
 const specs = computed(() => MODEL_FILES[props.schemaName] ?? []);
-const states = reactive<Record<string, ModelFileState | "checking">>({});
-const timers = new Map<string, ReturnType<typeof setTimeout>>();
-// a newer path for the same field wins over an answer still on its way
-const latest = new Map<string, string>();
-
-function check(field: string, path: string) {
-  clearTimeout(timers.get(field));
-  latest.set(field, path);
-  if (!path) {
-    states[field] = "empty";
-    return;
-  }
-  states[field] = "checking";
-  timers.set(
-    field,
-    setTimeout(async () => {
-      try {
-        const query = new URLSearchParams({ model: props.schemaName, field, path });
-        const result = await api<{ state: ModelFileState }>(`/api/model_file?${query}`);
-        if (latest.get(field) === path) states[field] = result.state;
-      } catch {
-        if (latest.get(field) === path) states[field] = "unknown";
-      }
-    }, DEBOUNCE_MS),
-  );
-}
-
-watch(
-  () => specs.value.map((spec) => String(props.values[spec.field] ?? "").trim()),
-  (paths, previous) => specs.value.forEach((spec, index) => paths[index] !== previous?.[index] && check(spec.field, paths[index])),
-  { immediate: true },
-);
-onBeforeUnmount(() => timers.forEach((timer) => clearTimeout(timer)));
+const states = computed(() => props.states);
 
 // a file whose field is hidden (Krea 2's Turbo LoRA without previews) is not offered either
 const rows = computed(() =>
@@ -53,7 +20,7 @@ const rows = computed(() =>
     ...spec,
     name: spec.path.split("/").pop() ?? spec.path,
     url: huggingFaceFileUrl(store.runtime?.hf_endpoint, spec.repo, spec.path),
-    state: states[spec.field] ?? "empty",
+    state: states.value[spec.field] ?? "empty",
   })),
 );
 </script>
@@ -81,6 +48,7 @@ const rows = computed(() =>
 
 <style scoped>
 .model-files {
+  margin: 4px 16px 14px;
   padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);

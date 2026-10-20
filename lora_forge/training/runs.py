@@ -18,6 +18,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
+import toml
+
 from lora_forge.launcher import base_dir_path
 from lora_forge.log import log
 
@@ -256,6 +258,31 @@ def summary(run_id: str) -> dict:
             "graphs": state.graphs,
             "notices": list(state.notices.values()),
         }
+
+
+def recent_speed(model_train_type: str, min_steps: int = 20) -> Optional[dict]:
+    """The speed of the newest finished run of a model type, for the trainer page's time estimate:
+    seconds per step over the whole run (compile and caching excluded, the first steps included), and
+    the batch size and resolution it ran with (from its saved config), so the page can scale it."""
+    for info in list_runs():
+        if info.model_train_type != model_train_type or info.status != "finished" or info.preview:
+            continue
+        step = summary(info.id).get("step") or {}
+        if not step.get("rate") or (step.get("n") or 0) < min_steps:
+            continue
+        config = {}
+        try:
+            config = toml.load(info.config_file) if info.config_file else {}
+        except (OSError, ValueError, TypeError):
+            pass
+        return {
+            "run_id": info.id,
+            "output_name": info.output_name,
+            "seconds_per_step": 1 / step["rate"],
+            "train_batch_size": config.get("train_batch_size"),
+            "resolution": config.get("resolution"),
+        }
+    return None
 
 
 # --- console output ------------------------------------------------------------------------------

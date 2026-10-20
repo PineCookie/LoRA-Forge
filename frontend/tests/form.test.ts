@@ -5,6 +5,7 @@ import { compileShapesOf } from "../src/config/normalize";
 import { guideUrl, huggingFaceFileUrl } from "../src/links";
 import { applyDependentValues, applyExclusiveRules } from "../src/config/rules";
 import { isFieldVisible } from "../src/config/visibility";
+import { fieldTree, type FieldNode } from "../src/schema/fieldTree";
 import { loadGroups, SCHEMA_NAMES } from "./helpers";
 
 describe("schema groups", () => {
@@ -346,6 +347,24 @@ describe("visibility", () => {
       applyExclusiveRules(values, "gradient_checkpointing");
       expect(values[offload], schema).toBe(false);
     }
+  });
+
+  it("draws shown sub-options under their controller, nested, and others at their place", () => {
+    const groups = loadGroups("sdxl-lora");
+    const values = initialFormValues(groups);
+    Object.assign(values, { optimizer_type: "Prodigy", lr_scheduler: "warmup_stable_decay", network_module: "lycoris.kohya", lycoris_algo: "lokr" });
+    const shape = (nodes: FieldNode[]): unknown[] => nodes.map((node) => (node.children.length ? { [node.field.name]: shape(node.children) } : node.field.name));
+    const tree = (title: string) => shape(fieldTree(groups.find((group) => group.title === title)!.fields.filter((field) => isFieldVisible(field.name, values))));
+
+    const optimizer = tree("Learning rate and optimizer");
+    expect(optimizer).toContainEqual({ optimizer_type: ["prodigy_d0", "prodigy_d_coef"] });
+    expect(optimizer).toContainEqual({ lr_scheduler: ["lr_warmup_steps", "lr_decay_steps"] });
+    expect(optimizer).toContain("max_grad_norm");
+    expect(tree("Network")).toContainEqual({ network_module: [{ lycoris_algo: ["lokr_factor"] }, "conv_dim", "conv_alpha", "dropout", "train_norm"] });
+    // a controller missing from the list (another section, a search) leaves the field at its place
+    const anima = loadGroups("anima-lora");
+    const memory = anima.find((group) => group.title === "Memory")!.fields.filter((field) => isFieldVisible(field.name, initialFormValues(anima)));
+    expect(shape(fieldTree(memory))).toContain("activation_memory_budget");
   });
 
   it("shows the bucket side limits only without bucket_no_upscale, which makes sd-scripts ignore them", () => {

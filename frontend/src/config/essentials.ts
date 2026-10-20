@@ -1,8 +1,8 @@
 import { controllerOf } from "./visibility";
 
-// The options shown in the "Essentials" view, for every model; names a page does not have are
-// ignored. The trainer page also keeps every option the user edited, and a search looks through
-// all options, so nothing in effect is hidden.
+// The options a trainer page section shows from the start, for every model; names a page does not
+// have are ignored. The others are behind the section's "+ more"; the page also keeps every option
+// the user edited, and a search looks through all options, so nothing in effect is hidden.
 
 const ESSENTIAL_FIELDS = new Set([
   // model files
@@ -52,8 +52,8 @@ const ESSENTIAL_FIELDS = new Set([
   "compile",
 ]);
 
-// Sub-options of an essential option that stay under "All options": compile is on by default,
-// and its settings are for tuning, not for getting started.
+// Sub-options of an essential option that stay behind "+ more": compile is on by default, and its
+// settings are for tuning, not for getting started.
 const ADVANCED_FIELDS = new Set([
   "compile_backend",
   "compile_mode",
@@ -64,7 +64,7 @@ const ADVANCED_FIELDS = new Set([
 ]);
 
 /**
- * Whether an option belongs to Essentials: listed above, or a sub-option of one that is (shown
+ * Whether an option is shown without "+ more": listed above, or a sub-option of one that is (shown
  * only once that option turns it on, e.g. ProdigyPlus' settings, the preview prompts).
  */
 export function isEssential(name: string): boolean {

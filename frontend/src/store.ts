@@ -34,6 +34,8 @@ export const store = reactive({
   cards: [] as string[],
   /** collapsed form sections, kept while navigating between pages */
   collapsedSections: new Set<string>(),
+  /** form sections showing all their options ("+ more"), kept the same way */
+  expandedSections: new Set<string>(),
 });
 
 // evaluated schemas never change; keep them out of Vue's reactivity

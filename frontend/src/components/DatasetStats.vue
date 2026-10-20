@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, toRef, watch } from "vue";
-import { useDatasetInfo, type DatasetInfo } from "../composables/useDatasetInfo";
+import type { DatasetInfo } from "../composables/useDatasetInfo";
 import type { SubsetOffsets } from "../config/offsets";
 import { t } from "../i18n";
 import RichText from "./RichText.vue";
@@ -8,16 +8,17 @@ import RichText from "./RichText.vue";
 const offsets = defineModel<SubsetOffsets>("offsets", { required: true });
 const props = defineProps<{
   dir: string;
+  /** the folder's image counts (the page reads them once for the hints and the run summary) */
+  info: DatasetInfo | null;
+  loading: boolean;
+  error: string;
   batchSize: number;
   gradAcc: number;
-  epochs: number;
   supportsOffsets: boolean;
   timestepSampling: string;
-  /** bump to force a reload, e.g. after importing a config */
-  refreshKey: number;
 }>();
 
-const { info, loading, error } = useDatasetInfo(toRef(props, "dir"), toRef(props, "refreshKey"));
+const info = toRef(props, "info");
 
 // Offsets belong to one dataset folder: drop them for another folder or for subfolders that no
 // longer exist (/api/run rejects unknown folders, and their inputs would be gone from the table).
@@ -40,7 +41,6 @@ const effectiveBatch = computed(() => props.batchSize * props.gradAcc);
 // Lower bound: all images in one bucket -> ceil(total / batch). ARB buckets batch separately,
 // so the real count is a little higher.
 const stepsPerEpoch = computed(() => (info.value && effectiveBatch.value > 0 ? Math.ceil(info.value.total_images_with_repeats / effectiveBatch.value) : 0));
-const totalSteps = computed(() => stepsPerEpoch.value * props.epochs);
 const suggestions = computed(() =>
   [500, 1000, 1500, 2000, 3000].map((steps) => t("dataset.suggestion", { steps: steps.toLocaleString(), epochs: Math.max(1, Math.round(steps / stepsPerEpoch.value)) })),
 );
@@ -55,8 +55,7 @@ const advice = computed(() => {
 <template>
   <div class="dataset-stats wide">
     <span v-if="loading" class="state">{{ t("dataset.loading") }}</span>
-    <span v-else-if="error" class="state error">{{ t("dataset.error", { error }) }}</span>
-    <div v-else-if="info" class="panel-inner">
+    <div v-else-if="info && !error" class="panel-inner">
       <div class="title">{{ t("dataset.title") }}</div>
 
       <template v-if="info.subdirs.length">
@@ -96,14 +95,6 @@ const advice = computed(() => {
       </template>
       <RichText v-else class="note" tag="p" :text="t('dataset.noSubsets')" />
 
-      <dl class="summary">
-        <div><dt>{{ t("dataset.totalImages") }}</dt><dd>{{ info.total_images }}</dd></div>
-        <div><dt>{{ t("dataset.totalWithRepeats") }}</dt><dd>{{ info.total_images_with_repeats }}</dd></div>
-        <div><dt>{{ t("dataset.effectiveBatch") }}</dt><dd>{{ effectiveBatch }}</dd></div>
-        <div><dt>{{ t("dataset.stepsPerEpoch") }}</dt><dd>{{ stepsPerEpoch.toLocaleString() }}</dd></div>
-        <div class="total"><dt>{{ t("dataset.totalSteps", { epochs }) }}</dt><dd>{{ totalSteps.toLocaleString() }}</dd></div>
-      </dl>
-
       <template v-if="info.total_images_with_repeats > 0 && stepsPerEpoch > 0">
         <RichText class="bucket-note" tag="div" :text="t('dataset.bucketNote')" />
         <div class="suggestions">
@@ -116,14 +107,18 @@ const advice = computed(() => {
 </template>
 
 <style scoped>
+.dataset-stats {
+  margin: 4px 16px 14px;
+}
+
+.dataset-stats:empty {
+  display: none;
+}
+
 .state {
   color: var(--muted);
   font-size: 13px;
   font-style: italic;
-}
-
-.state.error {
-  color: var(--danger);
 }
 
 .panel-inner {
@@ -181,33 +176,6 @@ th {
   background: var(--info-soft);
   color: var(--info);
   font-size: 12px;
-}
-
-.summary {
-  display: grid;
-  gap: 2px;
-  margin: 0 0 8px;
-}
-
-.summary div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 2px 0;
-}
-
-.summary dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.summary .total {
-  margin-top: 2px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
-  color: var(--text-strong);
-  font-size: 14px;
-  font-weight: 700;
 }
 
 .bucket-note {

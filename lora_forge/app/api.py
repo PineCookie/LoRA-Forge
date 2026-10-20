@@ -162,6 +162,12 @@ async def list_runs() -> APIResponse:
     return APIResponseSuccess(data={"runs": await asyncio.to_thread(collect)})
 
 
+@router.get("/runs/speed")
+async def run_speed(model_train_type: str) -> APIResponse:
+    """The newest finished run's speed for a model type (null when there is none)."""
+    return APIResponseSuccess(data={"speed": await asyncio.to_thread(runs.recent_speed, model_train_type)})
+
+
 @router.get("/runs/{run_id}")
 async def get_run(run_id: str) -> APIResponse:
     def collect():

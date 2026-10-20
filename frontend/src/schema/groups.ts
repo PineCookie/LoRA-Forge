@@ -14,7 +14,7 @@ export interface Group {
   fields: Field[];
 }
 
-/** The broader sections the Essentials view merges the page's sections into, in page order. */
+/** The sections of a trainer page, in page order; each holds some of layout.ts's sections. */
 export const MERGED_SECTIONS: { id: MergedSectionId; tone: Tone }[] = [
   { id: "model", tone: "model" },
   { id: "data", tone: "data" },
@@ -24,7 +24,7 @@ export const MERGED_SECTIONS: { id: MergedSectionId; tone: Tone }[] = [
   { id: "speed", tone: "performance" },
 ];
 
-/** The Essentials section a page section belongs to. */
+/** The trainer page section a layout section belongs to. */
 export function mergedSectionOf(title: string): MergedSectionId {
   return sectionByTitle(title).merged;
 }
