@@ -101,8 +101,11 @@ describe("typical Anima config", () => {
 
   it("keeps most of what such a run changes in Essentials", () => {
     const changed = [...fields.keys()].filter((name) => formValueKey(values[name]) !== formValueKey(defaults[name]));
-    // set automatically by the optimizer rule, or rarely changed on purpose
+    // set automatically by the optimizer rule (ProdigyPlus: max_grad_norm, unet_lr, text_encoder_lr), or
+    // rarely changed on purpose; edited options stay shown anyway
     const outside = changed.filter((name) => !isEssential(name)).sort();
-    expect(outside).toEqual(["bucket_reso_steps", "logging_dir", "max_grad_norm", "min_bucket_reso", "network_reg_lrs"]);
+    expect(outside).toEqual([
+      "bucket_reso_steps", "keep_tokens", "logging_dir", "max_grad_norm", "min_bucket_reso", "network_reg_lrs", "seed", "text_encoder_lr", "unet_lr",
+    ]);
   });
 });

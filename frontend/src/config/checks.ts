@@ -77,6 +77,17 @@ export function formChecks({ schemaName, values, datasetError, datasetSubfolders
     checks.push({ field: precisionField, level: "warn", key: "check.fullFp16Degraded", params: { optimizer: text(values.optimizer_type) } });
   }
 
+  // sd-scripts refuses cached text encoder outputs for captions that change per step (an import can
+  // bring both; in the form, rules.ts switches one off)
+  if (values.cache_text_encoder_outputs === true) {
+    const varying = [
+      values.shuffle_caption === true && "shuffle_caption",
+      number(values.caption_tag_dropout_rate) > 0 && "caption_tag_dropout_rate",
+      number(values.caption_dropout_rate) > 0 && schemaName !== "anima-lora" && "caption_dropout_rate",
+    ];
+    for (const field of varying) if (field) checks.push({ field, level: "error", key: "check.textEncoderCache" });
+  }
+
   if (number(values.network_alpha) > number(values.network_dim)) checks.push({ field: "network_alpha", level: "warn", key: "check.alphaAboveDim" });
   if (number(values.save_every_n_epochs) > number(values.max_train_epochs)) checks.push({ field: "save_every_n_epochs", level: "warn", key: "check.saveEvery" });
 

@@ -82,7 +82,7 @@ Schema.intersect([
                 "constant",
                 "constant_with_warmup",
                 "warmup_stable_decay",
-            ]).default("cosine_with_restarts").description("Learning rate scheduler"),
+            ]).default("cosine").description("Learning rate scheduler"),
             lr_warmup_steps: Schema.number().min(0).default(0).description("Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off"),
         }),
 

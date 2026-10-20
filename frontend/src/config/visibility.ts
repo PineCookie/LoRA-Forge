@@ -41,6 +41,11 @@ const VISIBILITY_RULES: Record<string, [string, ShownFor]> = {
   // sd-scripts and musubi-tuner refuse a warmup with `constant` (constant_with_warmup has one)
   lr_warmup_steps: ["lr_scheduler", { not: "constant" }],
   lr_scheduler_num_cycles: ["lr_scheduler", "cosine_with_restarts"],
+  // the text encoder's rate only matters while it trains
+  text_encoder_lr: ["network_train_unet_only", false],
+  // sd-scripts (FLUX, Anima) and musubi-tuner (Krea 2) read these only for these samplings
+  sigmoid_scale: ["timestep_sampling", ["sigmoid", "shift", "flux_shift", "krea2_shift"]],
+  discrete_flow_shift: ["timestep_sampling", ["shift", "sigma"]],
   lr_decay_steps: ["lr_scheduler", "warmup_stable_decay"],
   huber_schedule: ["loss_type", ["huber", "smooth_l1"]],
   huber_c: ["loss_type", ["huber", "smooth_l1"]],

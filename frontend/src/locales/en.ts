@@ -236,6 +236,7 @@ const en = {
   "check.stepsOrFraction": "A whole number of steps, or a fraction below 1 (0.05 = 5%)",
   "check.fullFp16Optimizer": "{optimizer} does not train with fp16 weights: use fp16 (LoRA weights in fp32) or AdamW8bit",
   "check.fullFp16Degraded": "{optimizer} loses small updates in fp16 weights; AdamW8bit does not",
+  "check.textEncoderCache": "Captions that change every step cannot use cached text encoder outputs: turn off cache_text_encoder_outputs",
   "check.alphaAboveDim": "Above network_dim, alpha scales the LoRA up; alpha ≤ dim is usual",
   "check.saveEvery": "More than the epochs: only the final LoRA is saved",
 

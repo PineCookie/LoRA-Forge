@@ -10,13 +10,13 @@ Schema.intersect([
     }),
 
     Schema.object({
-        timestep_sampling: Schema.union(["sigma", "uniform", "sigmoid", "shift"]).default("sigmoid").description("Timestep sampling"),
+        timestep_sampling: Schema.union(["sigma", "uniform", "sigmoid", "shift", "flux_shift"]).default("flux_shift").description("Timestep sampling. `flux_shift` shifts toward high noise by the image size, as FLUX.1 dev samples (sd-scripts' example); Chroma uses `sigmoid`"),
         show_timesteps_resolution: Schema.string().default("1024").description("Image size the timestep preview assumes, as `H` or `H,W`; only flux_shift uses it"),
         show_timesteps_offset: Schema.number().step(0.01).default(0.0).description("Timestep offset for the preview only; no effect with sigma/uniform. ⚠ Needs sd-scripts main (> v0.11.1)"),
         sigmoid_scale: Schema.number().step(0.001).default(1.0).description("Sigmoid scale"),
         model_prediction_type: Schema.union(["raw", "additive", "sigma_scaled"]).default("raw").description("Model prediction type"),
         discrete_flow_shift: Schema.number().min(0).step(0.001).default(1.0).description("Discrete flow shift of the Euler scheduler"),
-        guidance_scale: Schema.number().min(0).step(0.01).default(1.0).description("CFG guidance scale"),
+        guidance_scale: Schema.number().min(0).step(0.01).default(1.0).description("Guidance scale given to the model while training: 1.0 for FLUX.1 dev, 0 for Chroma (not guidance-distilled)"),
         t5xxl_max_token_length: Schema.number().min(1).step(1).description("T5XXL max token length (empty = automatic)"),
         train_t5xxl: Schema.boolean().default(false).description("Train T5XXL (not recommended)"),
         // apply attention mask to T5-XXL encode and FLUX double blocks
@@ -37,7 +37,7 @@ Schema.intersect([
     SHARED_SCHEMAS.SAVE_SETTINGS,
 
     Schema.object({
-        max_train_epochs: Schema.number().min(1).step(1).default(20).description("Maximum training epochs"),
+        max_train_epochs: Schema.number().min(1).step(1).default(10).description("Maximum training epochs"),
         train_batch_size: Schema.number().min(1).step(1).default(1).description("Batch size; higher uses more VRAM"),
         gradient_checkpointing: Schema.boolean().default(true).description("Gradient checkpointing"),
         gradient_accumulation_steps: Schema.number().min(1).step(1).default(1).description("Gradient accumulation steps"),
@@ -55,7 +55,7 @@ Schema.intersect([
         Schema.object({
             network_module: Schema.union(["networks.lora_flux", "networks.oft_flux", "lycoris.kohya"]).default("networks.lora_flux").description("Network module to train"),
             network_weights: Schema.string().role('filepicker').description("Continue training from an existing LoRA: enter its path"),
-            network_dim: Schema.number().min(1).step(1).default(2).description("Network dimension, commonly 4-128. Bigger is not always better; a lower dim uses less VRAM"),
+            network_dim: Schema.number().min(1).step(1).default(16).description("Network dimension, commonly 4-128. Bigger is not always better; a lower dim uses less VRAM"),
             network_alpha: Schema.number().min(1).default(16).description("Common values: equal to network_dim, network_dim/2, or 1. A smaller alpha needs a higher learning rate"),
             network_dropout: Schema.number().min(0).max(1).step(0.01).default(0).description('Dropout probability (not compatible with LyCORIS; use LyCORIS\' own dropout)'),
             scale_weight_norms: Schema.number().step(0.01).min(0).description("Max-norm regularization. If used, 1 is recommended"),
@@ -70,8 +70,30 @@ Schema.intersect([
         SHARED_SCHEMAS.NETWORK_OPTION_BASEWEIGHT,
     ]),
 
-    // Preview images
-    SHARED_SCHEMAS.PREVIEW_IMAGE,
+    // Preview images: FLUX samples with its own Euler sampler (no sampler choice), and FLUX.1 dev is
+    // guidance-distilled, so CFG stays 1 (one pass with the embedded guidance 3.5) unless the model needs it
+    Schema.intersect([
+        Schema.object({
+            enable_preview: Schema.boolean().default(false).description("Generate preview images during training"),
+        }),
+
+        Schema.union([
+            Schema.object({
+                enable_preview: Schema.const(true).required(),
+                randomly_choice_prompt: Schema.boolean().default(false).description("Use a random caption from the dataset as the preview prompt"),
+                prompt_file: Schema.string().role('textarea').description("Preview prompt file. When set, the prompts in the file are used and the options below are ignored."),
+                positive_prompts: Schema.string().role('textarea').default("masterpiece, best quality, 1girl, solo").description("Prompt"),
+                negative_prompts: Schema.string().role('textarea').default("lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry").description("Negative prompt; only used with sample_cfg above 1"),
+                sample_width: Schema.number().min(64).step(16).default(1024).description("Preview width"),
+                sample_height: Schema.number().min(64).step(16).default(1024).description("Preview height"),
+                sample_cfg: Schema.number().min(1).max(30).default(1).description("CFG scale. 1 = off: FLUX.1 dev is guidance-distilled and samples in one pass with its embedded guidance (3.5); above 1 adds a negative-prompt pass and doubles the time. Chroma is not distilled and needs about 4"),
+                sample_seed: Schema.number().min(0).step(1).default(2333).description("Seed"),
+                sample_steps: Schema.number().min(1).max(300).default(20).description("Sampling steps"),
+                sample_every_n_epochs: Schema.number().min(1).step(1).default(2).description("Generate preview images every N epochs"),
+            }),
+            Schema.object({}),
+        ]),
+    ]),
 
     // Logging
     SHARED_SCHEMAS.LOG_SETTINGS,
@@ -100,6 +122,7 @@ Schema.intersect([
         UpdateSchema(SHARED_SCHEMAS.RAW.PRECISION_CACHE_BATCH, {
             fp8_base: Schema.boolean().default(true).description("Use FP8 precision for the base model"),
             fp8_base_unet: Schema.boolean().description("Use FP8 precision for the U-Net only (not CLIP-L)"),
+            blocks_to_swap: Schema.number().min(0).max(35).step(1).description("Blocks kept in RAM and moved to the GPU when used (up to 35): less VRAM, slower. sd-scripts' guide: use it on 16 GB cards, 16 on 12 GB, 22 on 10 GB, 28 on 8 GB"),
             sdpa: Schema.boolean().default(true).description("Enable SDPA"),
             cache_text_encoder_outputs: Schema.boolean().default(true).description("Cache text encoder outputs to save VRAM. Needs shuffle_caption off"),
             cache_text_encoder_outputs_to_disk: Schema.boolean().default(true).description("Cache text encoder outputs to disk"),

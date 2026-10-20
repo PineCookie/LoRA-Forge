@@ -155,8 +155,8 @@
 
             Schema.object({
                 learning_rate: Schema.number().min(0).default("1e-4").description("Overall learning rate; ignored once separate U-Net and text encoder learning rates are set."),
-                unet_lr: Schema.number().min(0).default("1e-4").description("U-Net learning rate"),
-                text_encoder_lr: Schema.number().min(0).default("1e-5").description("Text encoder learning rate"),
+                unet_lr: Schema.number().min(0).description("U-Net / DiT learning rate when it should differ from learning_rate; empty = learning_rate"),
+                text_encoder_lr: Schema.number().min(0).description("Text encoder learning rate when it should differ from learning_rate; empty = learning_rate. Only used while the text encoder trains (network_train_unet_only off)"),
                 lr_scheduler: Schema.union([
                     "linear",
                     "cosine",
@@ -165,7 +165,7 @@
                     "constant",
                     "constant_with_warmup",
                     "warmup_stable_decay",
-                ]).default("cosine_with_restarts").description("Learning rate scheduler"),
+                ]).default("cosine").description("Learning rate scheduler"),
                 lr_warmup_steps: Schema.number().min(0).default(0).description("Learning rate warmup: a whole number of steps (100 = the first 100 steps), or below 1 a fraction of all steps (0.05 = the first 5%, which scales with the run's length). 0 = off"),
                 max_grad_norm: Schema.number().min(0).step(0.1).default(1.0).description("Max gradient norm for clipping, 0 = no clipping. sd-scripts default 1.0; 0 is recommended for adaptive optimizers such as Prodigy / ProdigyPlus (set automatically when you switch optimizers)"),
             }),

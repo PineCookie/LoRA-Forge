@@ -235,6 +235,7 @@ const ja: Messages = {
   "check.stepsOrFraction": "整数のステップ数か、1 未満の割合（0.05 = 5%）を入力してください",
   "check.fullFp16Optimizer": "{optimizer} は fp16 の重みでは学習できません：fp16（LoRA の重みは fp32）か AdamW8bit を使ってください",
   "check.fullFp16Degraded": "{optimizer} は fp16 の重みで小さな更新を失います。AdamW8bit ではこの問題はありません",
+  "check.textEncoderCache": "ステップごとに変わるキャプションでは、キャッシュしたテキストエンコーダの出力を使えません：cache_text_encoder_outputs をオフにしてください",
   "check.alphaAboveDim": "alpha が network_dim より大きいと LoRA が拡大されます。通常は alpha ≤ dim です",
   "check.saveEvery": "エポック数より大きいため、最終の LoRA だけが保存されます",
 

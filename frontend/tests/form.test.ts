@@ -66,8 +66,12 @@ describe("anima defaults", () => {
     expect(shapes("bounded", false)).not.toHaveProperty("compile_dynamic");
   });
 
-  it("submits learning rates as numbers", () => {
-    expect([config.learning_rate, config.unet_lr]).toEqual([1e-4, 1e-4]);
+  it("submits learning rates as numbers, and leaves the per-part rates to learning_rate until set", () => {
+    expect(config.learning_rate).toBe(1e-4);
+    // sd-scripts prefers unet_lr over learning_rate: a default there would make learning_rate do nothing
+    expect(config).not.toHaveProperty("unet_lr");
+    expect(config).not.toHaveProperty("text_encoder_lr");
+    expect(readForm({ ...values, unet_lr: "2e-4" }, groups).unet_lr).toBe(2e-4);
   });
 });
 
@@ -314,6 +318,29 @@ describe("rules", () => {
   });
 });
 
+describe("caption and model coupling", () => {
+  it("turns text encoder caching off for shuffled captions, and back the other way", () => {
+    const values = initialFormValues(loadGroups("sdxl-lora"));
+    expect(values.cache_text_encoder_outputs).toBe(true);
+    values.shuffle_caption = true;
+    applyExclusiveRules(values, "shuffle_caption");
+    expect(values.cache_text_encoder_outputs).toBe(false);
+    values.cache_text_encoder_outputs = true;
+    applyExclusiveRules(values, "cache_text_encoder_outputs");
+    expect(values.shuffle_caption).toBe(false);
+  });
+
+  it("sets Chroma's training and preview values, and FLUX's back", () => {
+    const values = initialFormValues(loadGroups("flux-lora"));
+    values.model_type = "chroma";
+    applyExclusiveRules(values, "model_type");
+    expect([values.guidance_scale, values.timestep_sampling, values.sample_cfg]).toEqual(["0", "sigmoid", "4"]);
+    values.model_type = "flux";
+    applyExclusiveRules(values, "model_type");
+    expect([values.guidance_scale, values.timestep_sampling, values.sample_cfg]).toEqual(["1", "flux_shift", "1"]);
+  });
+});
+
 describe("visibility", () => {
   it("shows dependent fields only for their controlling value", () => {
     const values = initialFormValues(loadGroups("anima-lora"));
@@ -322,6 +349,15 @@ describe("visibility", () => {
     expect(isFieldVisible("huber_c", values)).toBe(true);
     expect(isFieldVisible("wandb_api_key", values)).toBe(false);
     expect(isFieldVisible("network_dim", values)).toBe(true);
+  });
+
+  it("shows the text encoder rate only while it trains, and the sampling knobs only for their samplings", () => {
+    const values = initialFormValues(loadGroups("flux-lora"));
+    expect(isFieldVisible("text_encoder_lr", values)).toBe(false);
+    expect(isFieldVisible("text_encoder_lr", { ...values, network_train_unet_only: false })).toBe(true);
+    expect(values.timestep_sampling).toBe("flux_shift");
+    expect([isFieldVisible("sigmoid_scale", values), isFieldVisible("discrete_flow_shift", values)]).toEqual([true, false]);
+    expect([isFieldVisible("sigmoid_scale", { ...values, timestep_sampling: "sigma" }), isFieldVisible("discrete_flow_shift", { ...values, timestep_sampling: "sigma" })]).toEqual([false, true]);
   });
 
   it("hides a field whose controller is hidden", () => {

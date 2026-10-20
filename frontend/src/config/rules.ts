@@ -85,6 +85,31 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
     setField(values, "activation_memory_budget", "off");
   }
 
+  // sd-scripts cannot cache text encoder outputs for captions that change per step: shuffled tags,
+  // tag dropout, and (except Anima, whose cache supports it) whole-caption dropout. The last edit wins.
+  const captionsVary = (name: string) =>
+    (name === "shuffle_caption" && checked(values, name)) ||
+    (name === "caption_tag_dropout_rate" && Number(values[name]) > 0) ||
+    (name === "caption_dropout_rate" && Number(values[name]) > 0 && trainType !== "anima-lora");
+  if (edited && "cache_text_encoder_outputs" in values && captionsVary(edited)) {
+    setField(values, "cache_text_encoder_outputs", false);
+    setField(values, "cache_text_encoder_outputs_to_disk", false);
+  }
+  if (edited === "cache_text_encoder_outputs" && checked(values, edited)) {
+    setField(values, "shuffle_caption", false);
+    setField(values, "caption_tag_dropout_rate", "");
+    if (trainType !== "anima-lora") setField(values, "caption_dropout_rate", "");
+  }
+
+  // FLUX: Chroma is not guidance-distilled; it trains with guidance 0 and sigmoid sampling and
+  // samples with real CFG (sd-scripts' FLUX guide)
+  if (edited === "model_type") {
+    const chroma = values.model_type === "chroma";
+    setField(values, "guidance_scale", chroma ? "0" : "1");
+    setField(values, "timestep_sampling", chroma ? "sigmoid" : "flux_shift");
+    setField(values, "sample_cfg", chroma ? "4" : "1");
+  }
+
   // only Anima/SDXL assert "unet_only or no TE caching"; FLUX/SD3 cache one encoder while
   // training the other
   if (textEncoderCachingLocksUnet) {

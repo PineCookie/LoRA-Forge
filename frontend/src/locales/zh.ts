@@ -233,6 +233,7 @@ const zh: Messages = {
   "check.stepsOrFraction": "请填整数步数，或小于 1 的比例（0.05 = 5%）",
   "check.fullFp16Optimizer": "{optimizer} 无法用 fp16 权重训练：请改用 fp16（LoRA 权重为 fp32）或 AdamW8bit",
   "check.fullFp16Degraded": "{optimizer} 在 fp16 权重下会丢失微小的更新；AdamW8bit 没有这个问题",
+  "check.textEncoderCache": "每步变化的标注不能使用缓存的文本编码器输出：请关闭 cache_text_encoder_outputs",
   "check.alphaAboveDim": "alpha 大于 network_dim 会放大 LoRA；通常 alpha ≤ dim",
   "check.saveEvery": "大于 epoch 数：只会保存最终的 LoRA",
 

@@ -22,14 +22,11 @@ const ESSENTIAL_FIELDS = new Set([
   "output_name",
   "output_dir",
   "save_every_n_epochs",
-  // training
+  // training (unet_lr / text_encoder_lr stay behind "+ more": empty, they follow learning_rate)
   "max_train_epochs",
   "train_batch_size",
-  "seed",
   "optimizer_type",
   "learning_rate",
-  "unet_lr",
-  "text_encoder_lr",
   "lr_scheduler",
   "lr_warmup_steps",
   "network_module",
@@ -38,9 +35,6 @@ const ESSENTIAL_FIELDS = new Set([
   "timestep_sampling",
   // preview images (the prompts and sampler settings appear with it, see below)
   "enable_preview",
-  // captions
-  "shuffle_caption",
-  "keep_tokens",
   // speed and memory
   "training_precision",
   "mixed_precision",
@@ -50,6 +44,8 @@ const ESSENTIAL_FIELDS = new Set([
   "attn_mode",
   "qwen_image_vae_2d",
   "compile",
+  // the page only has it with two or more GPUs, and then which one trains matters
+  "gpu_ids",
 ]);
 
 // Sub-options of an essential option that stay behind "+ more": compile is on by default, and its
@@ -61,6 +57,9 @@ const ADVANCED_FIELDS = new Set([
   "compile_fullgraph",
   "compile_cache_size_limit",
   "activation_memory_budget",
+  // timestep_sampling's fine-tuning
+  "sigmoid_scale",
+  "discrete_flow_shift",
 ]);
 
 /**

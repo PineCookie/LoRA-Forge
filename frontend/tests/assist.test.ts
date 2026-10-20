@@ -66,6 +66,16 @@ describe("checks", () => {
     expect(formChecks({ schemaName: "flux-lora", values: flux, datasetError: null }).map((check) => check.field)).toContain("full_precision");
   });
 
+  it("refuses captions that vary per step with cached text encoder outputs, as sd-scripts does", () => {
+    const sdxl = { ...initialFormValues(loadGroups("sdxl-lora")), cache_text_encoder_outputs: true, shuffle_caption: true, caption_dropout_rate: "0.1" };
+    expect(formChecks({ schemaName: "sdxl-lora", values: sdxl, datasetError: null }).filter((check) => check.key === "check.textEncoderCache").map((check) => check.field)).toEqual([
+      "shuffle_caption", "caption_dropout_rate",
+    ]);
+    // Anima's cache supports whole-caption dropout
+    const animaValues = { ...anima(), cache_text_encoder_outputs: true, caption_dropout_rate: "0.1" };
+    expect(formChecks({ schemaName: "anima-lora", values: animaValues, datasetError: null }).some((check) => check.key === "check.textEncoderCache")).toBe(false);
+  });
+
   it("warns about settings that run but are probably not meant", () => {
     const values = { ...anima(), pretrained_model_name_or_path: "m", qwen3: "q", vae: "v", network_dim: "16", network_alpha: "32", save_every_n_epochs: "20" };
     const checks = formChecks({ schemaName: "anima-lora", values, datasetError: null });
