@@ -43,7 +43,7 @@ LoRA Forge 是一个训练 LoRA 的网页界面。选好模型，在浏览器里
 </picture>
 
 - **模型**：Anima、Krea 2、MOSS-Image、SDXL（Illustrious、NoobAI、Pony 等）、FLUX、SD3.5 和 SD1.5，另有 SDXL 与 SD1.5（Dreambooth）的全量微调。每个模型都有自己的页面和合适的默认值。
-- **简洁的表单**：*常用* 视图只显示大多数人会改的选项，全部选项一键切换，支持搜索，配置可导入/导出为 JSON 或 TOML。Anima、Krea 2 和 MOSS-Image 页面会列出所需的文件及下载链接，并检查你选择的文件。
+- **简洁的表单**：先显示大多数人会改的选项，其余选项一键展开；子选项在适用时才出现；实时提示（步数、预热、文件检查），开始前就显示问题；支持搜索，配置可导入/导出为 JSON 或 TOML。Anima、Krea 2 和 MOSS-Image 页面会列出所需的文件及下载链接，并检查你选择的文件。
 - **运行记录页面**：进度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件和控制台输出，以往的训练也能查看。不需要 TensorBoard。
 - **更快的训练**：SDXL LoRA 的训练速度约为原版 sd-scripts 的两倍，Anima、Krea 2 和 MOSS-Image 也更快。大部分加速默认开启（[详情](#训练速度)）。
 - **16 GB 显卡也能训练 Krea 2**：默认使用 int8 底模权重和 block 交换（[详情](docs/krea2-zh.md)）。
@@ -105,11 +105,11 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
 
 **2. 准备底模。** 下载要在其上训练的模型。Anima、Krea 2 和 MOSS-Image 还需要文本编码器和 VAE：它们的页面上有 **模型文件** 面板，给出每个文件的下载链接。SDXL、FLUX、SD3.5 和 SD1.5 可以使用该模型的任意 checkpoint。
 
-**3. 填写表单。** 在侧边栏打开对应模型的页面。在 *常用* 视图中至少填写底模文件、数据集文件夹和输出名称，其他值都有合理的默认值。数据集文件夹旁的 **步数预测** 会显示当前设置下的训练步数。
+**3. 填写表单。** 在侧边栏打开对应模型的页面。至少填写底模文件、数据集文件夹和输出名称，其他值都有合理的默认值，每个分组的「+ 另外 N 个参数」可以展开其余选项。右侧面板显示当前设置下的训练步数和需要处理的问题；必需的文件填好后才能 **开始训练**。
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/anima-dark.png">
-  <img src="docs/images/anima-light.png" alt="Anima 页面的常用视图，含模型文件面板及其下载链接">
+  <img src="docs/images/anima-light.png" alt="Anima 页面：已检查的模型文件、显示步数与时间的训练概览，以及带下载链接的模型文件面板">
 </picture>
 
 **4. 开始并查看。** 点击 **开始训练**。页头的状态会显示进度，点击它即可在 **运行记录** 页面打开这次训练，查看 loss、样图和控制台输出。LoRA 文件保存在输出文件夹（默认 `output/`），并列在这次运行中，可直接在 ComfyUI 等界面中加载。

@@ -43,7 +43,7 @@ LoRA Forge is a web UI for training LoRAs. You pick a model, fill in a form in t
 </picture>
 
 - **Models**: Anima, Krea 2, MOSS-Image, SDXL (Illustrious, NoobAI, Pony, ...), FLUX, SD3.5 and SD1.5, plus full fine-tuning for SDXL and SD1.5 (Dreambooth). Each model has its own page with sensible defaults.
-- **Easy forms**: an *Essentials* view with the options most people change, all options one click away, search, and import / export of configs as JSON or TOML. Anima, Krea 2 and MOSS-Image list the files they need, with download links, and check the files you pick.
+- **Easy forms**: the options most people change first and the rest one click away, sub-options that appear when they apply, live hints (steps, warmup, file checks), problems shown before you start, search, and import / export of configs as JSON or TOML. Anima, Krea 2 and MOSS-Image list the files they need, with download links, and check the files you pick.
 - **Runs page**: progress and time left, loss and learning rate charts, sample images, the saved LoRA files and the console output, also for past runs. No TensorBoard needed.
 - **Faster training**: an SDXL LoRA trains about twice as fast as with plain sd-scripts, and Anima, Krea 2 and MOSS-Image are faster too. Most of it is on by default ([details](#speed)).
 - **Krea 2 on 16 GB cards**: int8 base weights and block swap by default ([details](docs/krea2.md)).
@@ -105,11 +105,11 @@ Images directly in the dataset folder are not used; the GUI tells you when no `<
 
 **2. Get the base model.** Download the model you want to train on. Anima, Krea 2 and MOSS-Image also need a text encoder and a VAE: their pages have a **Model files** panel with a download link for each file. For SDXL, FLUX, SD3.5 and SD1.5, use any checkpoint of that model you like.
 
-**3. Fill in the form.** Open the page for your model in the sidebar. In the *Essentials* view, set at least the base model file, the dataset folder and the output name; the other values are reasonable defaults. The step estimate next to the dataset folder shows how many steps the settings give.
+**3. Fill in the form.** Open the page for your model in the sidebar. Set at least the base model file, the dataset folder and the output name; the other values are reasonable defaults, and each section's "+ more" shows the rest. The panel on the right shows how many steps the settings give and what still needs fixing; **Start training** waits for the required files.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/anima-dark.png">
-  <img src="docs/images/anima-light.png" alt="The Anima page in the Essentials view, with the model files panel and its download links">
+  <img src="docs/images/anima-light.png" alt="The Anima page: the model files checked, the run summary with steps and time, and the model files panel with download links">
 </picture>
 
 **4. Start and watch.** Press **Start training**. The status in the header shows the progress; click it to open the run on the **Runs** page, where you see the loss, samples and console output. The LoRA files are saved to the output folder (`output/` by default) and listed on the run. They load in ComfyUI and other UIs as they are.
