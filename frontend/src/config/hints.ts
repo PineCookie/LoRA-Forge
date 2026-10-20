@@ -1,6 +1,7 @@
 import type { MessageKey } from "../i18n";
 import type { FormValues } from "./form";
 import type { ModelFileState } from "./modelFiles";
+import { parseResolution } from "./normalize";
 import { isFieldVisible } from "./visibility";
 
 // Live hints next to an option's value ("the first 161 of 3,220 steps") and the step math behind them.
@@ -50,10 +51,8 @@ export function stepCount(value: unknown, total: number): number | null {
 
 /** Width x height of the resolution field, or null when it does not parse. */
 export function resolutionOf(value: unknown): [number, number] | null {
-  const match = /^\s*(\d+)\s*(?:[x×,*]\s*(\d+))?\s*$/i.exec(String(value ?? ""));
-  if (!match) return null;
-  const width = Number(match[1]);
-  return [width, match[2] ? Number(match[2]) : width];
+  const size = parseResolution(value);
+  return size && size[0] > 0 && size[1] > 0 ? size : null;
 }
 
 const FILE_HINTS: Partial<Record<ModelFileState | "checking", Hint>> = {
@@ -78,8 +77,11 @@ export function fieldHint(name: string, context: HintContext): Hint | null {
     case "train_data_dir":
       return imagesWithRepeats === null ? null : { key: "hint.dataset", params: { images: fmt(imagesWithRepeats) } };
     case "resolution": {
+      // buckets take only the pixel count from it; without them it is every image's exact size
       const size = resolutionOf(values.resolution);
-      return size ? { key: "hint.megapixels", params: { mp: ((size[0] * size[1]) / 1e6).toFixed(2) } } : null;
+      if (!size) return null;
+      if (values.enable_bucket === false) return { key: "hint.resolutionFixed", params: { width: size[0], height: size[1] } };
+      return { key: "hint.resolutionArea", params: { mp: ((size[0] * size[1]) / 1e6).toFixed(2) } };
     }
     case "max_train_epochs":
       return total === null ? null : { key: "hint.totalSteps", params: { steps: fmt(total) } };

@@ -15,7 +15,7 @@ Schema.intersect([
 
     Schema.object({
         train_data_dir: Schema.string().role('filepicker', { type: "folder", internal: "train-dir" }).default("./train/").description("Training dataset folder"),
-        resolution: Schema.string().default("1024,1024").description("Training resolution, width x height: each image is scaled to this many pixels at its own aspect ratio (MOSS-Image trained at about 1024x1024). Sides are rounded down to multiples of 16"),
+        resolution: Schema.string().default("1024,1024").description("Training resolution: width x height, or one number for a square (1024 = 1024x1024). With buckets on (the default), each image is scaled to about this many pixels at its own aspect ratio; with them off, every image is cropped to exactly this size. MOSS-Image trained at about 1024x1024"),
         enable_bucket: Schema.boolean().default(true).description("Enable ARB buckets so images can have different aspect ratios"),
         bucket_no_upscale: Schema.boolean().default(true).description("Give each image a bucket of its own aspect ratio: larger images are scaled down to the training resolution's pixel count, smaller ones keep their size"),
         caption_extension: Schema.string().default(".txt").description("Caption file extension. Each line of a caption file is one caption of its image, and each step trains on one of them at random: e.g. a full description on one line and a short one with the name on the next"),

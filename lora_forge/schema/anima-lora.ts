@@ -24,7 +24,7 @@ Schema.intersect([
 
     Schema.object(
         UpdateSchema(SHARED_SCHEMAS.RAW.DATASET_SETTINGS, {
-            resolution: Schema.string().default("1024,1024").description("Training resolution, width x height. Anima supports 512x512 to 1536x1536; both must be multiples of 16."),
+            resolution: Schema.string().default("1024,1024").description("Training resolution: width x height, or one number for a square (1024 = 1024x1024). With buckets on (the default), each image is scaled to about this many pixels at its own aspect ratio; with them off, every image is cropped to exactly this size. Anima supports 512x512 to 1536x1536"),
             enable_bucket: Schema.boolean().default(true).description("Enable ARB buckets so images can have different aspect ratios"),
             min_bucket_reso: Schema.number().min(16).step(16).default(512).description("Shortest bucket side. Only used with bucket_no_upscale off, when images are fitted to a fixed set of buckets of about the training resolution's pixel count; images more stretched than min_bucket_reso and max_bucket_reso allow are cropped"),
             max_bucket_reso: Schema.number().min(16).step(16).default(2048).description("Longest bucket side. Only used with bucket_no_upscale off; buckets keep about the training resolution's pixel count, so this only limits very wide or tall images"),

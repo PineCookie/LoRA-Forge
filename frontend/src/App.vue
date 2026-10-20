@@ -40,6 +40,9 @@ watch(
 
 <style scoped>
 .workspace {
+  /* pages lay out by the space they get (container queries), which follows the UI size; media
+     queries would see the window's unzoomed width */
+  container: workspace / inline-size;
   min-width: 0;
   min-height: var(--viewport-height);
 }

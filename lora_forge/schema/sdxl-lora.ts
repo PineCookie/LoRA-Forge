@@ -11,7 +11,7 @@ Schema.intersect([
     // Dataset: SDXL trains at about 1 megapixel
     Schema.object(
         UpdateSchema(SHARED_SCHEMAS.RAW.DATASET_SETTINGS, {
-            resolution: Schema.string().default("1024,1024").description("Training resolution, width x height. Non-square works, but both must be multiples of 64."),
+            resolution: Schema.string().default("1024,1024").description("Training resolution: width x height, or one number for a square (1024 = 1024x1024). With buckets on (the default), each image is scaled to about this many pixels at its own aspect ratio; with them off, every image is cropped to exactly this size"),
             min_bucket_reso: Schema.number().min(32).step(32).default(256).description("Shortest bucket side. Only used with bucket_no_upscale off, when images are fitted to a fixed set of buckets of about the training resolution's pixel count; images more stretched than min_bucket_reso and max_bucket_reso allow are cropped"),
             max_bucket_reso: Schema.number().min(32).step(32).default(2048).description("Longest bucket side. Only used with bucket_no_upscale off; buckets keep about the training resolution's pixel count, so this only limits very wide or tall images"),
             bucket_reso_steps: Schema.number().min(32).step(32).default(32).description("ARB bucket resolution step: images are fitted to sizes in steps of this many pixels, so smaller steps crop less. SDXL accepts multiples of 32"),

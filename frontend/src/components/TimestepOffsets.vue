@@ -47,7 +47,7 @@ const advice = computed(() => {
 <style scoped>
 .offsets-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
   gap: 6px 28px;
   padding: 12px 18px;
   border-top: 1px solid var(--border);

@@ -2,6 +2,7 @@ import type { MessageKey } from "../i18n";
 import type { FormValues } from "./form";
 import { resolutionOf, stepCount } from "./hints";
 import type { ModelFileState } from "./modelFiles";
+import { RESOLUTIONS } from "./resolutions";
 import { isFieldVisible } from "./visibility";
 
 // Problems the page can see before Start: the ones the backend or the trainer would refuse (errors,
@@ -62,7 +63,13 @@ export function formChecks({ schemaName, values, datasetError, datasetSubfolders
     }
   }
 
-  if (has("resolution") && !resolutionOf(values.resolution)) checks.push({ field: "resolution", level: "error", key: "check.resolution" });
+  const size = resolutionOf(values.resolution);
+  if (has("resolution") && !size) checks.push({ field: "resolution", level: "error", key: "check.resolution" });
+  // a fixed size (buckets off) reaches the model as it is: U-Nets need multiples of 64, DiTs of 16
+  const step = RESOLUTIONS[schemaName]?.step;
+  if (size && step && values.enable_bucket === false && (size[0] % step || size[1] % step)) {
+    checks.push({ field: "resolution", level: "error", key: "check.resolutionStep", params: { step } });
+  }
 
   for (const field of ["lr_warmup_steps", "lr_decay_steps"]) {
     if (has(field) && isFieldVisible(field, values) && stepCount(values[field], 1) === null) checks.push({ field, level: "error", key: "check.stepsOrFraction" });

@@ -4,8 +4,9 @@ import { locale } from "../src/i18n";
 import { blocksStart, formChecks } from "../src/config/checks";
 import { initialFormValues } from "../src/config/form";
 import { fieldHint, stepCount, stepsPerEpoch, totalSteps } from "../src/config/hints";
+import { normalizeResolutionForConfig, parseResolution } from "../src/config/normalize";
 import { sectionSummary } from "../src/config/summaries";
-import { conditionOf } from "../src/config/visibility";
+import { conditionOf, isFieldVisible } from "../src/config/visibility";
 import { loadGroups } from "./helpers";
 
 // what the trainer page tells about the values: hints, checks, section summaries
@@ -94,6 +95,37 @@ describe("section summaries", () => {
     expect(sectionSummary("training", values)).toBe("10 epochs · batch 2 · AdamW8bit · 1e-4 · cosine");
     expect(sectionSummary("training", { ...values, optimizer_type: "prodigyplus.ProdigyPlusScheduleFree" })).toContain("ProdigyPlus · 1e-4 · schedule-free");
     expect(sectionSummary("model", { ...values, pretrained_model_name_or_path: "./sd-models/anima-base.safetensors" })).toBe("anima-base.safetensors");
+  });
+});
+
+describe("resolution", () => {
+  it("reads the ways people type it, and exports what the trainers read", () => {
+    for (const text of ["1024x768", "1024×768", "1024*768", "1024, 768", "1024 768", "１０２４ｘ７６８", "1024，768"]) expect(parseResolution(text), text).toEqual([1024, 768]);
+    expect(parseResolution("1024")).toEqual([1024, 1024]);
+    expect(parseResolution("big")).toBeNull();
+    expect(normalizeResolutionForConfig("1024")).toBe("1024,1024");
+    expect(normalizeResolutionForConfig("1024 x 768")).toBe("1024,768");
+  });
+
+  it("says what the value does with and without buckets", () => {
+    const values = { ...initialFormValues(loadGroups("sdxl-lora")), resolution: "1024x1024" };
+    expect(fieldHint("resolution", { values, imagesWithRepeats: null })?.key).toBe("hint.resolutionArea");
+    expect(fieldHint("resolution", { values: { ...values, enable_bucket: false }, imagesWithRepeats: null })).toEqual({ key: "hint.resolutionFixed", params: { width: 1024, height: 1024 } });
+  });
+
+  it("hides the bucket settings while buckets are off", () => {
+    for (const schema of ["sdxl-lora", "anima-lora", "krea2-lora", "moss-image-lora", "sd-dreambooth"]) {
+      const values = initialFormValues(loadGroups(schema));
+      expect(isFieldVisible("bucket_no_upscale", values), schema).toBe(true);
+      expect(isFieldVisible("bucket_no_upscale", { ...values, enable_bucket: false }), schema).toBe(false);
+    }
+  });
+
+  it("asks for the model's multiple only for a fixed size", () => {
+    const values = { ...initialFormValues(loadGroups("sdxl-lora")), pretrained_model_name_or_path: "m", resolution: "1000x1000" };
+    const resolutionChecks = (extra: object) => formChecks({ schemaName: "sdxl-lora", values: { ...values, ...extra }, datasetError: null }).filter((check) => check.field === "resolution");
+    expect(resolutionChecks({})).toEqual([]);
+    expect(resolutionChecks({ enable_bucket: false })).toEqual([{ field: "resolution", level: "error", key: "check.resolutionStep", params: { step: 64 } }]);
   });
 });
 

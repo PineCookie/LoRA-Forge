@@ -8,18 +8,28 @@ export function isResolutionField(name: string) {
   return name === "resolution";
 }
 
-function parseResolutionValue(value: unknown): [string, string] | null {
-  const match = String(value).trim().match(/^(\d+)\s*(?:[xX×,])\s*(\d+)$/);
-  return match ? [match[1], match[2]] : null;
+// "1024" (a square), "1024x768", "1024×768", "1024*768", "1024,768" or "1024 768"; also the full-width
+// digits and separators Chinese / Japanese input methods type
+const RESOLUTION = /^(\d+)(?:\s*[xX×*,，ｘＸ＊]\s*|\s+)(\d+)$/;
+
+/** Width and height of a resolution as people type it; null when it does not parse. */
+export function parseResolution(value: unknown): [number, number] | null {
+  const text = String(value ?? "")
+    .trim()
+    .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xfee0));
+  if (/^\d+$/.test(text)) return [Number(text), Number(text)];
+  const match = RESOLUTION.exec(text);
+  return match ? [Number(match[1]), Number(match[2])] : null;
 }
 
 export function formatResolutionForInput(value: unknown): string {
-  const parsed = parseResolutionValue(value);
+  const parsed = parseResolution(value);
   return parsed ? `${parsed[0]}x${parsed[1]}` : String(value ?? "");
 }
 
+/** sd-scripts', musubi-tuner's and the MOSS-Image trainer's form: "width,height". */
 export function normalizeResolutionForConfig(value: unknown): string {
-  const parsed = parseResolutionValue(value);
+  const parsed = parseResolution(value);
   return parsed ? `${parsed[0]},${parsed[1]}` : String(value).trim();
 }
 

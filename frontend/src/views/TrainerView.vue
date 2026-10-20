@@ -10,6 +10,7 @@ import FormField, { type FieldMessage } from "../components/FormField.vue";
 import FormSection from "../components/FormSection.vue";
 import ModelFiles from "../components/ModelFiles.vue";
 import PageHeader from "../components/PageHeader.vue";
+import ResolutionPresets from "../components/ResolutionPresets.vue";
 import RunSummary, { type SpeedEstimate, type SummaryCheck } from "../components/RunSummary.vue";
 import SectionIndex from "../components/SectionIndex.vue";
 import TaskStatus from "../components/TaskStatus.vue";
@@ -27,6 +28,7 @@ import { formValueKey } from "../config/form";
 import { fieldHint, resolutionOf, stepCount, stepsPerEpoch, totalSteps } from "../config/hints";
 import { redactConfigForLog } from "../config/normalize";
 import { OFFSET_NAME } from "../config/offsets";
+import { RESOLUTIONS } from "../config/resolutions";
 import { sectionSummary } from "../config/summaries";
 import { conditionOf, isFieldVisible } from "../config/visibility";
 import { locale, t, tr } from "../i18n";
@@ -50,6 +52,7 @@ const dataset = useDatasetInfo(datasetDir, datasetRefresh);
 const fileStates = useModelFileStates(props.schemaName, values);
 
 const supportsTimestepPreview = ["flux-lora", "anima-lora"].includes(props.schemaName);
+const resolutionSizes = RESOLUTIONS[props.schemaName]?.sizes ?? [];
 const guide = TRAINER_PAGES.find((page) => page.schemaName === props.schemaName)?.guide;
 const busy = ref(false);
 const drawerOpen = ref(false);
@@ -492,6 +495,12 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
                   @undo="form.undoCoupled()"
                 >
                   <DatasetFolders v-if="field.name === 'train_data_dir'" :info="dataset.info.value" :loading="dataset.loading.value" />
+                  <ResolutionPresets
+                    v-if="field.name === 'resolution' && resolutionSizes.length"
+                    :sizes="resolutionSizes"
+                    :value="String(values.resolution ?? '')"
+                    @set="form.setValue('resolution', $event)"
+                  />
                   <EpochTargets
                     v-if="field.name === 'max_train_epochs' && perEpoch"
                     :steps-per-epoch="perEpoch"
@@ -566,7 +575,7 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
 
 .trainer {
   display: grid;
-  grid-template-columns: 200px minmax(0, 860px) 300px;
+  grid-template-columns: 200px minmax(0, 940px) 300px;
   justify-content: center;
   gap: 24px;
   align-items: start;
@@ -692,9 +701,10 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
   text-align: center;
 }
 
-@media (max-width: 1320px) {
+/* the section index goes first when space runs short, so the form keeps its width */
+@container workspace (max-width: 1360px) {
   .trainer {
-    grid-template-columns: minmax(0, 860px) 280px;
+    grid-template-columns: minmax(0, 940px) 280px;
   }
 
   .index {
@@ -702,7 +712,7 @@ const startTitle = computed(() => (blocking.value.length ? t("trainer.startBlock
   }
 }
 
-@media (max-width: 1000px) {
+@container workspace (max-width: 780px) {
   .trainer {
     grid-template-columns: minmax(0, 1fr);
     padding: 12px 16px calc(var(--viewport-height) * 0.4);

@@ -54,7 +54,7 @@ const checked = computed({ get: () => model.value === true, set: (value: boolean
 const selected = computed({ get: () => (Array.isArray(model.value) ? model.value : []), set: (value: string[]) => (model.value = value) });
 const optionLabel = (option: string) => option.replace(/^networks\./, "").replace(/^prodigyplus\./, "");
 
-// the description shows two lines; "more" opens the rest when there is more
+// the description shows three lines; "more" opens the rest when there is more
 const descriptionEl = ref<HTMLElement | null>(null);
 const open = ref(false);
 const clamped = ref(false);
@@ -174,7 +174,7 @@ watch(description, () => nextTick(measure));
 <style scoped>
 .field {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
   gap: 6px 28px;
   padding: 12px 18px;
   border-top: 1px solid var(--border);
@@ -245,8 +245,8 @@ watch(description, () => nextTick(measure));
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;

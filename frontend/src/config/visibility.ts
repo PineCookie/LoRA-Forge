@@ -35,6 +35,9 @@ const VISIBILITY_RULES: Record<string, [string, ShownFor]> = {
   sample_sampler: ["enable_preview", true],
   sample_every_n_epochs: ["enable_preview", true],
   sample_prompts: ["enable_preview", true],
+  // the bucket settings only apply with buckets on
+  bucket_reso_steps: ["enable_bucket", true],
+  bucket_no_upscale: ["enable_bucket", true],
   // sd-scripts ignores both with bucket_no_upscale (it sizes each bucket from its image)
   min_bucket_reso: ["bucket_no_upscale", false],
   max_bucket_reso: ["bucket_no_upscale", false],
