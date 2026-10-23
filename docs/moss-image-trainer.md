@@ -75,9 +75,10 @@ are not trained.
   into OpenMOSS's separate projections. OpenMOSS's sharded `transformer` folder loads as it is.
   Quantized files (int8, fp8) are refused before the run starts.
 - **Text encoder**: only the language model is built (`Qwen3_5TextModel`; for text-only input its
-  positions equal the full model's). The weights are loaded **in their stored dtypes**: the file keeps
-  the linear-attention `A_log` and norm weights in fp32 on purpose, and casting them to bf16 changed
-  the outputs by about 2% (up to 22% on single tokens). The layers that do not fit in VRAM are
+  positions equal the full model's). All weights are loaded **in bf16**, including the linear-attention
+  `A_log` and gated norm weights the file stores in fp32: ComfyUI and OpenMOSS's pipeline round them
+  too, so the LoRA trains on the conditioning it gets at inference. Keeping the norm weights in fp32
+  moved the outputs by about 1.6% away from ComfyUI's (`A_log` makes no difference). The layers that do not fit in VRAM are
   dispatched to RAM by accelerate. The tokenizer comes from Hugging Face (`Qwen/Qwen3.5-9B`, identical
   to OpenMOSS's copy).
 - **VAE**: OpenMOSS's file (diffusers names) or ComfyUI's `flux2-vae` (FLUX.2 names, converted at

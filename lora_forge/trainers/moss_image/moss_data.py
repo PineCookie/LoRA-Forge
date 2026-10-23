@@ -20,6 +20,8 @@ LATENT_SUFFIX = "_moss_latent.safetensors"
 TEXT_SUFFIX = "_moss_te.safetensors"
 # raise when a change makes existing caches wrong: they are then encoded again
 CACHE_FORMAT = "1"
+# 2: text encoder in bf16 throughout, as ComfyUI and OpenMOSS's pipeline run it
+TEXT_CACHE_FORMAT = "2"
 # Qwen3.5-9B's tokenizer and chat template (the weights come from the text_encoder file)
 DEFAULT_TOKENIZER = "Qwen/Qwen3.5-9B"
 MAX_TEXT_TOKENS = 4096
@@ -241,8 +243,10 @@ class TextEncoder:
                 for key in f.keys():
                     for prefix in ("model.language_model.", "language_model."):
                         if key.startswith(prefix):
-                            # as stored: the linear-attention A_log and norm weights are fp32 on purpose
-                            state[key[len(prefix):]] = f.get_tensor(key)
+                            # all bf16, including the linear-attention A_log and norm weights the file
+                            # stores in fp32: ComfyUI and OpenMOSS's pipeline round them too, and the
+                            # LoRA should train on the conditioning it gets at inference
+                            state[key[len(prefix):]] = f.get_tensor(key).to(torch.bfloat16)
         missing, unexpected = model.load_state_dict(state, strict=False, assign=True)
         if missing:
             raise ValueError(f"{path} is not a Qwen3.5-9B text encoder: missing {missing[:3]}")
@@ -293,11 +297,11 @@ def cache_text(items: list, prompts: list, text_encoder_path: str, device, token
     model = _model_signature(text_encoder_path)
     todo = []
     for item in items:
-        expected = {"format": CACHE_FORMAT, "captions": json.dumps(item.captions, ensure_ascii=False), "text_encoder": model}
+        expected = {"format": TEXT_CACHE_FORMAT, "captions": json.dumps(item.captions, ensure_ascii=False), "text_encoder": model}
         if _cache_metadata(item.text_cache) != expected:
             todo.append((item, expected))
     prompts = sorted(set(prompts))
-    empty_expected = {"format": CACHE_FORMAT, "captions": "[\"\"]", "text_encoder": model}
+    empty_expected = {"format": TEXT_CACHE_FORMAT, "captions": "[\"\"]", "text_encoder": model}
     encode_empty = bool(empty_cache) and _cache_metadata(empty_cache) != empty_expected
     encoded = {}
     if todo or prompts or encode_empty:
