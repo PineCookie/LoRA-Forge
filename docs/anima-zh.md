@@ -17,7 +17,7 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 | 逐 block `torch.compile`、`cuda_allow_tf32`、`cuda_cudnn_benchmark`、`qwen_image_vae_2d`、时间步预览 | v0.11.1 |
 | 子文件夹时间步偏移、`show_timesteps_offset` | main（v0.11.1 之后） |
 
-已在 v0.12.0 上测试。更新方法：`.\run_gui.ps1 update-sd-scripts`（默认跟随 `main`，`--branch`
+已在 v0.12.2 上测试。更新方法：`.\run_gui.ps1 update-sd-scripts`（默认跟随 `main`，`--branch`
 可指定其他分支或 tag），之后执行一次 `uv sync`。启动 GUI 不会自动更新 sd-scripts。
 
 ## 模型文件

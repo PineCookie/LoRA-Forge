@@ -153,7 +153,7 @@ Together: an SDXL LoRA step went from 1.51 s (sd-scripts with SDPA) to 0.81 s wi
   bash run_gui.sh update-sd-scripts         # Linux
   ```
 
-  `--branch <name or tag>` picks another branch or a tag (`update-sd-scripts --branch v0.12.0`). The update stops instead of overwriting changes you made in `scripts/sd-scripts`. The **System info** panel on the home page shows whether the installed sd-scripts supports every option of the GUI.
+  `--branch <name or tag>` picks another branch or a tag (`update-sd-scripts --branch v0.12.2`). The update stops instead of overwriting changes you made in `scripts/sd-scripts`. The **System info** panel on the home page shows whether the installed sd-scripts supports every option of the GUI.
 - **musubi-tuner** (Krea 2) works the same way: `update-musubi-tuner [--branch <name or tag>]` updates `scripts/musubi-tuner`.
 
 ## Options
@@ -187,7 +187,7 @@ The Runs page covers what most people need. To use TensorBoard as well, start wi
 | `--enable-tensorboard` | off | Start TensorBoard as well |
 | `--tensorboard-host` | `127.0.0.1` | Address TensorBoard listens on |
 | `--tensorboard-port` | `6006` | Port of TensorBoard |
-| `--sd-scripts-branch` | `v0.12.0` | Branch or tag to clone when sd-scripts is missing (the tested version) |
+| `--sd-scripts-branch` | `v0.12.2` | Branch or tag to clone when sd-scripts is missing (the tested version) |
 | `--skip-prepare-sd-scripts` | off | Do not clone sd-scripts |
 | `--musubi-tuner-branch` | `v0.3.6` | Branch or tag to clone when musubi-tuner is missing (the tested version) |
 | `--skip-prepare-musubi-tuner` | off | Do not clone musubi-tuner |

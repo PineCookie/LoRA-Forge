@@ -18,7 +18,7 @@ the installed checkout, and a run that needs a newer one is refused with a messa
 | per-block `torch.compile`, `cuda_allow_tf32`, `cuda_cudnn_benchmark`, `qwen_image_vae_2d`, timestep preview | v0.11.1 |
 | per-subfolder timestep offsets, `show_timesteps_offset` | main (after v0.11.1) |
 
-Tested with v0.12.0. Update with `.\run_gui.ps1 update-sd-scripts` (`main` by default, `--branch`
+Tested with v0.12.2. Update with `.\run_gui.ps1 update-sd-scripts` (`main` by default, `--branch`
 for another branch or tag) and run `uv sync` afterwards; starting the GUI never updates sd-scripts.
 
 ## Model files

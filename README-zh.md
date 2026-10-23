@@ -153,7 +153,7 @@ LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开�
   bash run_gui.sh update-sd-scripts         # Linux
   ```
 
-  `--branch <分支或标签>` 可选择其他分支或标签（`update-sd-scripts --branch v0.12.0`）。如果你修改过 `scripts/sd-scripts` 中的文件，更新会停止而不会覆盖。首页的 **系统信息** 面板会显示已安装的 sd-scripts 是否支持 GUI 的所有选项。
+  `--branch <分支或标签>` 可选择其他分支或标签（`update-sd-scripts --branch v0.12.2`）。如果你修改过 `scripts/sd-scripts` 中的文件，更新会停止而不会覆盖。首页的 **系统信息** 面板会显示已安装的 sd-scripts 是否支持 GUI 的所有选项。
 - **musubi-tuner**（Krea 2）同理：`update-musubi-tuner [--branch <分支或标签>]` 更新 `scripts/musubi-tuner`。
 
 ## 可选功能
@@ -187,7 +187,7 @@ uv sync --extra flash-attn
 | `--enable-tensorboard` | 关 | 同时启动 TensorBoard |
 | `--tensorboard-host` | `127.0.0.1` | TensorBoard 监听的地址 |
 | `--tensorboard-port` | `6006` | TensorBoard 的端口 |
-| `--sd-scripts-branch` | `v0.12.0` | sd-scripts 不存在时克隆的分支或标签（已测试的版本） |
+| `--sd-scripts-branch` | `v0.12.2` | sd-scripts 不存在时克隆的分支或标签（已测试的版本） |
 | `--skip-prepare-sd-scripts` | 关 | 不克隆 sd-scripts |
 | `--musubi-tuner-branch` | `v0.3.6` | musubi-tuner 不存在时克隆的分支或标签（已测试的版本） |
 | `--skip-prepare-musubi-tuner` | 关 | 不克隆 musubi-tuner |
