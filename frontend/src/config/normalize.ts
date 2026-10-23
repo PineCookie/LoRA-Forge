@@ -297,7 +297,7 @@ export function normalizeTrainingConfig(config: TrainingConfig) {
 function normalizeConstraintCombinations(config: TrainingConfig) {
   if (config.compile_fullgraph) config.split_attn = false;
 
-  // Krea 2: H2D-only block swap needs gradient checkpointing (musubi refuses it otherwise); the
+  // H2D-only block swap needs gradient checkpointing (sd-scripts and musubi refuse it otherwise); the
   // checkpoint offloads are only read with it, and a leftover one would still cancel blocks_to_swap
   if (!config.gradient_checkpointing) {
     delete config.block_swap_h2d_only;
@@ -311,6 +311,11 @@ function normalizeConstraintCombinations(config: TrainingConfig) {
   }
   if (config.cpu_offload_checkpointing || config.unsloth_offload_checkpointing) {
     delete config.blocks_to_swap;
+  }
+  // the trainers read the swap mode only when blocks are swapped
+  if (!config.blocks_to_swap) {
+    delete config.block_swap_h2d_only;
+    delete config.use_pinned_memory_for_block_swap;
   }
   // Krea 2: an imported config with both keeps int8 (config.py does the same)
   if (config.convrot_int8) delete config.fp8_base;

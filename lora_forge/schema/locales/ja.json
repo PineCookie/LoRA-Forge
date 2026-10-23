@@ -128,6 +128,8 @@
   "Network module to train": "学習するネットワークモジュール",
   "Noise": "ノイズ",
   "Number of blocks swapped to the CPU (more saves VRAM but is slower). Cannot be combined with the cpu/unsloth offload options; checking either one clears this field": "CPU にスワップするブロック数（多いほど VRAM を節約、ただし低速）。cpu/unsloth オフロードとは併用不可で、どちらかをオンにするとこの値はクリアされます",
+  "Swapped blocks are only copied from RAM to the GPU, never back (the base model is frozen), which saves the return copy. Pays off when most blocks are swapped (Anima, 26 of 28 blocks: about 7% faster); uses about two blocks more VRAM. Needs gradient_checkpointing and sd-scripts v0.12.2": "スワップするブロックを RAM から GPU へのみコピーし、書き戻しません（ベースモデルは凍結されているため）。戻りのコピーが不要になります。ほとんどのブロックをスワップするときに効果があります（Anima で 28 中 26 ブロック：約 7% 高速）。VRAM はブロック約 2 個分多く使います。gradient_checkpointing と sd-scripts v0.12.2 が必要です",
+  "With block_swap_h2d_only: keep the swapped blocks in pinned RAM for faster copies. Without it, sd-scripts copies through a small pinned buffer, which was as fast on Anima. Pinned RAM cannot be paged out; Windows' Task Manager shows it as shared GPU memory": "block_swap_h2d_only と併用：スワップするブロックをピン留めメモリに置き、コピーを高速化します。オフのときは sd-scripts が小さなピン留めバッファ経由でコピーし、Anima では同じ速さでした。ピン留めメモリはページアウトできず、Windows のタスクマネージャーでは共有 GPU メモリとして表示されます",
   "Number of restarts": "リスタート回数",
   "Offload activations to CPU RAM asynchronously (faster than cpu offload). Cannot be combined with the two options above": "アクティベーションを CPU RAM に非同期でオフロード（cpu オフロードより高速）。上の 2 つとは併用不可",
   "Offload gradient checkpoints to the CPU: less VRAM but slower. Cannot be combined with blocks_to_swap or unsloth offload": "勾配チェックポイントを CPU にオフロード。VRAM は減りますが低速になります。blocks_to_swap、unsloth オフロードとは併用不可",

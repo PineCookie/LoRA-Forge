@@ -403,6 +403,24 @@ describe("visibility", () => {
     expect(shape(fieldTree(memory))).toContain("activation_memory_budget");
   });
 
+  it("shows and sends the block swap mode only while blocks are swapped", () => {
+    for (const schema of ["anima-lora", "flux-lora", "krea2-lora"]) {
+      const groups = loadGroups(schema);
+      const values = initialFormValues(groups);
+      values.blocks_to_swap = schema === "krea2-lora" ? "18" : "";
+      values.block_swap_h2d_only = true;
+      values.use_pinned_memory_for_block_swap = true;
+      const swapping = schema === "krea2-lora";
+      expect(isFieldVisible("block_swap_h2d_only", values), schema).toBe(swapping);
+      expect(readForm(values, groups).block_swap_h2d_only, schema).toBe(swapping ? true : undefined);
+      values.blocks_to_swap = "14";
+      expect([isFieldVisible("block_swap_h2d_only", values), isFieldVisible("use_pinned_memory_for_block_swap", values)], schema).toEqual([true, true]);
+      expect(readForm(values, groups), schema).toMatchObject({ blocks_to_swap: 14, block_swap_h2d_only: true, use_pinned_memory_for_block_swap: true });
+      values.blocks_to_swap = "0";
+      expect(readForm(values, groups), schema).not.toHaveProperty("use_pinned_memory_for_block_swap");
+    }
+  });
+
   it("shows the bucket side limits only without bucket_no_upscale, which makes sd-scripts ignore them", () => {
     for (const schema of ["anima-lora", "flux-lora", "sd3-lora", "sdxl-lora", "sd-lora", "sdxl-finetune", "sd-dreambooth"]) {
       const values = initialFormValues(loadGroups(schema));

@@ -315,6 +315,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh": "子文件夹时间步偏移 / 偏移预览",
         "ja": "サブフォルダ別タイムステップオフセット / オフセットのプレビュー",
     },
+    "feature.blockSwapH2d": {
+        "en": "H2D-only block swap (block_swap_h2d_only, v0.12.2)",
+        "zh": "仅 H2D 的 block 交换（block_swap_h2d_only，v0.12.2）",
+        "ja": "H2D のみのブロックスワップ（block_swap_h2d_only、v0.12.2）",
+    },
     # --- file picker, services, pages --------------------------------------------------------
     "picker.unsupported": {
         "en": "Unsupported picker_type: {type}",

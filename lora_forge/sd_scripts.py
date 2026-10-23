@@ -31,6 +31,7 @@ class Feature:
 # upstream commits that introduced the options the GUI exposes
 V0_11_1 = "6721028c79ee85a78b3a06dfd8954dae310a1cce"
 TIMESTEP_OFFSET = "5bf1dd510e49efc9304f140773a8465d5b0fd299"
+BLOCK_SWAP_H2D = "143786ab5171803a3605ced14e82f8354f707947"  # v0.12.2
 
 FEATURES: Dict[str, Feature] = {
     "compile": Feature("feature.compile", V0_11_1, "library/compile_utils.py"),
@@ -39,6 +40,7 @@ FEATURES: Dict[str, Feature] = {
     "timestep_offset": Feature(
         "feature.timestepOffset", TIMESTEP_OFFSET, "library/flux_train_utils.py", "timestep_sampling_offset"
     ),
+    "block_swap_h2d": Feature("feature.blockSwapH2d", BLOCK_SWAP_H2D, "library/custom_offloading_utils.py", "h2d_only"),
 }
 
 # last checkout this GUI was verified against, and its tag: a fresh install clones this tag, so a
@@ -57,6 +59,7 @@ CONFIG_KEY_FEATURES = {
     "qwen_image_vae_2d": "qwen_image_vae_2d",
     "show_timesteps": "show_timesteps",
     "show_timesteps_offset": "timestep_offset",
+    "block_swap_h2d_only": "block_swap_h2d",
 }
 
 _SUPPORT_CACHE: Dict[tuple, bool] = {}

@@ -128,6 +128,8 @@
   "Network module to train": "训练网络模块",
   "Noise": "噪声设置",
   "Number of blocks swapped to the CPU (more saves VRAM but is slower). Cannot be combined with the cpu/unsloth offload options; checking either one clears this field": "交换到 CPU 的 block 数（越多越省显存、越慢）。与 cpu/unsloth offload 互斥，勾选后会清空此项",
+  "Swapped blocks are only copied from RAM to the GPU, never back (the base model is frozen), which saves the return copy. Pays off when most blocks are swapped (Anima, 26 of 28 blocks: about 7% faster); uses about two blocks more VRAM. Needs gradient_checkpointing and sd-scripts v0.12.2": "交换的 block 只从内存复制到显卡，不再复制回去（底模是冻结的），省掉回程复制。交换大部分 block 时才有收益（Anima 交换 28 个中的 26 个：约快 7%）；多占约两个 block 的显存。需要 gradient_checkpointing 和 sd-scripts v0.12.2",
+  "With block_swap_h2d_only: keep the swapped blocks in pinned RAM for faster copies. Without it, sd-scripts copies through a small pinned buffer, which was as fast on Anima. Pinned RAM cannot be paged out; Windows' Task Manager shows it as shared GPU memory": "配合 block_swap_h2d_only：把交换的 block 放在锁页内存中，复制更快。不开时 sd-scripts 通过一小块锁页缓冲区复制，在 Anima 上一样快。锁页内存不能被换出到磁盘；Windows 任务管理器会把它显示为共享 GPU 内存",
   "Number of restarts": "重启次数",
   "Offload activations to CPU RAM asynchronously (faster than cpu offload). Cannot be combined with the two options above": "异步 offload 激活值到 CPU RAM（比 cpu offload 快）。与前两项互斥",
   "Offload gradient checkpoints to the CPU: less VRAM but slower. Cannot be combined with blocks_to_swap or unsloth offload": "梯度检查点 offload 到 CPU，降显存但更慢。与 blocks_to_swap、unsloth offload 互斥",

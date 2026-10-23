@@ -62,6 +62,9 @@ const VISIBILITY_RULES: Record<string, [string, ShownFor]> = {
   compile_fullgraph: ["compile", true],
   compile_cache_size_limit: ["compile", true],
   activation_memory_budget: ["compile", true],
+  // sd-scripts and musubi-tuner only read these when blocks are swapped
+  block_swap_h2d_only: ["blocks_to_swap", { not: ["", "0"] }],
+  use_pinned_memory_for_block_swap: ["blocks_to_swap", { not: ["", "0"] }],
   // the trainers only read these inside `if gradient_checkpointing`
   cpu_offload_checkpointing: ["gradient_checkpointing", true],
   gradient_checkpointing_cpu_offload: ["gradient_checkpointing", true],

@@ -123,6 +123,8 @@ Schema.intersect([
             fp8_base: Schema.boolean().default(true).description("Use FP8 precision for the base model"),
             fp8_base_unet: Schema.boolean().description("Use FP8 precision for the U-Net only (not CLIP-L)"),
             blocks_to_swap: Schema.number().min(0).max(35).step(1).description("Blocks kept in RAM and moved to the GPU when used (up to 35): less VRAM, slower. sd-scripts' guide: use it on 16 GB cards, 16 on 12 GB, 22 on 10 GB, 28 on 8 GB"),
+            block_swap_h2d_only: Schema.boolean().default(false).description("Swapped blocks are only copied from RAM to the GPU, never back (the base model is frozen), which saves the return copy. Pays off when most blocks are swapped (Anima, 26 of 28 blocks: about 7% faster); uses about two blocks more VRAM. Needs gradient_checkpointing and sd-scripts v0.12.2"),
+            use_pinned_memory_for_block_swap: Schema.boolean().default(false).description("With block_swap_h2d_only: keep the swapped blocks in pinned RAM for faster copies. Without it, sd-scripts copies through a small pinned buffer, which was as fast on Anima. Pinned RAM cannot be paged out; Windows' Task Manager shows it as shared GPU memory"),
             sdpa: Schema.boolean().default(true).description("Enable SDPA"),
             cache_text_encoder_outputs: Schema.boolean().default(true).description("Cache text encoder outputs to save VRAM. Needs shuffle_caption off"),
             cache_text_encoder_outputs_to_disk: Schema.boolean().default(true).description("Cache text encoder outputs to disk"),
