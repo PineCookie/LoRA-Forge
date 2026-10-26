@@ -18,7 +18,7 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 | 子文件夹时间步偏移、`show_timesteps_offset` | main（v0.11.1 之后） |
 | `block_swap_h2d_only`、`use_pinned_memory_for_block_swap` | v0.12.2 |
 
-已在 v0.12.2 上测试。更新方法：`.\run_gui.ps1 update-sd-scripts`（默认跟随 `main`，`--branch`
+已在 v0.12.3 上测试。更新方法：`.\run_gui.ps1 update-sd-scripts`（默认跟随 `main`，`--branch`
 可指定其他分支或 tag），之后执行一次 `uv sync`。启动 GUI 不会自动更新 sd-scripts。
 
 ## 模型文件

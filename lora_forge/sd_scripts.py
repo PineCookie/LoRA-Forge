@@ -45,8 +45,8 @@ FEATURES: Dict[str, Feature] = {
 
 # last checkout this GUI was verified against, and its tag: a fresh install clones this tag, so a
 # release keeps working when sd-scripts' main moves on
-SD_SCRIPTS_TESTED_REF = "11d8cedd0c67b93a10f8b2d75f43554f6f12c794"
-SD_SCRIPTS_TESTED_TAG = "v0.12.2"
+SD_SCRIPTS_TESTED_REF = "cb70b96858477e716a2096292ab8aab433277f38"
+SD_SCRIPTS_TESTED_TAG = "v0.12.3"
 SD_SCRIPTS_SUBPATH = ("scripts", "sd-scripts")
 
 # config key -> feature the key needs. Keys that are always sent with their default value
