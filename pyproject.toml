@@ -4,7 +4,7 @@ version = "1.5.1"
 description = "Web UI for training LoRA models (Anima, Krea 2, MOSS-Image, SDXL, FLUX, SD3.5, SD1.5) with kohya-ss/sd-scripts, musubi-tuner and its own MOSS-Image trainer"
 readme = "README.md"
 license-files = ["LICENSE"]
-requires-python = "==3.12.*"
+requires-python = "==3.14.*"
 dependencies = [
     # Torch
     "torch>=2.9,<2.15",
@@ -66,11 +66,11 @@ flash-attn = [
 torch = [{ index = "pytorch" }]
 torchvision = [{ index = "pytorch" }]
 xformers = [{ index = "pytorch" }]
-# must match torch / CUDA / Python above (cu130, torch 2.14, cp312): update these with every torch bump
+# must match torch / CUDA / Python above (cu130, torch 2.14, cp314): update these with every torch bump
 flash-attn = [
-    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.2/flash_attn-2.8.3+cu130torch2.14-cp312-cp312-win_amd64.whl", marker = "sys_platform == 'win32'" },
-    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.0/flash_attn-2.8.3+cu130torch2.14-cp312-cp312-linux_x86_64.whl", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
-    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.1/flash_attn-2.8.3+cu130torch2.14-cp312-cp312-linux_aarch64.whl", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
+    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.2/flash_attn-2.8.3+cu130torch2.14-cp314-cp314-win_amd64.whl", marker = "sys_platform == 'win32'" },
+    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.0/flash_attn-2.8.3+cu130torch2.14-cp314-cp314-linux_x86_64.whl", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+    { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.1/flash_attn-2.8.3+cu130torch2.14-cp314-cp314-linux_aarch64.whl", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
 ]
 
 [[tool.uv.index]]

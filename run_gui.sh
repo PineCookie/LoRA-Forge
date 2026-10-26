@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# LoRA-Forge launcher for Linux. Needs uv (https://docs.astral.sh/uv/): `uv run` installs Python 3.12
+# LoRA-Forge launcher for Linux. Needs uv (https://docs.astral.sh/uv/): `uv run` installs Python 3.14
 # and the dependencies on the first start and keeps them in sync, so there is no separate install step.
 #
 #   bash run_gui.sh                                  start the GUI (the first start installs PyTorch etc.)
