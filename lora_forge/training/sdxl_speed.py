@@ -8,7 +8,7 @@
   (transformer) or the height and width (resnet) are dynamic, so all bucket sizes share one graph per block
   shape. Resnets compile only their no-grad pass (under checkpointing, the first forward): with gradients,
   torch 2.14's compiled GroupNorm backward pins height and width to the first size seen.
-On an SDXL LoRA (batch 2, 1024 px, RTX 5070 Ti) the two took a step from 1.17 to 0.81 s with the same losses.
+On an SDXL LoRA (batch 2, 1024 px, a 16 GB card) the two took a step from 1.17 to 0.81 s with the same losses.
 
 Kept free of lora_forge imports: run_entry.py loads it in the training process.
 """

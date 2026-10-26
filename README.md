@@ -47,7 +47,7 @@ LoRA Forge is a web UI for training LoRAs. You pick a model, fill in a form in t
 - **Runs page**: progress and time left, loss and learning rate charts, sample images, the saved LoRA files and the console output, also for past runs. No TensorBoard needed.
 - **Faster training**: an SDXL LoRA trains about twice as fast as with plain sd-scripts, and Anima, Krea 2 and MOSS-Image are faster too. Most of it is on by default ([details](#speed)).
 - **Krea 2 on 16 GB cards**: int8 base weights and block swap by default ([details](docs/krea2.md)).
-- **MOSS-Image**: OpenMOSS's 5B model with strong text rendering, trained with LoRA Forge's own trainer on 16 GB cards ([details](docs/moss-image.md)).
+- **MOSS-Image**: OpenMOSS's 5B model with strong text rendering, trained with LoRA Forge's own trainer on 16 GB cards, or smaller ones with block swap ([details](docs/moss-image.md)).
 - English, 中文 and 日本語, light and dark mode.
 
 <picture>
@@ -63,7 +63,7 @@ LoRA Forge is a web UI for training LoRAs. You pick a model, fill in a form in t
 ### What you need
 
 - Windows or Linux with an **NVIDIA GPU, RTX 20 series or newer** (compute capability 7.5), and **driver 580 or newer** (LoRA Forge uses PyTorch 2.14 for CUDA 13.0). GTX 10 series and older cards are not supported by CUDA 13, and other GPU brands are not supported yet. An RTX 30 series card or newer is recommended: bf16 training and flash-attn need it, and on an RTX 20 series card you choose fp16 instead. The **System info** panel on the home page shows whether your GPU is supported.
-- **VRAM**: Anima and SDXL LoRAs need about 9 GB with the default settings at batch size 2 and 1024×1024. MOSS-Image and Krea 2 are set up for 16 GB cards; Krea 2 also fits 12 GB with more `blocks_to_swap`.
+- **VRAM**: Anima and SDXL LoRAs need about 9 GB with the default settings at batch size 2 and 1024×1024. MOSS-Image and Krea 2 are set up for 16 GB cards; with `blocks_to_swap` Krea 2 also fits 12 GB, and MOSS-Image fits 12 GB at the same speed or about 5 GB at 13% slower.
 - [Git](https://git-scm.com/downloads), which the launcher uses to download sd-scripts and musubi-tuner.
 - [uv](https://docs.astral.sh/uv/), which installs Python and everything else. Install it with the official installer, then **open a new terminal**:
 
@@ -118,7 +118,7 @@ Each page keeps what you entered while the browser tab is open, also when you sw
 
 ## Speed
 
-LoRA Forge runs sd-scripts and musubi-tuner unchanged and speeds them up when a training starts. Every change was checked against the original for the same losses. The numbers are the time per step, measured on an RTX 5070 Ti (16 GB) under Windows with rank-32 LoRAs at batch size 2 and about 1 megapixel; other cards gain differently.
+LoRA Forge runs sd-scripts and musubi-tuner unchanged and speeds them up when a training starts. Every change was checked against the original for the same losses. The numbers are the time per step, measured on a 16 GB GeForce card under Windows with rank-32 LoRAs at batch size 2 and about 1 megapixel; other cards gain differently.
 
 **On by default**, nothing to set:
 

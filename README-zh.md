@@ -47,7 +47,7 @@ LoRA Forge 是一个训练 LoRA 的网页界面。选好模型，在浏览器里
 - **运行记录页面**：进度与剩余时间、loss 与学习率曲线、样图、已保存的 LoRA 文件和控制台输出，以往的训练也能查看。不需要 TensorBoard。
 - **更快的训练**：SDXL LoRA 的训练速度约为原版 sd-scripts 的两倍，Anima、Krea 2 和 MOSS-Image 也更快。大部分加速默认开启（[详情](#训练速度)）。
 - **16 GB 显卡也能训练 Krea 2**：默认使用 int8 底模权重和 block 交换（[详情](docs/krea2-zh.md)）。
-- **MOSS-Image**：OpenMOSS 的 5B 模型，文字渲染出色，用 LoRA Forge 自带的训练器在 16 GB 显卡上训练（[详情](docs/moss-image-zh.md)）。
+- **MOSS-Image**：OpenMOSS 的 5B 模型，文字渲染出色，用 LoRA Forge 自带的训练器在 16 GB 显卡上训练，开启 block 交换后更小的显卡也行（[详情](docs/moss-image-zh.md)）。
 - 界面支持 English、中文、日本語，以及浅色和深色模式。
 
 <picture>
@@ -63,7 +63,7 @@ LoRA Forge 是一个训练 LoRA 的网页界面。选好模型，在浏览器里
 ### 准备
 
 - Windows 或 Linux，**RTX 20 系列或更新的 NVIDIA 显卡**（计算能力 7.5），**驱动 580 或更新**（LoRA Forge 使用 CUDA 13.0 版的 PyTorch 2.14）。CUDA 13 不支持 GTX 10 系列及更早的显卡，暂不支持其他品牌的显卡。推荐 RTX 30 系列或更新的显卡：bf16 训练和 flash-attn 都需要它，RTX 20 系列请改用 fp16。首页的 **系统信息** 面板会显示你的显卡是否受支持。
-- **显存**：默认设置下，批大小 2、1024×1024 时 Anima 和 SDXL LoRA 约需 9 GB。MOSS-Image 和 Krea 2 按 16 GB 显卡设置；Krea 2 调高 `blocks_to_swap` 后 12 GB 也能训练。
+- **显存**：默认设置下，批大小 2、1024×1024 时 Anima 和 SDXL LoRA 约需 9 GB。MOSS-Image 和 Krea 2 按 16 GB 显卡设置；调高 `blocks_to_swap` 后 Krea 2 在 12 GB 上也能训练，MOSS-Image 在 12 GB 上速度不变，约 5 GB 时慢 13%。
 - [Git](https://git-scm.com/downloads)，启动脚本用它下载 sd-scripts 和 musubi-tuner。
 - [uv](https://docs.astral.sh/uv/)，由它安装 Python 和其余所有依赖。请用官方安装脚本安装，然后**打开新的终端**：
 
@@ -118,7 +118,7 @@ train/my_character/          ← 在 GUI 中选择这个文件夹
 
 ## 训练速度
 
-LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开始时为它们加速。每项改动都与原版对比过，loss 一致。下表数字为每步耗时，测试环境为 Windows 下的 RTX 5070 Ti（16 GB），rank 32 的 LoRA，批大小 2，约 100 万像素；其他显卡的提升会不同。
+LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开始时为它们加速。每项改动都与原版对比过，loss 一致。下表数字为每步耗时，测试环境为 Windows 下的 16 GB GeForce 显卡，rank 32 的 LoRA，批大小 2，约 100 万像素；其他显卡的提升会不同。
 
 **默认开启**，无需设置：
 

@@ -421,6 +421,23 @@ describe("visibility", () => {
     }
   });
 
+  it("keeps MOSS-Image's block swap with gradient checkpointing, which it needs", () => {
+    const groups = loadGroups("moss-image-lora");
+    const values = initialFormValues(groups);
+    expect([values.blocks_to_swap, values.use_pinned_memory_for_block_swap]).toEqual(["0", true]);
+    expect(isFieldVisible("use_pinned_memory_for_block_swap", values)).toBe(false);
+    values.gradient_checkpointing = false;
+    values.blocks_to_swap = "20";
+    applyExclusiveRules(values, "blocks_to_swap");
+    expect(values.gradient_checkpointing).toBe(true);
+    expect(isFieldVisible("use_pinned_memory_for_block_swap", values)).toBe(true);
+    expect(readForm(values, groups)).toMatchObject({ blocks_to_swap: 20, use_pinned_memory_for_block_swap: true });
+    values.gradient_checkpointing = false;
+    applyExclusiveRules(values, "gradient_checkpointing");
+    expect(values.blocks_to_swap).toBe("");
+    expect(readForm(values, groups)).not.toHaveProperty("use_pinned_memory_for_block_swap");
+  });
+
   it("shows the bucket side limits only without bucket_no_upscale, which makes sd-scripts ignore them", () => {
     for (const schema of ["anima-lora", "flux-lora", "sd3-lora", "sdxl-lora", "sd-lora", "sdxl-finetune", "sd-dreambooth"]) {
       const values = initialFormValues(loadGroups(schema));

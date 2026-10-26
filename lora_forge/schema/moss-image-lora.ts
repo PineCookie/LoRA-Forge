@@ -31,6 +31,8 @@ Schema.intersect([
         max_train_epochs: Schema.number().min(1).step(1).default(10).description("Maximum training epochs"),
         gradient_accumulation_steps: Schema.number().min(1).step(1).default(1).description("Gradient accumulation steps. MOSS-Image trains one image per step, so this is the way to larger batches"),
         gradient_checkpointing: Schema.boolean().default(true).description("Gradient checkpointing: saves VRAM by running each block's forward pass again during the backward pass. Keep it on with 16 GB of VRAM: the DiT alone takes about 10 GB"),
+        blocks_to_swap: Schema.number().min(0).max(40).step(1).default(0).description("Blocks whose weights stay in system RAM and are copied to the GPU when used (up to 40 of 42), for GPUs with less than 16 GB: each saves about 0.2 GB of VRAM, and the trained LoRA is the same. Measured on a 16 GB card at 1024 px: 20 blocks about 9 GB of VRAM at the same speed, 40 blocks about 5 GB and 13% slower (slower PCIe links lose more). Needs gradient_checkpointing. 0 = off"),
+        use_pinned_memory_for_block_swap: Schema.boolean().default(true).description("Pinned RAM for the swapped blocks, so the copies run alongside the computation (40 blocks: 13% slower than without swapping, 53% without pinned RAM). Pinned RAM cannot be paged out, about 0.2 GB per swapped block; Windows' Task Manager shows it as shared GPU memory"),
     }),
 
     // Learning rate & optimizer: the GUI's ProdigyPlus settings become optimizer_args as on the other pages

@@ -70,7 +70,7 @@ with images and `.txt` captions). Only single-GPU training is offered.
 
 ## Memory and speed
 
-On an RTX 5070 Ti (16 GB) at about 1 megapixel, rank 32: **2.1 s per step** with the defaults,
+On a 16 GB card at about 1 megapixel, rank 32: **2.1 s per step** with the defaults,
 **1.5 s** with `training_precision = fp16`, 2.9 s without flash-attn. The run peaks at about
 12-13 GB of VRAM.
 
@@ -80,6 +80,12 @@ On an RTX 5070 Ti (16 GB) at about 1 megapixel, rank 32: **2.1 s per step** with
   as close to an fp32 reference as bf16's, and no step was skipped for overflow in our runs. The LoRA
   weights train in fp32 either way. Opt-in until more full trainings have compared it with bf16.
 - **`gradient_checkpointing`** (default on): keep it on with 16 GB; the DiT alone takes about 10 GB.
+- **`blocks_to_swap`** (default 0): for cards with less than 16 GB. The weights of that many blocks
+  (up to 40 of 42) stay in system RAM and are copied to the GPU just before they are used, about 0.2 GB
+  per block; the trained LoRA is the same. On a 16 GB card: 20 blocks, about 9 GB of VRAM at the
+  same speed; 30 blocks, about 7 GB and 6% slower; 40 blocks, about 5 GB and 13% slower. A slower PCIe
+  link loses more. It needs `gradient_checkpointing`, and `use_pinned_memory_for_block_swap` (on by
+  default) keeps the copies alongside the computation: without it, 40 blocks were 53% slower.
 - **`compile`** (default on): per-block torch.compile, about 30% faster. It builds a few graphs
   for all bucket sizes; the first steps are slower while it compiles.
 - **`attn_mode`** (default `auto`): FlashAttention when [flash-attn](../README.md#flash-attn-optional)

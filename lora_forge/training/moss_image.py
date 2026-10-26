@@ -20,6 +20,8 @@ DROPPED_KEYS = (
     "network_module", "network_args", "train_batch_size", "full_precision", "full_bf16", "full_fp16",
     "save_model_as", "save_state", "resume", "max_data_loader_n_workers", "persistent_data_loader_workers",
     "randomly_choice_prompt", "sample_sampler", "enable_preview",
+    # the trainer's block swap always copies one way, as H2D-only does on the other pages
+    "block_swap_h2d_only",
 )
 
 
@@ -62,6 +64,9 @@ def sample_prompts(config: dict) -> Optional[str]:
 def prepare_config(config: dict, prompt_path: str) -> None:
     """Rewrite a submitted MOSS-Image config in place into the trainer's options."""
     check_model_files(config)
+    # the backward pass reads a swapped block's weights again when it recomputes the block
+    if int(config.get("blocks_to_swap") or 0) > 0 and not config.get("gradient_checkpointing"):
+        raise MossConfigError(t("run.mossSwapCheckpointing"))
     prompt_file = str(config.pop("prompt_file", "") or "").strip()
     # the web UI sends the preview fields only with previews on and never sends enable_preview itself
     # (a form-only key); a config built by hand may still say enable_preview = false

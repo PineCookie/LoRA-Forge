@@ -19,6 +19,7 @@ and a training run (see [Checking a change](#checking-a-change)).
 | `moss_lora.py` | LoRA on the block Linears, saving and loading |
 | `moss_data.py` | Dataset scan, buckets, the VAE and text-encoder loaders, both caches |
 | `moss_sampling.py` | Training timestep sampling, the preview sampler, prompt-line parsing |
+| `moss_swap.py` | Block swap (`blocks_to_swap`): some blocks' frozen weights in RAM, copied to the GPU when used |
 | `configs/` | OpenMOSS's text-encoder and VAE configs (only the shapes; weights come from the user's files) |
 
 Around it: `lora_forge/schema/moss-image-lora.ts` (the page), `lora_forge/training/moss_image.py` (what
@@ -115,7 +116,7 @@ converted to fp16 (exactly) and the matmuls run in fp16, with fp16 accumulation 
 fp16's range. The gradients need loss scaling (a `GradScaler`): without it they underflow, and the
 attention LoRA got about 6× too little gradient.
 
-Measurements (RTX 5070 Ti, 1 MP, rank 32, batch 1):
+Measurements (a 16 GB card, 1 MP, rank 32, batch 1):
 
 | | s/step |
 |---|---|
@@ -130,6 +131,33 @@ equally close (the bf16 residual stream they share limits all three), and the lo
 
 Per-block `torch.compile` compiles `Block.forward` once (`model.block_fn`), called inside non-reentrant
 gradient checkpointing; it builds 4 graphs for all bucket sizes.
+
+## Block swap
+
+`moss_swap.BlockSwap` follows sd-scripts' / Musubi Tuner's H2D-only block swap (`LoRAStreamOffloader`,
+Apache-2.0). The streaming blocks are spread evenly over the 42; the frozen Linear weights of each
+(`nn.Linear.weight`, or the `Fp16Linear` buffer) are packed into one flat CPU buffer, pinned by default,
+and copied into a ring of two GPU buffers on a side stream, never back. The LoRA weights are not part of
+it and stay on the GPU with everything else. The model's block loop drives it: `before` waits (on the
+GPU) for a block's copy, `after_forward` frees its slot and prefetches two streaming blocks ahead, and an
+identity autograd function on each block's input (`hook_input`) runs `after_backward` once the block's
+backward pass is done, which prefetches backwards. sd-scripts' module backward hooks would not fire here,
+because the compiled `Block.forward` is called as a function. A slot is overwritten as soon as its block is
+done, so gradient checkpointing is required: the recompute reads the weights again. With swapping, the
+DiT loads into RAM, the LoRA is attached there, and `place()` then moves everything else to the GPU.
+
+Checked: with PyTorch's deterministic math attention, 20 / 30 / 40 swapped blocks, pinned or not, give
+bit-identical LoRA gradients and outputs (flash attention's backward is not deterministic, about 0.5%
+between any two runs). Compile keeps working (2 graphs). A 16 GB card, 1 MP, through the GUI path:
+
+| blocks_to_swap | s/step | VRAM (nvidia-smi) |
+|---|---|---|
+| 0 | 2.09 | 13.3 GB |
+| 10 | 2.09 | 11.4 GB |
+| 20 | 2.10 | 9.3 GB |
+| 30 | 2.22 | 7.1 GB |
+| 40 | 2.36 | 5.0 GB |
+| 40, not pinned | 3.19 | 5.0 GB |
 
 ## Not supported yet
 

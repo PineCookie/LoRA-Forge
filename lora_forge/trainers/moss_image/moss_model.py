@@ -13,6 +13,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+import moss_swap
+
 try:
     from flash_attn import flash_attn_func
 except ImportError:
@@ -20,6 +22,7 @@ except ImportError:
 
 # set by the trainer: "flash_attn" or "sdpa"
 ATTENTION = {"mode": "sdpa"}
+NUM_LAYERS = 42
 
 
 class RMSNorm(nn.Module):
@@ -151,7 +154,7 @@ def rope_table(height, width, text_length, device, head_dim=128, base=10000.0):
 
 
 class MOSSImageDiT(nn.Module):
-    def __init__(self, dim=3072, ffn_dim=8192, num_heads=24, num_layers=42, text_dim=4096, freq_dim=256, latent_channels=128):
+    def __init__(self, dim=3072, ffn_dim=8192, num_heads=24, num_layers=NUM_LAYERS, text_dim=4096, freq_dim=256, latent_channels=128):
         super().__init__()
         self.freq_dim = freq_dim
         self.latent_channels = latent_channels
@@ -166,6 +169,8 @@ class MOSSImageDiT(nn.Module):
         self.gradient_checkpointing = False
         # optional replacement for Block.forward (the compiled one), called as block_fn(block, x, rope, mod)
         self.block_fn = None
+        # optional moss_swap.BlockSwap: some blocks' frozen weights stay in RAM
+        self.swap = None
 
     def forward(self, latents, timestep, context, skip_layers=()):
         """latents [1, 128, H, W] (patchified, normalized FLUX.2 latents); timestep = 1000 * sigma;
@@ -184,17 +189,25 @@ class MOSSImageDiT(nn.Module):
         rope = rope_table(height, width, context.shape[1], latents.device).to(video.dtype)
         text = self.text_embedder(context, rope[:, height * width:])
         x = torch.cat((video, text), 1)
+        swap, training = self.swap, torch.is_grad_enabled()
+        if swap is not None:
+            swap.start()
         for index, layer in enumerate(self.layers):
-            if index in skip_layers:
-                continue
-            if self.block_fn is not None:
-                call = lambda x_, rope_, mod_, layer=layer: self.block_fn(layer, x_, rope_, mod_)
-            else:
-                call = layer
-            if self.gradient_checkpointing and torch.is_grad_enabled():
-                x = torch.utils.checkpoint.checkpoint(call, x, rope, mod, use_reentrant=False)
-            else:
-                x = call(x, rope, mod)
+            if swap is not None:
+                swap.before(index)
+            if index not in skip_layers:
+                if self.block_fn is not None:
+                    call = lambda x_, rope_, mod_, layer=layer: self.block_fn(layer, x_, rope_, mod_)
+                else:
+                    call = layer
+                if swap is not None and training:
+                    x = moss_swap.hook_input(x, swap, index)
+                if self.gradient_checkpointing and training:
+                    x = torch.utils.checkpoint.checkpoint(call, x, rope, mod, use_reentrant=False)
+                else:
+                    x = call(x, rope, mod)
+            if swap is not None:
+                swap.after_forward(index, training)
         x = self.final_norm_video(x[:, :height * width])
         x = x * (1 + head[:, 1, None]) + head[:, 0, None]
         x = self.final_linear_video(x)

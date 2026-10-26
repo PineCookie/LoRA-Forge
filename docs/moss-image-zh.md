@@ -43,10 +43,11 @@ my_character in her school uniform with a club badge, smiling at the viewer.
 
 ## 显存与速度
 
-在 RTX 5070 Ti（16 GB）上、约 100 万像素、rank 32：默认设置下**每步 2.1 秒**，`training_precision = fp16` 时 **1.5 秒**，不用 flash-attn 时 2.9 秒。显存峰值约 12-13 GB。
+在 16 GB 显卡上、约 100 万像素、rank 32：默认设置下**每步 2.1 秒**，`training_precision = fp16` 时 **1.5 秒**，不用 flash-attn 时 2.9 秒。显存峰值约 12-13 GB。
 
 - **`training_precision`**（默认 `bf16`）：`fp16` 让 block 的矩阵乘法以 fp16 运行并使用损失缩放；配合 `fp16_accumulation`（选择 `fp16` 时默认开启），累加也用 fp16，GeForce RTX 显卡上约快一倍：每步少用约四分之一的时间。在测试中，它的梯度精度与 bf16 相当，也没有因溢出而跳过的步数。两种设置下 LoRA 权重都以 fp32 训练。在有更多完整训练与 bf16 对比之前，它需要手动开启。
 - **`gradient_checkpointing`**（默认开启）：16 GB 显存请保持开启，仅 DiT 就占约 10 GB。
+- **`blocks_to_swap`**（默认 0）：用于显存不足 16 GB 的显卡。这么多个 block（最多 42 个中的 40 个）的权重留在系统内存中，用到之前才复制到显卡，每个约 0.2 GB；训练出的 LoRA 完全相同。在 16 GB 显卡上：20 个 block 约 9 GB 显存、速度不变；30 个约 7 GB、慢 6%；40 个约 5 GB、慢 13%。PCIe 更慢的机器损失更多。它需要 `gradient_checkpointing`；`use_pinned_memory_for_block_swap`（默认开启）让复制与计算同时进行，关闭时 40 个 block 慢 53%。
 - **`compile`**（默认开启）：逐 block 的 torch.compile，约快 30%。所有分桶尺寸只需要构建少数几个图；编译期间最初几步较慢。
 - **`attn_mode`**（默认 `auto`）：安装了 [flash-attn](../README-zh.md#flash-attn可选) 时用 FlashAttention，否则用 PyTorch 的 SDPA。
 

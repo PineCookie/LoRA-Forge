@@ -71,6 +71,11 @@ export function applyExclusiveRules(values: FormValues, edited: string | null) {
     setField(values, "gradient_checkpointing_cpu_offload", false);
   }
   if (edited === "block_swap_h2d_only" && checked(values, edited)) setField(values, "gradient_checkpointing", true);
+  // MOSS-Image: the trainer's block swap always works like H2D-only, so it needs gradient checkpointing too
+  if (trainType === "moss-image-lora") {
+    if (edited === "blocks_to_swap" && Number(values.blocks_to_swap) > 0) setField(values, "gradient_checkpointing", true);
+    if (edited === "gradient_checkpointing" && !checked(values, edited)) setField(values, "blocks_to_swap", "");
+  }
 
   // activation_memory_budget spends VRAM for speed, the others save VRAM: the last edited one wins
   if (edited === "activation_memory_budget" && budgetOn(values)) {

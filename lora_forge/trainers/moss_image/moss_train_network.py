@@ -29,6 +29,7 @@ import moss_data
 import moss_lora
 import moss_model
 import moss_sampling
+import moss_swap
 
 # the empty prompt's text-encoder output for caption dropout, cached in the dataset folder
 EMPTY_PROMPT_CACHE = "_moss_empty_prompt_te.safetensors"
@@ -71,6 +72,8 @@ DEFAULTS = {
     "lr_scheduler_power": 1.0,
     "max_grad_norm": 1.0,
     "gradient_checkpointing": True,
+    "blocks_to_swap": 0,
+    "use_pinned_memory_for_block_swap": True,
     # "fp16": the block Linears compute in fp16 with loss scaling; fp16_accumulation lets them add up in fp16
     "mixed_precision": "bf16",
     "fp16_accumulation": False,
@@ -255,7 +258,14 @@ class Trainer:
             attn_mode = "flash_attn" if moss_model.flash_attn_func is not None else "sdpa"
         moss_model.ATTENTION["mode"] = attn_mode
         print(f"LoRA-Forge: loading the MOSS-Image DiT, attention {attn_mode}", flush=True)
-        model = moss_model.load_dit(config["pretrained_model_name_or_path"], self.device)
+        swap_blocks = int(config["blocks_to_swap"] or 0)
+        if swap_blocks:
+            if not config["gradient_checkpointing"]:
+                raise SystemExit("blocks_to_swap needs gradient_checkpointing: the backward pass reloads a swapped block's weights")
+            if not 0 < swap_blocks <= moss_model.NUM_LAYERS - 2:
+                raise SystemExit(f"blocks_to_swap must be between 1 and {moss_model.NUM_LAYERS - 2}, not {swap_blocks}")
+        # with block swap, the model is put together in RAM and placed on the GPU after the LoRA is attached
+        model = moss_model.load_dit(config["pretrained_model_name_or_path"], "cpu" if swap_blocks else self.device)
         self.scaler = None
         precision = str(config["mixed_precision"] or "bf16")
         if precision == "fp16":
@@ -277,6 +287,12 @@ class Trainer:
             self.network.load_weights(config["network_weights"])
             print(f"LoRA-Forge: continuing from {config['network_weights']}", flush=True)
         model.gradient_checkpointing = bool(config["gradient_checkpointing"])
+        if swap_blocks:
+            pinned = bool(config["use_pinned_memory_for_block_swap"])
+            model.swap = moss_swap.BlockSwap(model.layers, swap_blocks, self.device, pinned)
+            model.swap.place(model)
+            print(f"LoRA-Forge: block swap: the weights of {len(model.swap.stream)} of {len(model.layers)} blocks stay in "
+                  f"{'pinned ' if pinned else ''}RAM and are copied to the GPU when used", flush=True)
         if config["compile"]:
             torch._dynamo.config.recompile_limit = int(config["compile_cache_size_limit"] or 64)
             model.block_fn = torch.compile(moss_model.Block.forward)

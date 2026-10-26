@@ -284,6 +284,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh": "{label} 是量化文件（int8 / fp8）：{path}。MOSS-Image 训练需要 bf16 文件。",
         "ja": "{label} は量子化されたファイル（int8 / fp8）です：{path}。MOSS-Image の学習には bf16 のファイルが必要です。",
     },
+    "run.mossSwapCheckpointing": {
+        "en": "blocks_to_swap needs gradient_checkpointing: turn it on, or set blocks_to_swap to 0.",
+        "zh": "blocks_to_swap 需要 gradient_checkpointing：请开启它，或把 blocks_to_swap 设为 0。",
+        "ja": "blocks_to_swap には gradient_checkpointing が必要です。オンにするか、blocks_to_swap を 0 にしてください。",
+    },
     # --- sd-scripts compatibility ------------------------------------------------------------
     "sdScripts.missing": {
         "en": "The installed sd-scripts ({ref}) does not support: {features}. sd-scripts would silently ignore "
