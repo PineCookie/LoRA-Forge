@@ -62,7 +62,7 @@ LoRA Forge is a web UI for training LoRAs. You pick a model, fill in a form in t
 
 ### What you need
 
-- Windows or Linux with an **NVIDIA GPU, RTX 20 series or newer** (compute capability 7.5), and **driver 580 or newer** (LoRA Forge uses PyTorch 2.14 for CUDA 13.0). GTX 10 series and older cards are not supported by CUDA 13, and other GPU brands are not supported yet. An RTX 30 series card or newer is recommended: bf16 training and flash-attn need it, and on an RTX 20 series card you choose fp16 instead. The **System info** panel on the home page shows whether your GPU is supported.
+- Windows or Linux with an **NVIDIA GPU, RTX 20 series or newer** (compute capability 7.5), and **driver 595 or newer** (LoRA Forge uses PyTorch 2.15 for CUDA 13.2). GTX 10 series and older cards are not supported by CUDA 13, and other GPU brands are not supported yet. An RTX 30 series card or newer is recommended: bf16 training and flash attention need it, and on an RTX 20 series card you choose fp16 instead. The **System info** panel on the home page shows whether your GPU is supported.
 - **VRAM**: Anima and SDXL LoRAs need about 9 GB with the default settings at batch size 2 and 1024×1024. MOSS-Image and Krea 2 are set up for 16 GB cards; with `blocks_to_swap` Krea 2 also fits 12 GB, and MOSS-Image fits 12 GB at the same speed or about 5 GB at 13% slower.
 - [Git](https://git-scm.com/downloads), which the launcher uses to download sd-scripts and musubi-tuner.
 - [uv](https://docs.astral.sh/uv/), which installs Python and everything else. Install it with the official installer, then **open a new terminal**:
@@ -124,8 +124,8 @@ LoRA Forge runs sd-scripts and musubi-tuner unchanged and speeds them up when a 
 
 | What | Models | Time per step |
 |---|---|---|
-| Compiled model blocks (`torch.compile`) that handle every image size, so different sizes cost no new compiles | Anima, SDXL, MOSS-Image | −21% on SDXL, −29% on MOSS-Image; an Anima epoch −11% (−55% the first time) |
-| flash-attn for the attention, once [flash-attn](#flash-attn-optional) is installed | SDXL, Krea 2, MOSS-Image | −17% on SDXL, −22% on Krea 2, −29% on MOSS-Image |
+| Compiled model blocks (`torch.compile`) that handle every image size, so different sizes cost no new compiles | Anima, SDXL, MOSS-Image | −21% on SDXL, −29% on MOSS-Image; on Anima −22% for a first run with 6 image sizes |
+| Flash attention, built into PyTorch since 2.15 (nothing to install) | Anima, SDXL, Krea 2, MOSS-Image | −17% on SDXL, −22% on Krea 2, −29% on MOSS-Image, −34% on Anima |
 | PyTorch's SDPA attention instead of sd-scripts' plain attention | SDXL, SD1.5 | about half, with less VRAM |
 | A faster ProdigyPlusScheduleFree optimizer step (same results) | all | −7% on Anima, −23% on SDXL |
 | Block swap that costs almost no speed, so more of the model can stay in RAM | Krea 2 | same speed with far more blocks swapped |
@@ -157,16 +157,6 @@ Together: an SDXL LoRA step went from 1.51 s (sd-scripts with SDPA) to 0.81 s wi
 - **musubi-tuner** (Krea 2) works the same way: `update-musubi-tuner [--branch <name or tag>]` updates `scripts/musubi-tuner`.
 
 ## Options
-
-### flash-attn (optional)
-
-[flash-attn](https://github.com/Dao-AILab/flash-attention) is a faster attention implementation (see [Speed](#speed)). It is not installed by default. Once it is, the Anima, SDXL, Krea 2 and MOSS-Image pages use it automatically. To install it, run this once in the LoRA Forge folder (Windows, or Linux on x86_64 or ARM):
-
-```sh
-uv sync --extra flash-attn
-```
-
-This downloads a prebuilt wheel (about 230 MB) from [mjun0812/flash-attention-prebuild-wheels](https://github.com/mjun0812/flash-attention-prebuild-wheels) that matches LoRA Forge's PyTorch, so nothing is compiled. From then on the launcher keeps it installed and updates it together with PyTorch. If you run `uv sync` yourself later, add `--extra flash-attn`, or `uv sync` removes it again.
 
 ### TensorBoard (optional)
 

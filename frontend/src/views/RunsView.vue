@@ -54,11 +54,6 @@ const startedText = computed(() =>
 
 function noticeText(notice: RunNotice) {
   if (notice.code === "recompile_limit") return t("runs.notice.recompileLimit", { limit: notice.limit ?? "?" });
-  if (notice.code === "dynamic_seq_outside") {
-    // a token is a 16x16 px patch; the side of a square image with that many tokens
-    const side = Math.round(Math.sqrt(notice.tokens ?? 0) * 16);
-    return t("runs.notice.dynamicSeqOutside", { tokens: notice.tokens ?? "?", side, batch: notice.batch ?? "?", max: notice.max ?? "?" });
-  }
   if (notice.code === "vram_spill") return t("runs.notice.vramSpill", { gib: notice.gib ?? "?", total: notice.total_gib ?? "?" });
   if (notice.code === "out_of_memory") {
     return notice.budget ? t("runs.notice.outOfMemoryBudget", { budget: notice.budget }) : t("runs.notice.outOfMemory");

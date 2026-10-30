@@ -61,9 +61,8 @@ single-GPU training is offered (untested upstream with several GPUs).
   card the run spills into system RAM instead of failing.
 - **`compile`** (default on): torch.compile of the 28 main blocks; the quantized layers and the
   swapped blocks stay out automatically. The first steps compile.
-- **`attn_mode`** (default `auto`): FlashAttention when flash-attn is installed, otherwise
-  PyTorch's SDPA. FlashAttention makes each step about a fifth faster on Krea 2 with the same
-  results, so install it if you can (see [flash-attn](../README.md#flash-attn-optional)).
+- **Attention**: PyTorch's SDPA, which runs on flash kernels since PyTorch 2.15 (about a fifth
+  faster per step on Krea 2 than its older kernels), so the page has no attention option.
   SageAttention is not offered: it has no backward pass, so it cannot train.
 - A run that does not fit spills into system RAM on Windows and becomes very slow (minutes per
   step) rather than failing: raise `blocks_to_swap`.

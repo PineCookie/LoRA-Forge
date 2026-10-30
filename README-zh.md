@@ -62,7 +62,7 @@ LoRA Forge 是一个训练 LoRA 的网页界面。选好模型，在浏览器里
 
 ### 准备
 
-- Windows 或 Linux，**RTX 20 系列或更新的 NVIDIA 显卡**（计算能力 7.5），**驱动 580 或更新**（LoRA Forge 使用 CUDA 13.0 版的 PyTorch 2.14）。CUDA 13 不支持 GTX 10 系列及更早的显卡，暂不支持其他品牌的显卡。推荐 RTX 30 系列或更新的显卡：bf16 训练和 flash-attn 都需要它，RTX 20 系列请改用 fp16。首页的 **系统信息** 面板会显示你的显卡是否受支持。
+- Windows 或 Linux，**RTX 20 系列或更新的 NVIDIA 显卡**（计算能力 7.5），**驱动 595 或更新**（LoRA Forge 使用 CUDA 13.2 版的 PyTorch 2.15）。CUDA 13 不支持 GTX 10 系列及更早的显卡，暂不支持其他品牌的显卡。推荐 RTX 30 系列或更新的显卡：bf16 训练和 flash attention 都需要它，RTX 20 系列请改用 fp16。首页的 **系统信息** 面板会显示你的显卡是否受支持。
 - **显存**：默认设置下，批大小 2、1024×1024 时 Anima 和 SDXL LoRA 约需 9 GB。MOSS-Image 和 Krea 2 按 16 GB 显卡设置；调高 `blocks_to_swap` 后 Krea 2 在 12 GB 上也能训练，MOSS-Image 在 12 GB 上速度不变，约 5 GB 时慢 13%。
 - [Git](https://git-scm.com/downloads)，启动脚本用它下载 sd-scripts 和 musubi-tuner。
 - [uv](https://docs.astral.sh/uv/)，由它安装 Python 和其余所有依赖。请用官方安装脚本安装，然后**打开新的终端**：
@@ -124,8 +124,8 @@ LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开�
 
 | 内容 | 模型 | 每步耗时 |
 |---|---|---|
-| 编译模型的各个 block（`torch.compile`），所有图像尺寸共用编译结果，换尺寸不会重新编译 | Anima、SDXL、MOSS-Image | SDXL −21%，MOSS-Image −29%；Anima 一个 epoch −11%（首次 −55%） |
-| 安装 [flash-attn](#flash-attn可选) 后，注意力使用 flash-attn | SDXL、Krea 2、MOSS-Image | SDXL −17%，Krea 2 −22%，MOSS-Image −29% |
+| 编译模型的各个 block（`torch.compile`），所有图像尺寸共用编译结果，换尺寸不会重新编译 | Anima、SDXL、MOSS-Image | SDXL −21%，MOSS-Image −29%；Anima 在 6 种图像尺寸的首次训练中 −22% |
+| Flash attention，自 PyTorch 2.15 起内置（无需安装） | Anima、SDXL、Krea 2、MOSS-Image | SDXL −17%，Krea 2 −22%，MOSS-Image −29%，Anima −34% |
 | 使用 PyTorch 的 SDPA 注意力，而不是 sd-scripts 的普通注意力 | SDXL、SD1.5 | 约减半，显存也更少 |
 | 更快的 ProdigyPlusScheduleFree 优化器步骤（结果相同） | 全部 | Anima −7%，SDXL −23% |
 | 几乎不影响速度的 block 交换，可以把更多模型放在内存里 | Krea 2 | 交换更多 block 而速度不变 |
@@ -157,16 +157,6 @@ LoRA Forge 不修改 sd-scripts 和 musubi-tuner 的代码，而是在训练开�
 - **musubi-tuner**（Krea 2）同理：`update-musubi-tuner [--branch <分支或标签>]` 更新 `scripts/musubi-tuner`。
 
 ## 可选功能
-
-### flash-attn（可选）
-
-[flash-attn](https://github.com/Dao-AILab/flash-attention) 是更快的注意力实现（见 [训练速度](#训练速度)）。它默认不会安装。安装后，Anima、SDXL、Krea 2 和 MOSS-Image 页面会自动使用它。要安装它，请在 LoRA Forge 文件夹中运行一次（适用于 Windows，以及 x86_64 或 ARM 上的 Linux）：
-
-```sh
-uv sync --extra flash-attn
-```
-
-这会从 [mjun0812/flash-attention-prebuild-wheels](https://github.com/mjun0812/flash-attention-prebuild-wheels) 下载与 LoRA Forge 的 PyTorch 匹配的预编译 wheel（约 230 MB），无需编译。之后启动脚本会保留它，并在 PyTorch 更新时一起更新。如果之后你自己运行 `uv sync`，请加上 `--extra flash-attn`，否则 `uv sync` 会把它移除。
 
 ### TensorBoard（可选）
 

@@ -17,17 +17,13 @@ LORA_FORGE_PATCHES=0 to run sd-scripts exactly as it is, e.g. to compare):
   so every bucket shape compiled two graphs and hit the recompile limit twice as fast;
 - with unsloth_offload_checkpointing the compiled block only calls the dynamo-disabled
   checkpoint function, so nothing was compiled; the block's inner _forward is compiled instead.
-And with LORA_FORGE_COMPILE_DYNAMIC_SEQ=1 (GUI option compile_shapes = bounded) it compiles one graph
-for all bucket sizes: only the token count is dynamic (see bounded_block_call). On the user's
-Anima set (20 buckets, batch 2) that is 2 graphs instead of 28 with matching loss, and it avoids
-pytorch#193194, which only hits when every dimension may become dynamic.
 With LORA_FORGE_ACTIVATION_MEMORY_BUDGET (GUI option activation_memory_budget, a fraction or `auto`)
 torch.compile's recompute planner replaces gradient checkpointing (install_memory_budget), with
 flash-attn's forward made visible to that planner (plan_flash_attention). A run that fails for lack of
 VRAM gets an out_of_memory notice; on Windows, a run that spills VRAM into system RAM (much slower,
 but no error) gets a vram_spill notice (SpillMonitor).
 For every trainer, ProdigyPlusScheduleFree gets a batched step with the same math
-(batched_ppsf.py); for SDXL, flash-attn and per-block compile (sdxl_speed.py). LORA_FORGE_PATCHES=0
+(batched_ppsf.py); for SDXL, per-block compile (sdxl_speed.py). LORA_FORGE_PATCHES=0
 turns these off too.
 
 The output goes to the GUI through a pipe: install_console_output() keeps tqdm bars full width and
@@ -48,20 +44,15 @@ import time
 
 EVENTS_ENV = "LORA_FORGE_EVENTS"
 PATCHES_ENV = "LORA_FORGE_PATCHES"
-# set by the runner for the GUI option compile_shapes = bounded (a LoRA-Forge option, not sd-scripts')
-DYNAMIC_SEQ_ENV = "LORA_FORGE_COMPILE_DYNAMIC_SEQ"
 # set by the runner when its console shows ANSI colors
 ANSI_ENV = "LORA_FORGE_ANSI"
 # GUI option activation_memory_budget (Anima with compile), in place of gradient checkpointing
 MEMORY_BUDGET_ENV = "LORA_FORGE_ACTIVATION_MEMORY_BUDGET"
 # GUI option fp16_accumulation (Anima, fp16 training precisions): fp16 matrix multiplies accumulate in fp16
 FP16_ACCUMULATION_ENV = "LORA_FORGE_FP16_ACCUMULATION"
-# SDXL (sdxl_speed.py): flash-attn for the SDPA path, and per-block compile (GUI option compile)
-SDXL_FLASH_ENV = "LORA_FORGE_SDXL_FLASH"
+# SDXL (sdxl_speed.py): per-block compile (GUI option compile)
 SDXL_COMPILE_ENV = "LORA_FORGE_SDXL_COMPILE"
 SDXL_TRAINERS = ("sdxl_train_network.py", "sdxl_train.py")
-# the training batch size (upper bound of dynamic shapes), set by the runner
-BATCH_SIZE_ENV = "LORA_FORGE_BATCH_SIZE"
 # Krea 2 (musubi-tuner): JSON with the caching scripts' arguments, see run_krea2_caching
 KREA2_CACHE_ENV = "LORA_FORGE_KREA2_CACHE"
 KREA2_TURBO_LORA_ENV = "LORA_FORGE_KREA2_TURBO_LORA"
@@ -185,109 +176,13 @@ class CompileMonitor:
             self.events.write("compile", graphs=graphs)
 
 
-def bounded_block_call(fn):
-    """Call `fn` (a compiled Anima block, or its _forward) with the token grid flattened to one
-    sequence axis that torch.compile treats as dynamic, so every bucket shows the same shape.
-
-    Block._forward flattens (B, T, H, W, D) to (B, T*H*W, D) for attention and back anyway, and the
-    positions come precomputed in rope_emb_L_1_1_D, so (B, 1, L, 1, D) is the same computation in
-    the same token order. Each call marks its inputs again: a block's input is the previous block's
-    output, which Dynamo would otherwise see as static.
-    """
-    import torch
-
-    mark = torch._dynamo.mark_dynamic
-
-    def call(x_B_T_H_W_D, emb_B_T_D, crossattn_emb, attn_params, use_fp32=False,
-             rope_emb_L_1_1_D=None, adaln_lora_B_T_3D=None, extra_per_block_pos_emb=None):
-        B, T, H, W, D = x_B_T_H_W_D.shape
-        L = T * H * W
-        # the batch is dynamic too (2 .. train_batch_size), so smaller last batches of a bucket share
-        # the graph; batch 1 always gets its own (PyTorch never treats size 1 as dynamic)
-        dynamic_batch = BATCH_MAX > 2 and 2 <= B <= BATCH_MAX
-        seq_max = seq_max_for(BATCH_MAX if dynamic_batch else B, D)
-        # outside the range (a huge bucket at a large batch) the shape is compiled statically instead
-        dynamic = SEQ_MIN <= L <= seq_max
-        if not dynamic:
-            report_outside_range(L, B, seq_max)
-        x = x_B_T_H_W_D.reshape(B, 1, L, 1, D)
-        if dynamic:
-            mark(x, 2, min=SEQ_MIN, max=seq_max)
-        if rope_emb_L_1_1_D is not None and dynamic:
-            mark(rope_emb_L_1_1_D, 0, min=SEQ_MIN, max=seq_max)
-        if extra_per_block_pos_emb is not None:
-            extra_per_block_pos_emb = extra_per_block_pos_emb.reshape(extra_per_block_pos_emb.shape[0], 1, L, 1, D)
-            if dynamic:
-                mark(extra_per_block_pos_emb, 2, min=SEQ_MIN, max=seq_max)
-        if dynamic and dynamic_batch:
-            for tensor in (x, emb_B_T_D, crossattn_emb, adaln_lora_B_T_3D, extra_per_block_pos_emb):
-                if tensor is not None and tensor.shape[0] == B:
-                    mark(tensor, 0, min=2, max=BATCH_MAX)
-        out = fn(x, emb_B_T_D, crossattn_emb, attn_params, use_fp32, rope_emb_L_1_1_D, adaln_lora_B_T_3D, extra_per_block_pos_emb)
-        return out.reshape(B, T, H, W, D)
-
-    return call
-
-
-# token counts the dynamic graph covers: a 64x64 px bucket up to 2048x2048 px (16 px per token)
-SEQ_MIN, SEQ_MAX = 16, 16384
-# train_batch_size, set by the runner; the upper bound of the dynamic batch dimension
-BATCH_MAX = int(os.environ.get(BATCH_SIZE_ENV, "0") or 0)
-
-
 # set by main(): writes a notice to the run's events (the Runs page shows it)
 notify = None
-_reported_shapes = set()
 
 
-def report_outside_range(tokens: int, batch: int, seq_max: int):
-    """Once per shape: it is compiled separately, one more graph."""
-    if (tokens, batch) in _reported_shapes:
-        return
-    _reported_shapes.add((tokens, batch))
-    print(f"LoRA-Forge: {tokens} tokens at batch {batch} is outside the range of compile_shapes = bounded "
-          f"({SEQ_MIN}..{seq_max}); this shape is compiled separately", flush=True)
-    if notify is not None:
-        notify("notice", code="dynamic_seq_outside", tokens=tokens, batch=batch, min=SEQ_MIN, max=seq_max)
-
-
-def bounded_patch_problem(anima_models) -> "str | None":
-    """Why bounded_block_call cannot be used with this sd-scripts version, or None. It relies on the
-    block's argument order and on Block._forward flattening (b t h w d) to (b (t h w) d) itself."""
-    import inspect
-
-    expected = ["x_B_T_H_W_D", "emb_B_T_D", "crossattn_emb", "attn_params", "use_fp32",
-                "rope_emb_L_1_1_D", "adaln_lora_B_T_3D", "extra_per_block_pos_emb"]
-    for method in ("forward", "_forward"):
-        params = list(inspect.signature(getattr(anima_models.Block, method)).parameters)[1:]
-        if params != expected:
-            return f"Block.{method} takes ({', '.join(params)})"
-    try:
-        source = inspect.getsource(anima_models.Block._forward)
-    except (OSError, TypeError):
-        return "the source of Block._forward is not available"
-    if source.count('"b t h w d -> b (t h w) d"') < 2:
-        return "Block._forward no longer flattens the token grid for attention"
-    return None
-
-
-def seq_max_for(batch: int, dim: int) -> int:
-    """Largest token count to mark dynamic. Inductor guards that its largest tensor, the MLP's
-    hidden activation (batch, L, 4 * dim), stays 32-bit indexable over the whole range:
-    batch * 4 * dim * L < 2**31 (the guard a too large bound failed on, on the GPU)."""
-    return max(SEQ_MIN, min(SEQ_MAX, (2**31 - 1) // (max(1, batch) * dim * 4)))
-
-
-def install_anima_patches(dynamic_seq: bool = False):
+def install_anima_patches():
     import torch
     from library import anima_models, compile_utils
-
-    if dynamic_seq:
-        problem = bounded_patch_problem(anima_models)
-        if problem:
-            print(f"LoRA-Forge: compile_shapes = bounded does not work with this sd-scripts version ({problem}); "
-                  "compiling with static shapes", flush=True)
-            dynamic_seq = False
 
     # one graph per shape: the block-stack input requires grad like every later block's input
     prepare = anima_models.Anima.prepare_embedded_sequence
@@ -303,26 +198,10 @@ def install_anima_patches(dynamic_seq: bool = False):
     # unsloth offload checkpointing: compile what runs inside the checkpoint, not the wrapper
     compile_transformer = compile_utils.compile_transformer
 
-    class BoundedBlock(torch.nn.Module):
-        """An eager shell around a compiled block that flattens and marks its input (see
-        bounded_block_call). The block stays a child, so its parameters move with .to()."""
-
-        def __init__(self, compiled):
-            super().__init__()
-            self.compiled = compiled
-            self._call = bounded_block_call(compiled)
-
-        def forward(self, *args, **kwargs):
-            return self._call(*args, **kwargs)
-
     def compile_inner(args, transformer, target_blocks, disable_linear):
         blocks = [block for group in target_blocks for block in group]
         unsloth = any(getattr(block, "unsloth_offload_checkpointing", False) and getattr(block, "gradient_checkpointing", False) for block in blocks)
-        # block swap indexes the block list itself; keep sd-scripts' static compile there
-        bounded = dynamic_seq and not disable_linear
-        if dynamic_seq and disable_linear:
-            print("LoRA-Forge: compile_shapes = bounded is not used with blocks_to_swap; compiling with static shapes", flush=True)
-        if not unsloth and not bounded:
+        if not unsloth:
             return compile_transformer(args, transformer, target_blocks, disable_linear)
 
         # sd-scripts' settings (cache size limit, static nn.Module properties) without compiling blocks
@@ -330,30 +209,14 @@ def install_anima_patches(dynamic_seq: bool = False):
         if disable_linear:
             for block in blocks:
                 compile_utils.disable_linear_from_compile(block)
-        if bounded:
-            # only the marked sequence axis is dynamic: no automatic dynamic shapes (pytorch#193194)
-            torch._dynamo.config.automatic_dynamic_shapes = False
-            dynamic = None
-            print(f"LoRA-Forge: compile_shapes = bounded: one graph for every token count from {SEQ_MIN} to {SEQ_MAX}", flush=True)
-        else:
-            dynamic = None if args.compile_dynamic is None else {"true": True, "false": False, "auto": None}[args.compile_dynamic.lower()]
+        dynamic = None if args.compile_dynamic is None else {"true": True, "false": False, "auto": None}[args.compile_dynamic.lower()]
         options = dict(backend=args.compile_backend, mode=args.compile_mode, dynamic=dynamic, fullgraph=args.compile_fullgraph)
-
-        if unsloth:
-            # compile what runs inside the dynamo-disabled checkpoint, not the wrapper
-            print("LoRA-Forge: unsloth offload checkpointing is on, so each block's inner _forward is compiled", flush=True)
-            for block in blocks:
-                compiled = torch.compile(block._forward, **options)
-                block._forward = bounded_block_call(compiled) if bounded else compiled
-            return transformer
-
-        for group in target_blocks:
-            for i, block in enumerate(group):
-                group[i] = BoundedBlock(torch.compile(block, **options))
+        print("LoRA-Forge: unsloth offload checkpointing is on, so each block's inner _forward is compiled", flush=True)
+        for block in blocks:
+            block._forward = torch.compile(block._forward, **options)
         return transformer
 
     compile_utils.compile_transformer = compile_inner
-
 
 GIB = 2**30
 # activation_memory_budget = auto, measured on Anima (rank-32 LoRA, 16 GB card): the peak VRAM above
@@ -699,13 +562,11 @@ def main():
 
     patches = os.environ.get(PATCHES_ENV, "1") != "0"
     if os.path.basename(trainer) == "anima_train_network.py" and patches:
-        install_anima_patches(dynamic_seq=os.environ.get(DYNAMIC_SEQ_ENV) == "1")
+        install_anima_patches()
     if patches:
         install_batched_ppsf()
-    sdxl_flash = patches and os.environ.get(SDXL_FLASH_ENV) == "1"
-    sdxl_compile = patches and os.environ.get(SDXL_COMPILE_ENV) == "1"
-    if (sdxl_flash or sdxl_compile) and os.path.basename(trainer) in SDXL_TRAINERS:
-        load_sibling("sdxl_speed").install(sdxl_flash, sdxl_compile, int(os.environ.get(BATCH_SIZE_ENV) or 1))
+    if patches and os.environ.get(SDXL_COMPILE_ENV) == "1" and os.path.basename(trainer) in SDXL_TRAINERS:
+        load_sibling("sdxl_speed").install_compile()
 
     budget = os.environ.get(MEMORY_BUDGET_ENV)
     if budget and os.path.basename(trainer) == "anima_train_network.py":

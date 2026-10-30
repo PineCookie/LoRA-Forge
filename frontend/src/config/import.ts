@@ -85,7 +85,7 @@ export function expandImportedArgs(config: TrainingConfig): TrainingConfig {
   const precision = trainingPrecisionOf(config);
   if (precision) result.training_precision = precision;
 
-  // compile_shapes is a form-only field that normalizeTrainingConfig() turns into compile_dynamic(_seq)
+  // compile_shapes is a form-only field that normalizeTrainingConfig() turns into compile_dynamic
   const shapes = compileShapesOf(config);
   if (shapes) result.compile_shapes = shapes;
 

@@ -105,12 +105,16 @@ if ($isGui) {
     }
 }
 
-# Once flash-attn is installed (uv sync --extra flash-attn), keep it in sync with the lock file, so
-# it follows PyTorch when an update changes it.
-$extras = @()
-if (Test-Path (Join-Path $ScriptDir ".venv\Lib\site-packages\flash_attn")) { $extras = @("--extra", "flash-attn") }
+# Since PyTorch 2.15 its own attention runs on flash kernels, so flash-attn and xformers are no longer used.
+# `uv run` keeps packages it did not install: remove builds of them made for an older PyTorch.
+$sitePackages = Join-Path $ScriptDir ".venv\Lib\site-packages"
+$stale = @("flash_attn", "xformers") | Where-Object { Test-Path (Join-Path $sitePackages $_) }
+if ($stale) {
+    Write-Host -ForegroundColor Cyan "Removing $($stale -join ' and '), which PyTorch's own attention replaces"
+    uv pip uninstall --python (Join-Path $ScriptDir ".venv") ($stale -replace "_", "-")
+}
 
-uv run --project $ScriptDir @extras python (Join-Path $ScriptDir "main.py") @forwarded
+uv run --project $ScriptDir python (Join-Path $ScriptDir "main.py") @forwarded
 if ($isGui -and $LASTEXITCODE -ne 0) {
     Exit-WithError "LoRA-Forge exited with an error (code $LASTEXITCODE)."
 }

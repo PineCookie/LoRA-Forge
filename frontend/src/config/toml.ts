@@ -14,7 +14,7 @@ const EXTRA_KEYS: Record<string, string[]> = {
   Noise: ["ip_noise_gamma"],
   Saving: ["save_last_n_epochs", "save_n_epoch_ratio"],
   Precision: ["full_fp16", "full_bf16"],
-  "torch.compile": ["compile_dynamic", "compile_dynamic_seq"],
+  "torch.compile": ["compile_dynamic"],
 };
 
 // the page's sections and order (schema/layout.ts)

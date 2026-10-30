@@ -55,15 +55,14 @@ describe("anima defaults", () => {
     expect(values.resolution).toBe("1024x1024");
   });
 
-  it("compiles with bounded shapes, sent as sd-scripts' compile_dynamic plus compile_dynamic_seq", () => {
-    expect(config).toMatchObject({ compile: true, compile_dynamic: "false", compile_dynamic_seq: true });
+  it("compiles with automatic dynamic shapes, sent as sd-scripts' compile_dynamic", () => {
+    expect(config).toMatchObject({ compile: true, compile_dynamic: "auto" });
     expect(config).not.toHaveProperty("compile_shapes");
+    expect(config).not.toHaveProperty("compile_dynamic_seq");
     const shapes = (value: string, compile = true) => readForm({ ...values, compile_shapes: value, compile }, groups);
-    expect(shapes("static")).toMatchObject({ compile_dynamic: "false" });
-    expect(shapes("static")).not.toHaveProperty("compile_dynamic_seq");
-    expect(shapes("auto").compile_dynamic).toBe("auto");
+    expect(shapes("static").compile_dynamic).toBe("false");
     expect(shapes("dynamic").compile_dynamic).toBe("true");
-    expect(shapes("bounded", false)).not.toHaveProperty("compile_dynamic");
+    expect(shapes("auto", false)).not.toHaveProperty("compile_dynamic");
   });
 
   it("submits learning rates as numbers, and leaves the per-part rates to learning_rate until set", () => {
@@ -77,10 +76,11 @@ describe("anima defaults", () => {
 
 describe("compile_shapes import", () => {
   it.each([
-    [{ compile_dynamic: "false", compile_dynamic_seq: true }, "bounded"],
+    // LoRA Forge's former bounded mode, which auto replaces
+    [{ compile_dynamic: "false", compile_dynamic_seq: true }, "auto"],
     [{ compile_dynamic: "false", compile_dynamic_seq: false }, "static"],
     // from before compile_dynamic_seq: false was the only working choice
-    [{ compile_dynamic: "false" }, "bounded"],
+    [{ compile_dynamic: "false" }, "auto"],
     [{ compile_dynamic: "auto" }, "auto"],
     [{ compile_dynamic: "true", compile_dynamic_seq: false }, "dynamic"],
     [{}, undefined],
@@ -145,7 +145,7 @@ describe("rules", () => {
     const config = readForm(values, groups);
     expect(config).toMatchObject({
       model_train_type: "moss-image-lora", resolution: "1024,1024", optimizer_type: "AdamW", network_dim: 32,
-      logit_mean: -1.09, logit_std: 0.95, attn_mode: "auto", compile: true, gradient_checkpointing: true, save_precision: "fp16",
+      logit_mean: -1.09, logit_std: 0.95, compile: true, gradient_checkpointing: true, save_precision: "fp16",
     });
     // the trainer runs at batch 1 and needs no network module
     expect(config).not.toHaveProperty("train_batch_size");

@@ -3,7 +3,6 @@
 import importlib.util
 import os
 import random
-import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from glob import glob
@@ -11,7 +10,7 @@ from typing import Optional, Tuple
 
 import toml
 
-from lora_forge import devices, musubi_tuner, sd_scripts
+from lora_forge import musubi_tuner, sd_scripts
 from lora_forge.i18n import join_list, t
 from lora_forge.log import log
 from lora_forge.training import krea2, moss_image, validation
@@ -294,7 +293,6 @@ def apply_fp16_accumulation(config: dict, environment: dict) -> None:
     log.info("fp16_accumulation: fp16 matrix multiplies accumulate in fp16")
 
 
-SDXL_FLASH_ENV = "LORA_FORGE_SDXL_FLASH"
 SDXL_COMPILE_ENV = "LORA_FORGE_SDXL_COMPILE"
 # tried with SDXL compile: lycoris.kohya fails to compile (Triton "@jit functions should be defined in a
 # Python file"), networks.dylora too (its rank changes every step)
@@ -302,9 +300,8 @@ SDXL_COMPILE_NETWORKS = {"networks.lora", "networks.oft"}
 
 
 def apply_sdxl_speed(config: dict, model_train_type: str, environment: dict) -> None:
-    """SDXL (run_entry.py, sdxl_speed.py): with sdpa, the attention runs on flash-attn when it is installed
-    (PyTorch's Windows builds have no flash kernels for SDPA), and the SDXL LoRA page's compile compiles
-    each transformer and resnet block. sd-scripts' SDXL trainers have no compile option of their own."""
+    """SDXL (run_entry.py, sdxl_speed.py): the SDXL LoRA page's compile compiles each transformer and resnet
+    block. sd-scripts' SDXL trainers have no compile option of their own."""
     if model_train_type not in ("sdxl-lora", "sdxl-finetune"):
         return
     if config.pop("compile", False) and model_train_type == "sdxl-lora":
@@ -314,29 +311,23 @@ def apply_sdxl_speed(config: dict, model_train_type: str, environment: dict) -> 
             log.info("compile: each SDXL transformer and resnet block is compiled")
         else:
             log.info(f"compile is not used with {network}: it fails under torch.compile; training uncompiled")
-    if config.get("sdpa") and not config.get("xformers") and importlib.util.find_spec("flash_attn") is not None:
-        environment[SDXL_FLASH_ENV] = "1"
-        log.info("sdpa: the attention runs on flash-attn")
 
 
-def resolve_attn_mode(config: dict, gpu_ids) -> None:
-    """Anima's attn_mode = auto (the page's default): flash-attn when it can run, else PyTorch's SDPA (torch).
-    sd-scripts calls flash-attn without a fallback, so auto only picks it when it is installed, the run is
-    16-bit (flash-attn has no fp32 kernels) and every training GPU is an RTX 30 or newer (no Turing support)."""
-    if str(config.get("attn_mode", "")).strip().lower() != "auto":
-        return
-    indices = [int(match.group(1)) for gpu in gpu_ids or [] if (match := re.search(r"GPU\s+(\d+)", str(gpu)))] or [0]
-    gpus = devices.gpu_info()
-    if importlib.util.find_spec("flash_attn") is None:
-        reason = "flash-attn is not installed"
-    elif config.get("mixed_precision") not in ("fp16", "bf16"):
-        reason = "flash-attn has no fp32 kernels"
-    elif any(index < len(gpus) and gpus[index]["support"] != "ok" for index in indices):
-        reason = "flash-attn needs an RTX 30 series GPU or newer"
-    else:
-        reason = None
-    config["attn_mode"] = "torch" if reason else "flash"
-    log.info(f"attn_mode auto: PyTorch SDPA ({reason})" if reason else "attn_mode auto: flash-attn")
+def resolve_attention(config: dict) -> None:
+    """PyTorch's SDPA attention runs on flash kernels since PyTorch 2.15, so LoRA Forge no longer installs
+    flash-attn or xformers and its pages no longer offer them. A config from before (attn_mode = auto / flash /
+    xformers on Anima, xformers on the SD pages) uses SDPA unless that package was installed by hand: sd-scripts
+    would fail without it."""
+    attn_mode = str(config.get("attn_mode", "")).strip().lower()
+    package = {"flash": "flash_attn", "xformers": "xformers"}.get(attn_mode)
+    if attn_mode == "auto" or (package and importlib.util.find_spec(package) is None):
+        config["attn_mode"] = "torch"
+        if attn_mode != "auto":
+            log.info(f"attn_mode {attn_mode}: {package} is not installed, using PyTorch's SDPA attention")
+    if config.get("xformers") and importlib.util.find_spec("xformers") is None:
+        config["xformers"] = False
+        config["sdpa"] = True
+        log.info("xformers is not installed, using PyTorch's SDPA attention")
 
 
 def check_step_counts(config: dict) -> None:
@@ -375,24 +366,16 @@ def prepare_training(config: dict) -> PreparedRun:
     trainer_file = TRAINERS.get(model_train_type)
     if trainer_file is None:
         raise TrainingConfigError(t("run.unknownType", type=model_train_type))
-    if model_train_type == "anima-lora":  # Krea 2 and MOSS-Image resolve their own auto
-        resolve_attn_mode(config, gpu_ids)
+    if model_train_type not in (krea2.MODEL_TRAIN_TYPE, moss_image.MODEL_TRAIN_TYPE):  # those resolve their own
+        resolve_attention(config)
+    # compile_shapes = bounded (LoRA Forge's own Anima mode before PyTorch 2.15, which rejects it) becomes
+    # torch.compile's automatic dynamic shapes, which 2.15 fixed
+    if config.pop("compile_dynamic_seq", False) and model_train_type == "anima-lora":
+        config["compile_dynamic"] = "auto"
+        log.info("compile_shapes bounded: using auto, which replaces it since PyTorch 2.15")
 
     # LoRA-Forge's own options, applied by run_entry.py; sd-scripts never sees them.
-    # compile_dynamic_seq is what the web UI sends for compile_shapes = bounded.
-    dynamic_seq = bool(config.pop("compile_dynamic_seq", False)) and model_train_type == "anima-lora" and bool(config.get("compile"))
-    environment = {
-        "LORA_FORGE_COMPILE_DYNAMIC_SEQ": "1" if dynamic_seq else "0",
-        # the upper bound of the dynamic batch dimension
-        "LORA_FORGE_BATCH_SIZE": str(config.get("train_batch_size") or 1),
-    }
-    if dynamic_seq and any(str(arg).split("=", 1)[0].strip() == "include_patterns" for arg in config.get("network_args") or []):
-        # include_patterns can add LoRA to modules sd-scripts excludes by default (AdaLN modulation,
-        # embedders, norms), whose backward sums over the token axis. Inductor's mix-order reduction
-        # then guards at 4096 tokens, which contradicts the bounded token range and fails the first
-        # step (ConstraintViolationError). Turned off only here, as it is faster otherwise.
-        environment["TORCHINDUCTOR_MIX_ORDER_REDUCTION"] = "0"
-        log.info("include_patterns with compile_shapes = bounded: inductor mix-order reduction is off")
+    environment = {}
     apply_activation_memory_budget(config, model_train_type, environment, gpu_count=len(gpu_ids or []))
     if model_train_type != moss_image.MODEL_TRAIN_TYPE:  # LoRA Forge's MOSS-Image trainer reads it itself
         apply_fp16_accumulation(config, environment)

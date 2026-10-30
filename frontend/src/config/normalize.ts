@@ -102,28 +102,22 @@ function applyOptimizerRuleToConfig(config: TrainingConfig) {
   config.optimizer_args.push(...rule.args(config, optimizer).filter(Boolean));
 }
 
-// compile_shapes (a LoRA-Forge option) -> sd-scripts' compile_dynamic; `bounded` also sets
-// compile_dynamic_seq, which the backend turns into run_entry.py's patch (it is not an sd-scripts key)
-const COMPILE_SHAPES: Record<string, { compile_dynamic: string; compile_dynamic_seq?: boolean }> = {
-  bounded: { compile_dynamic: "false", compile_dynamic_seq: true },
-  static: { compile_dynamic: "false" },
+// compile_shapes (a LoRA-Forge option) -> sd-scripts' compile_dynamic
+const COMPILE_SHAPES: Record<string, { compile_dynamic: string }> = {
   auto: { compile_dynamic: "auto" },
+  static: { compile_dynamic: "false" },
   dynamic: { compile_dynamic: "true" },
 };
 
 /** compile_shapes for imported compile_dynamic / compile_dynamic_seq values (the inverse of COMPILE_SHAPES). */
 export function compileShapesOf(config: TrainingConfig): string | undefined {
-  if ("compile_dynamic_seq" in config) {
-    if (config.compile_dynamic_seq) return "bounded";
-  } else if (!("compile_dynamic" in config)) {
-    return undefined;
-  }
+  if (!("compile_dynamic_seq" in config) && !("compile_dynamic" in config)) return undefined;
   const dynamic = String(config.compile_dynamic ?? "false").toLowerCase();
   if (dynamic === "true") return "dynamic";
-  if (dynamic === "auto") return "auto";
-  // a config from before compile_dynamic_seq existed had false only because nothing else worked;
-  // bounded trains the same and compiles once
-  return "compile_dynamic_seq" in config ? "static" : "bounded";
+  // compile_dynamic_seq was LoRA Forge's `bounded` mode, which `auto` replaces since PyTorch 2.15; a config from
+  // before compile_dynamic_seq existed had false only because auto failed then
+  if (dynamic === "auto" || config.compile_dynamic_seq || !("compile_dynamic_seq" in config)) return "auto";
+  return "static";
 }
 
 // training_precision (Anima, SD1.5, SDXL: one choice) as sd-scripts' keys. Its fp16 choices also take

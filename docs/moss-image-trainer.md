@@ -120,8 +120,8 @@ Measurements (a 16 GB card, 1 MP, rank 32, batch 1):
 
 | | s/step |
 |---|---|
-| SDPA, no compile | 2.93 |
-| flash-attn + per-block compile (default) | 2.10 |
+| SDPA without flash kernels (torch 2.14 on Windows), no compile | 2.93 |
+| flash attention + per-block compile (default) | 2.10 |
 | + fp16 with fp16 accumulation | 1.54 |
 
 Matmuls take about 68% of the GPU time and flash attention 23%. Against an fp32 reference computed on

@@ -111,8 +111,14 @@ def prepare_config(config: dict, dataset_config_path: str, environment: dict) ->
     attn_mode = str(config.pop("attn_mode", "") or "").strip().lower()
     attention = ATTENTION_FLAGS.get(attn_mode)
     if attention is None and (attn_mode == "auto" or not any(config.get(flag) for flag in set(ATTENTION_FLAGS.values()))):
-        # flash-attn is markedly faster on Krea 2; the GUI and the trainer share one venv
+        # since PyTorch 2.15, SDPA runs on flash kernels (about as fast as flash-attn on Krea 2); a flash-attn
+        # installed by hand is still used. The GUI and the trainer share one venv
         attention = "flash_attn" if importlib.util.find_spec("flash_attn") else "sdpa"
+    # an older config may ask for a package LoRA Forge no longer installs; musubi would fail without it
+    for flag, package in (("flash_attn", "flash_attn"), ("xformers", "xformers")):
+        if (attention == flag or (attention is None and config.get(flag))) and importlib.util.find_spec(package) is None:
+            config.pop(flag, None)
+            attention = "sdpa"
     if attention:
         for flag in set(ATTENTION_FLAGS.values()):
             config.pop(flag, None)

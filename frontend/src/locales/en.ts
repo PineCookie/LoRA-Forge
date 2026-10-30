@@ -82,8 +82,7 @@ const en = {
   "runs.stat.loss": "Average loss",
   "runs.stat.graphs": "Compiled graphs",
   "runs.stat.graphsTitle": "Graphs torch.compile has built so far: about one per bucket shape (and batch size)",
-  "runs.notice.recompileLimit": "torch.compile reached its limit of {limit} graphs: bucket shapes seen after that run without compile, which is slower. Set compile_shapes to bounded, raise compile_cache_size_limit, or use fewer bucket sizes (a larger bucket_reso_steps).",
-  "runs.notice.dynamicSeqOutside": "A {side}x{side} px bucket ({tokens} tokens) at batch {batch} is outside the range of compile_shapes = bounded (up to {max} tokens), so it is compiled separately: one more graph for each such shape.",
+  "runs.notice.recompileLimit": "torch.compile reached its limit of {limit} graphs: bucket shapes seen after that run without compile, which is slower. Set compile_shapes to auto, raise compile_cache_size_limit, or use fewer bucket sizes (a larger bucket_reso_steps).",
   "runs.legend.raw": "raw",
   "runs.legend.toggle": "Show or hide this line; the axis fits the lines shown",
   "runs.notice.vramSpill": "This training does not fit in the GPU's memory ({total} GB, shared with the display and other programs): Windows moved {gib} GB of it to system RAM, which makes steps much slower. Raise blocks_to_swap where the page has it, lower train_batch_size or the resolution, keep gradient_checkpointing on, or close programs that use the GPU.",
@@ -134,7 +133,7 @@ const en = {
   "trainer.whenOff": "shown with {name} off",
   "trainer.startBlocked": "{count} marked options to fix first",
   "trainer.blockingTitle": "{count} to fix before starting",
-  "trainer.note.compile": "⚠ Needs sd-scripts v0.11.1+. compile_shapes = bounded (the default) compiles one graph for every bucket and batch size.",
+  "trainer.note.compile": "⚠ Needs sd-scripts v0.11.1+. compile_shapes = auto (the default) shares graphs across bucket and batch sizes.",
   "trainer.note.lossAnima":
     "Anima uses the FlowMatch scheduler: the snr Huber schedule is not supported, and exponential may run on the network training path, but its timestep scaling makes it close to constant. constant is usually the better choice.",
   "trainer.note.lossMinSnr": "Min-SNR and Debiased Estimation loss have similar effects; enabling both is usually not recommended.",

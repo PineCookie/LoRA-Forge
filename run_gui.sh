@@ -36,11 +36,17 @@ if [[ ! -d "$script_dir/.venv" ]]; then
     echo "First start: installing dependencies (PyTorch etc.), this can take a while..."
 fi
 
-# Once flash-attn is installed (uv sync --extra flash-attn), keep it in sync with the lock file, so
-# it follows PyTorch when an update changes it.
-extras=()
-if compgen -G "$script_dir/.venv/lib/python3*/site-packages/flash_attn" >/dev/null; then
-    extras=(--extra flash-attn)
+# Since PyTorch 2.15 its own attention runs on flash kernels, so flash-attn and xformers are no longer used.
+# `uv run` keeps packages it did not install: remove builds of them made for an older PyTorch.
+stale=()
+for package in flash_attn xformers; do
+    if compgen -G "$script_dir/.venv/lib/python3*/site-packages/$package" >/dev/null; then
+        stale+=("${package//_/-}")
+    fi
+done
+if (( ${#stale[@]} )); then
+    echo "Removing ${stale[*]}, which PyTorch's own attention replaces"
+    uv pip uninstall --python "$script_dir/.venv" "${stale[@]}"
 fi
 
-exec uv run --project "$script_dir" "${extras[@]}" python "$script_dir/main.py" "${forwarded[@]}"
+exec uv run --project "$script_dir" python "$script_dir/main.py" "${forwarded[@]}"

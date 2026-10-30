@@ -71,7 +71,7 @@ with images and `.txt` captions). Only single-GPU training is offered.
 ## Memory and speed
 
 On a 16 GB card at about 1 megapixel, rank 32: **2.1 s per step** with the defaults,
-**1.5 s** with `training_precision = fp16`, 2.9 s without flash-attn. The run peaks at about
+**1.5 s** with `training_precision = fp16`. The run peaks at about
 12-13 GB of VRAM.
 
 - **`training_precision`** (default `bf16`): `fp16` runs the block matrix multiplies in fp16 with
@@ -88,8 +88,8 @@ On a 16 GB card at about 1 megapixel, rank 32: **2.1 s per step** with the defau
   default) keeps the copies alongside the computation: without it, 40 blocks were 53% slower.
 - **`compile`** (default on): per-block torch.compile, about 30% faster. It builds a few graphs
   for all bucket sizes; the first steps are slower while it compiles.
-- **`attn_mode`** (default `auto`): FlashAttention when [flash-attn](../README.md#flash-attn-optional)
-  is installed, otherwise PyTorch's SDPA.
+- **Attention**: PyTorch's SDPA, which runs on flash kernels since PyTorch 2.15 (with its older
+  kernels a step took 2.9 s), so the page has no attention option.
 
 ## Training settings
 

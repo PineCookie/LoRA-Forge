@@ -41,7 +41,6 @@ const ESSENTIAL_FIELDS = new Set([
   "blocks_to_swap",
   "fp8_base",
   "convrot_int8",
-  "attn_mode",
   "qwen_image_vae_2d",
   "compile",
   // the page only has it with two or more GPUs, and then which one trains matters

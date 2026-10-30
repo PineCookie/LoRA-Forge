@@ -62,9 +62,7 @@ export function sectionSummary(section: MergedSectionId, values: FormValues): st
       if (Number(values.blocks_to_swap) > 0) add(t("summary.swap", { count: text(values.blocks_to_swap) }));
       break;
     case "speed":
-      add(values.attn_mode);
       if (values.sdpa === true) add("sdpa");
-      if (values.xformers === true) add("xformers");
       if (values.compile === true) add(t("summary.compiled"));
       break;
   }

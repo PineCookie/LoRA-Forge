@@ -33,11 +33,6 @@ export interface RunNotice {
   limit?: number;
   graphs?: number;
   text?: string;
-  /** dynamic_seq_outside: the first shape outside compile_dynamic_seq's range */
-  tokens?: number;
-  batch?: number;
-  min?: number;
-  max?: number;
   /** vram_spill: GiB moved to system RAM (the largest amount seen), and the card's size */
   gib?: number;
   total_gib?: number;

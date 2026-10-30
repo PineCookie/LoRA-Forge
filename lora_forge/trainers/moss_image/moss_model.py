@@ -17,7 +17,7 @@ import moss_swap
 
 try:
     from flash_attn import flash_attn_func
-except ImportError:
+except Exception:  # not installed, or built for another PyTorch: SDPA, which runs on flash kernels since 2.15
     flash_attn_func = None
 
 # set by the trainer: "flash_attn" or "sdpa"

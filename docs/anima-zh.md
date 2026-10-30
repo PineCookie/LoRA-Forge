@@ -36,7 +36,7 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 
 | 选项 | |
 |---|---|
-| `attn_mode` | `auto`（默认）：已安装 [flash-attn](../README-zh.md#flash-attn可选) 且可用时（16 位训练、RTX 30 系列或更新的显卡）使用 `flash`，否则使用 `torch`（PyTorch SDPA）。也可以手动选择 `torch`、`xformers` 或 `flash`。取代其他模型的 `xformers` / `sdpa` 开关 |
+| 注意力 | PyTorch 的 SDPA，自 PyTorch 2.15 起使用 flash 内核，因此页面上没有注意力选项。旧配置中的 `attn_mode = flash` 或 `xformers` 只在已安装对应包时使用，否则使用 `torch` |
 | `split_attn` | 只省显存；不能与 `compile_fullgraph` 同时使用 |
 | `timestep_sampling` | `sigma`、`uniform`、`sigmoid`（默认）、`shift`、`flux_shift` |
 | `discrete_flow_shift` | 只在 `timestep_sampling = sigma` 或 `shift` 时使用 |
@@ -52,16 +52,16 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
   缓存是同一份，切换时不需要重新缓存。
 - **`compile`**（默认开启）：逐 block 的 `torch.compile`。编译期间最初几步较慢，之后明显加速；编译结果会缓存，
   之后的训练启动更快。不需要 C++ 编译器（只有 `compile_shapes = dynamic` 需要）。如果编译失败，请关闭 `compile`，训练会以未编译的方式运行。
-  - `compile_shapes` 决定不同分桶尺寸和批大小如何编译：
-    - **`bounded`**（默认，LoRA-Forge 的模式）：所有分桶尺寸和批大小共用一个编译图，只有 token 数量和批大小是动态的。
-      在一个 20 个分桶的数据集上，编译图从 28 个降到 2 个，loss 不变；一个 epoch 在编译缓存已就绪时快 11%，
-      缓存为空时快 55%（批大小 4）。它覆盖最大 2048x2048 px 的分桶，超出范围的形状会单独编译，「运行记录」页面会提示。
-      与 `blocks_to_swap` 同时使用时等同于 `static`。
+  - `compile_shapes` 决定不同分桶尺寸和批大小如何编译（即 sd-scripts 的 `compile_dynamic`）：
+    - **`auto`**（默认）：第一种形状编译一个图；从第二种形状开始，发生变化的尺寸变为动态，共用一个图。之后还可能多出几个
+      （只在后来才变化的维度、较小的最后一批、批大小 1）。在一个有 6 种分桶尺寸的测试中：编译图从 6 个降到 2 个，
+      每步耗时和 loss 不变，编译缓存为空时整次训练少用 22% 的时间。
     - **`static`**：每个分桶尺寸（以及每个较小的最后一批）都要编译自己的图，上限为 `compile_cache_size_limit`（64）；
       超过后，新的尺寸将不经编译运行。「运行记录」页面会显示已编译的图数，并在达到上限时提示。
-    - **`auto`** / **`dynamic`**：torch.compile 自带的动态形状（即 sd-scripts 的 `compile_dynamic`）。在 torch 2.14 上会失败，
-      见下文 [PyTorch #193194](#pytorch-193194)。Windows 上 `dynamic` 需要 VS 2022 C++ 编译器。
-  - 由于 `bounded` 下多出来的分桶尺寸不再带来额外编译，`bucket_reso_steps = 16`（默认）可以放心使用：在一个 36 张图的数据集上，
+    - **`dynamic`**：从一开始就用一个图覆盖所有尺寸（同一测试中为 1 个图，每步耗时相同）。Windows 上需要 VS 2022 C++
+      编译器，`run_gui.ps1` 找到它时会自动加载。如果编译报 `C1083`（无法打开编译器生成的文件），说明编译缓存的路径过长：
+      请把 `TORCHINDUCTOR_CACHE_DIR` 设为较短的文件夹，例如 `C:\torch_cache`。
+  - 由于 `auto` 或 `dynamic` 下多出来的分桶尺寸最多只带来少数几次额外编译，`bucket_reso_steps = 16`（默认）可以放心使用：在一个 36 张图的数据集上，
     平均裁剪面积从 1.32%（步长 64）降到 0.34%，每个 epoch 只多 2 个 batch。
   - `activation_memory_budget`（默认 `off`）用空余显存换速度，代替梯度检查点（它让每个 block 的前向跑两遍）：
     每个已编译的 block 保留最多这一比例的激活，只重算其余部分，loss 不变。数值越大越快，但需要更多显存。
@@ -111,22 +111,20 @@ sd-scripts 会忽略它不认识的配置键，所以在旧版本上，某个选
 | 开了加速选项但速度没变 | sd-scripts 版本过旧，选项被忽略；查看首页的 **系统信息** |
 | loss 变成 NaN | 更新 PyTorch；Anima 需要较新的 2.x |
 | 第一步报 Inductor 或 Triton 错误 | 关闭 `compile`，并反馈该错误 |
-| 第一步报 `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` | `compile_shapes` 为 `dynamic` 或 `auto`；见下文 |
 | 第一步报 `CUDA driver error: device not ready` | 使用 `activation_memory_budget` 时显存不足：请选更小的比例或 `off` |
-| 大量 `remark: <file>:<line>:0: N instructions in function` | 旧版 triton-windows（3.8.0.post28，[#54](https://github.com/triton-lang/triton-windows/issues/54)）；锁文件安装的是 post29，执行 `uv sync` 即可 |
 | 时间步预览没有输出 | 结果在「运行记录」页面该次运行的控制台输出中 |
 
-### PyTorch #193194
+### PyTorch 2.15 之前
 
-`compile_shapes = dynamic` 或 `auto`（即 sd-scripts 的 `compile_dynamic = true` / `auto`）时，torch 2.14（及更早版本）
-会在第一步报上面的 `lift_tracked_freevar_to_input` 断言：这是 Dynamo 在动态形状 + 梯度检查点下的 bug
-（[issue](https://github.com/pytorch/pytorch/issues/193194)，由 [PR #193254](https://github.com/pytorch/pytorch/pull/193254) 修复，
-预计进入 torch 2.15）。请使用 `bounded`（默认）：它能获得动态形状的好处，又不会触发它。
+在 torch 2.14 及更早版本上，`compile_dynamic = true` / `auto` 会在第一步报 `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer`，
+这是 Dynamo 在动态形状 + 梯度检查点下的 bug（[issue](https://github.com/pytorch/pytorch/issues/193194)，
+由 [PR #193254](https://github.com/pytorch/pytorch/pull/193254) 在 torch 2.15 中修复）。LoRA Forge 曾为此提供自己的模式
+`compile_shapes = bounded`，但 torch 2.15 不接受它；使用它的配置现在会改用 `auto`。
 
 ## 运行时依赖
 
-- `pyproject.toml` 把 torch 限制在 2.15 以下；triton-windows 为 3.8.x（3.8 支持 torch 2.14 和 2.15）。
-- xformers 和 flash-attn 需要与已安装 torch 版本对应的 wheel。
+- CUDA 13.2 版的 torch 2.15（`pyproject.toml` 中限制在 2.16 以下），配合 triton 3.9。它自带的 SDPA 注意力使用 flash 内核，
+  因此不再安装 flash-attn 和 xformers。
 - 升级 torch 或 Triton 会让编译缓存（`TORCHINDUCTOR_CACHE_DIR`、`TRITON_CACHE_DIR`）失效，下一次训练会重新编译一次。
 
 ## 使用训练好的 LoRA

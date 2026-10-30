@@ -82,21 +82,23 @@ describe("typical Anima config", () => {
     expect(values.prodigyplus_prodigy_steps).toBe("1073");
     expect(values.network_reg_lrs).toBe(".*self_attn.*=1.0,.*cross_attn.*=1.0,.*mlp.*=1.0");
     // compile_dynamic = "false" from before compile_dynamic_seq existed
-    expect(values.compile_shapes).toBe("bounded");
+    expect(values.compile_shapes).toBe("auto");
   });
 
   it("reports only the keys the Anima page has no option for", () => {
     const unused = Object.keys(source).filter((name) => !fields.has(name) && !EXPANDED_KEYS.has(name));
     // llm_adapter_lr: sd-scripts only reads it for full fine-tuning, so the LoRA page has no option
-    expect(unused.sort()).toEqual(["llm_adapter_lr", "sdpa", "weighted_captions", "xformers"]);
+    // attn_mode: PyTorch's attention runs on flash kernels since 2.15, so the page no longer offers flash-attn
+    expect(unused.sort()).toEqual(["attn_mode", "llm_adapter_lr", "sdpa", "weighted_captions", "xformers"]);
   });
 
   it("exports the same training arguments", () => {
     expect(config.optimizer_args).toEqual(expect.arrayContaining(["d_coef=1.0", "betas=(0.95, 0.99)", "schedulefree_c=20", "prodigy_steps=1073"]));
     expect(config.network_args).toEqual(["network_reg_lrs=.*self_attn.*=1.0,.*cross_attn.*=1.0,.*mlp.*=1.0"]);
-    for (const key of ["attn_mode", "compile", "compile_dynamic", "qwen_image_vae_2d", "full_bf16", "max_grad_norm", "keep_tokens", "bucket_reso_steps", "learning_rate"]) {
+    for (const key of ["compile", "qwen_image_vae_2d", "full_bf16", "max_grad_norm", "keep_tokens", "bucket_reso_steps", "learning_rate"]) {
       expect(config[key], key).toEqual(source[key]);
     }
+    expect(config.compile_dynamic).toBe("auto");
   });
 
   it("keeps most of what such a run changes in Essentials", () => {

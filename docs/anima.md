@@ -39,7 +39,7 @@ whether the file exists and is the right one (for example not the Qwen-Image 2.1
 
 | Option | |
 |---|---|
-| `attn_mode` | `auto` (default): `flash` when [flash-attn](../README.md#flash-attn-optional) is installed and can run (a 16-bit run on an RTX 30 or newer), otherwise `torch` (PyTorch SDPA). Or choose `torch`, `xformers` or `flash` yourself. Replaces the `xformers` / `sdpa` switches of other models |
+| attention | PyTorch's SDPA, which runs on flash kernels since PyTorch 2.15, so the page has no attention option. An older config's `attn_mode = flash` or `xformers` is used only when that package is installed, otherwise `torch` |
 | `split_attn` | saves VRAM only; cannot be combined with `compile_fullgraph` |
 | `timestep_sampling` | `sigma`, `uniform`, `sigmoid` (default), `shift`, `flux_shift` |
 | `discrete_flow_shift` | only used with `timestep_sampling = sigma` or `shift` |
@@ -59,19 +59,21 @@ whether the file exists and is the right one (for example not the Qwen-Image 2.1
   it compiles, later ones clearly faster; the compiled code is cached, so later runs start faster.
   It needs no C++ compiler (only `compile_shapes = dynamic` does). If compiling fails, turn
   `compile` off: training then runs uncompiled.
-  - `compile_shapes` sets how different bucket and batch sizes are compiled:
-    - **`bounded`** (the default, a LoRA-Forge mode) compiles one graph for all bucket and batch
-      sizes; only the token count and batch are dynamic. On a 20-bucket dataset that is 2 graphs
-      instead of 28, with the same loss: an epoch was 11% faster with a warm compile cache and 55%
-      faster with a cold one (batch 4). It covers buckets up to 2048x2048 px; anything outside is
-      compiled separately and the Runs page says so. With `blocks_to_swap` it works like `static`.
+  - `compile_shapes` sets how different bucket and batch sizes are compiled (sd-scripts'
+    `compile_dynamic`):
+    - **`auto`** (the default): the first shape gets a graph of its own; from the second one on, the
+      sizes that changed become dynamic and share a graph. A few more can follow (a dimension that
+      only changes later, a smaller last batch, batch size 1). On a test with 6 bucket sizes: 2 graphs
+      instead of 6, the same step time and loss, and 22% less time for the whole run with an empty
+      compile cache.
     - **`static`**: every bucket size (and every smaller last batch) compiles its own graph, up to
       `compile_cache_size_limit` (64); past that, new sizes run uncompiled. The Runs page shows the
       graph count and warns when the limit is reached.
-    - **`auto`** / **`dynamic`**: torch.compile's own dynamic shapes (sd-scripts'
-      `compile_dynamic`). They fail on torch 2.14, see [PyTorch #193194](#pytorch-193194) below.
-      On Windows, `dynamic` needs the VS 2022 C++ compiler.
-  - Because extra bucket sizes cost no compiles with `bounded`, `bucket_reso_steps = 16` (the
+    - **`dynamic`**: one graph for all sizes from the start (1 graph in the same test, the same step
+      time). On Windows it needs the VS 2022 C++ compiler, which `run_gui.ps1` loads when it finds
+      it. If compiling fails with `C1083` (cannot open a compiler-generated file), the compile cache's
+      path is too long: set `TORCHINDUCTOR_CACHE_DIR` to a short folder such as `C:\torch_cache`.
+  - Because extra bucket sizes cost at most a few compiles with `auto` or `dynamic`, `bucket_reso_steps = 16` (the
     default) is fine: on a 36-image dataset it cut the average crop from 1.32% (step 64) to 0.34%
     for 2 more batches per epoch.
   - `activation_memory_budget` (default `off`) trades spare VRAM for speed in place of gradient
@@ -135,25 +137,21 @@ positive values high noise (structure)**.
 | A speed option changes nothing | sd-scripts is too old and ignores it; check **System info** on the home page |
 | Loss becomes NaN | update PyTorch; Anima needs a recent 2.x |
 | A run fails at its first step with an Inductor or Triton error | turn off `compile` and report the error |
-| `AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer` on the first step | `compile_shapes` is `dynamic` or `auto`; see below |
 | `CUDA driver error: device not ready` on the first step | out of VRAM with `activation_memory_budget`: pick a lower fraction or `off` |
-| Lots of `remark: <file>:<line>:0: N instructions in function` | an older triton-windows (3.8.0.post28, [#54](https://github.com/triton-lang/triton-windows/issues/54)); the lock file installs post29, so run `uv sync` |
 | Timestep preview shows nothing | its output is the run's console output on the Runs page |
 
-### PyTorch #193194
+### Before PyTorch 2.15
 
-With `compile_shapes = dynamic` or `auto` (sd-scripts' `compile_dynamic = true` / `auto`), torch
-2.14 (and earlier) fails on the first step with the `lift_tracked_freevar_to_input` assertion
-above: a Dynamo bug with dynamic shapes and gradient checkpointing
-([issue](https://github.com/pytorch/pytorch/issues/193194), fixed by
-[PR #193254](https://github.com/pytorch/pytorch/pull/193254), expected in torch 2.15). Use
-`bounded` (the default), which gives the benefit of dynamic shapes without triggering it.
+On torch 2.14 and earlier, `compile_dynamic = true` / `auto` failed on the first step with
+`AssertionError: lift_tracked_freevar_to_input should not be called on root SubgraphTracer`, a Dynamo
+bug with dynamic shapes and gradient checkpointing ([issue](https://github.com/pytorch/pytorch/issues/193194),
+fixed by [PR #193254](https://github.com/pytorch/pytorch/pull/193254) in torch 2.15). LoRA Forge had its
+own mode for it, `compile_shapes = bounded`, which torch 2.15 rejects; configs that use it now get `auto`.
 
 ## Runtime dependencies
 
-- torch is capped below 2.15 in `pyproject.toml`; triton-windows is 3.8.x (3.8 supports torch
-  2.14 and 2.15).
-- xformers and flash-attn need wheels built for the installed torch version.
+- torch 2.15 for CUDA 13.2 (capped below 2.16 in `pyproject.toml`) with triton 3.9. Its own SDPA
+  attention runs on flash kernels, so flash-attn and xformers are not installed.
 - Updating torch or Triton invalidates the compile caches (`TORCHINDUCTOR_CACHE_DIR`,
   `TRITON_CACHE_DIR`); the next run compiles again once.
 

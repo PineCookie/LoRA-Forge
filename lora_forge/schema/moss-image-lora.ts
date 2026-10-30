@@ -124,7 +124,6 @@ Schema.intersect([
     Schema.object({
         training_precision: Schema.union(["bf16", "fp16"]).default("bf16").description("Precision of the DiT's matrix multiplies (the LoRA weights always train in fp32).<br>`bf16`: the standard.<br>`fp16`: the block matrix multiplies run in fp16 with loss scaling. With fp16_accumulation about a quarter faster per step on GeForce RTX cards, and as close to fp32 as bf16 in our tests"),
         fp16_accumulation: Schema.boolean().default(true).description("Let fp16 matrix multiplies add up in fp16 too: much faster on GeForce RTX cards (no gain on data-center or RTX PRO cards), still about as precise as bf16"),
-        attn_mode: Schema.union(["auto", "flash_attn", "sdpa"]).default("auto").description("Attention implementation. auto = flash_attn when flash-attn is installed (faster), otherwise sdpa (PyTorch)"),
         compile: Schema.boolean().default(true).description("Speed up MOSS-Image with per-block torch.compile (about 30% faster per step; needs Triton, which LoRA Forge installs). The first steps of a run are slower while it compiles; turn it off if compiling fails"),
         compile_cache_size_limit: Schema.number().min(1).step(1).default(64).description("Most graphs torch.compile builds per block before it stops compiling new shapes (they then run uncompiled, slower). MOSS-Image needs only a few for all bucket sizes"),
     }),

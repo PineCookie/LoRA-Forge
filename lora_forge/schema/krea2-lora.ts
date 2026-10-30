@@ -149,8 +149,7 @@ Schema.intersect([
         convrot_int8_bwd: Schema.union(["bf16", "int8"]).default("bf16").description("Backward pass with convrot_int8: `bf16` is exact, `int8` is faster without gradient checkpointing but quantizes the gradients a little"),
         fp8_base: Schema.boolean().default(false).description("Keep the frozen base weights in scaled fp8 (needs a bf16 DiT file; sets fp8_scaled too). Same VRAM as convrot_int8 but slower on Krea 2, which dequantizes per forward. Turning it on turns convrot_int8 off"),
         // no sage_attn: SageAttention has no backward pass, so it cannot train
-        attn_mode: Schema.union(["auto", "sdpa", "flash_attn", "xformers"]).default("auto").description("Attention implementation. auto = flash_attn when flash-attn is installed (clearly faster on Krea 2), otherwise sdpa (PyTorch); xformers needs xformers"),
-        split_attn: Schema.boolean().default(false).description("Split attention per sample to save a little VRAM; always on with xformers"),
+        split_attn: Schema.boolean().default(false).description("Split attention per sample to save a little VRAM"),
         blocks_to_swap: Schema.number().min(0).max(26).step(1).default(18).description("Blocks kept in system RAM and moved to the GPU when used (up to 26 of 28). With the two options below the step time barely changes, so more blocks mostly cost RAM; fewer leave less VRAM free. 0 keeps the whole model on the GPU"),
         use_pinned_memory_for_block_swap: Schema.boolean().default(true).description("Pinned RAM for the swapped blocks: much faster transfers. Pinned RAM cannot be paged out (about 0.5 GB per swapped block); Windows' Task Manager shows it as shared GPU memory"),
         block_swap_h2d_only: Schema.boolean().default(true).description("Swapped blocks are only copied RAM to GPU, never back (the base is frozen), which saves the return copy. Experimental upstream; needs gradient_checkpointing"),

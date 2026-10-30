@@ -254,7 +254,7 @@ class Trainer:
         attn_mode = str(config["attn_mode"] or "auto").lower()
         if attn_mode in ("auto", "flash", "flash_attn"):
             if moss_model.flash_attn_func is None and attn_mode != "auto":
-                raise SystemExit("attn_mode flash_attn needs flash-attn (uv sync --extra flash-attn)")
+                raise SystemExit("attn_mode flash_attn needs the flash-attn package; leave attn_mode on auto to use PyTorch's SDPA")
             attn_mode = "flash_attn" if moss_model.flash_attn_func is not None else "sdpa"
         moss_model.ATTENTION["mode"] = attn_mode
         print(f"LoRA-Forge: loading the MOSS-Image DiT, attention {attn_mode}", flush=True)
